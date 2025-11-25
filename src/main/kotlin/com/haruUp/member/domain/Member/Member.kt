@@ -5,6 +5,7 @@ import jakarta.persistence.*
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
 
+// 전면 수정
 @Entity
 class Member (
 
