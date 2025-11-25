@@ -29,6 +29,7 @@ class MemberValidator(
         val password = dto.password
             ?: throw BusinessException(ErrorCode.INVALID_INPUT, "COMMON 회원가입에는 password가 필요합니다.")
 
+
         val exists = memberService.findByEmailAndLoginType(email, LoginType.COMMON)
 
         if (exists != null) {
