@@ -16,8 +16,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE DATABASE haruup
         OWNER haruup_user
         ENCODING 'UTF8'
-        LC_COLLATE 'en_US.UTF-8'
-        LC_CTYPE 'en_US.UTF-8'
+        LC_COLLATE 'C'
+        LC_CTYPE 'ko_KR.UTF-8'
         TEMPLATE template0;
 
     -- haruup_user가 다른 데이터베이스에 접근하지 못하도록 기본 권한 제거
