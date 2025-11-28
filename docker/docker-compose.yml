@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/app/Dockerfile
+    container_name: app
+    restart: unless-stopped
+    env_file:
+      - ../src/main/resources/env.properties
+    ports:
+      - "8080:8080"
+    network_mode: host
+
+  postgres:
+    build:
+      context: ./pgsql
+      dockerfile: Dockerfile
+    container_name: postgres
+    restart: unless-stopped
+    env_file:
+      - ./pgsql/.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./pgsql:/postgres_17_6
+    shm_size: "1g"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  redis:
+    build:
+      context: ./redis
+      dockerfile: Dockerfile
+    container_name: redis
+    restart: unless-stopped
+    env_file:
+      - ./redis/.env
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

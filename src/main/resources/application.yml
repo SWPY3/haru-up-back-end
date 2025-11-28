@@ -2,20 +2,31 @@ spring:
   application:
     name: haruUp
 
+  profiles:
+    active: ${APPS_ENV}  # dev = Swagger 활성화 | prod = Swagger 비활성화
+
   config:
     import: classpath:env.properties
 
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MY_SQL_END_POINT}:3306/${MY_SQL_DB_NAME}?serverTimezone=Asia/Seoul
-    #useSSL=false&serverTimezone=Asia/Seoul
-    username: ${MY_SQL_DB_USERNAME}
-    password: ${MY_SQL_DB_PASSWORD}
+    # PostgreSQL (Local Docker)
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+    # MySQL (External - uncomment to use)
+    #driver-class-name: com.mysql.cj.jdbc.Driver
+    #url: jdbc:mysql://${MY_SQL_END_POINT}:3306/${MY_SQL_DB_NAME}?serverTimezone=Asia/Seoul
+    #username: ${MY_SQL_DB_USERNAME}
+    #password: ${MY_SQL_DB_PASSWORD}
 
   jpa:
     show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         use_sql_comments: false
         default_batch_fetch_size: 1000
@@ -26,6 +37,12 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
 
 
 logging:
@@ -41,4 +58,4 @@ jwt:
 
 
 server:
-  port: 7000
+  port: 8080
