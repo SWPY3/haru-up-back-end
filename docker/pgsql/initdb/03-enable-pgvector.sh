@@ -3,8 +3,8 @@ set -e
 
 echo "Enabling pgvector extension..."
 
-# haruup 데이터베이스에 pgvector 확장 설치
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "haruup" <<-EOSQL
+# haruup 데이터베이스에 pgvector 확장 설치 (postgres 슈퍼유저로 실행)
+psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "haruup" <<-EOSQL
     -- pgvector 확장 활성화
     CREATE EXTENSION IF NOT EXISTS vector;
 
