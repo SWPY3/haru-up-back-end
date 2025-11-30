@@ -7,6 +7,12 @@ ENV POSTGRES_USER=postgres \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
+# Install pgvector extension from official PostgreSQL repository
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-17-pgvector && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /postgres_17_6
 
