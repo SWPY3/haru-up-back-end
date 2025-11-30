@@ -1,8 +1,11 @@
-package com.haruUp.member.domain.Member
+package com.haruUp.member.domain.dto
 
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.Member
+import com.haruUp.member.domain.type.MemberStatus
+import com.haruUp.member.domain.ValidationMessage
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
-
 
 class MemberDto(
 
@@ -20,13 +23,15 @@ class MemberDto(
 
     val snsId: String ?= "",
 
+    val status : MemberStatus?= MemberStatus.ACTIVE,
+
     var accessToken : String ?= "",
 
     var refreshToken : String ?= ""
 
 ) {
     // JPA가 사용할 기본 생성자
-    protected constructor() : this(null, "", "", "", null, "" ,"" , "")
+    protected constructor() : this(null, "", "", "", null, "" , MemberStatus.ACTIVE , "", "")
 
     fun toEntity() : Member =
         Member(
@@ -36,19 +41,6 @@ class MemberDto(
             email = this.email,
             loginType = this.loginType,
             snsId = this.snsId,
+            status = this.status
         )
-
-
-    companion object {
-        fun fromEntity(member: Member): MemberDto {
-            return MemberDto(
-                id = member.id,
-                name = member.name,
-                password = member.password,
-                email = member.email,
-                loginType = member.loginType,
-                snsId = member.snsId,
-            )
-        }
-    }
 }

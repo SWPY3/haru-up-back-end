@@ -1,6 +1,9 @@
-package com.haruUp.member.domain.Member
+package com.haruUp.member.domain
 
 import com.haruUp.global.common.BaseEntity
+import com.haruUp.member.domain.dto.MemberDto
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.type.MemberStatus
 import jakarta.persistence.*
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
@@ -15,7 +18,6 @@ class Member (
     @Column(nullable = false)
     var name: String? = "",
 
-    @Column(nullable = false)
     @param:Pattern(regexp = "^[a-zA-Z0-9!@#$%^&*]{8,16}$", message = ValidationMessage.PASSWORD)
     var password: String? = "",
 
@@ -23,24 +25,27 @@ class Member (
     var email : String ?= "",
 
     @Column(nullable = false) @Enumerated(EnumType.STRING)
-    var loginType : LoginType ?= LoginType.COMMON,
+    var loginType : LoginType?= LoginType.COMMON,
 
-    var snsId : String ?= ""
+    var snsId : String ?= "",
 
+    @Column(nullable = false) @Enumerated(EnumType.STRING)
+    var status : MemberStatus?= MemberStatus.ACTIVE,
 
-) : BaseEntity() {
+    ) : BaseEntity() {
     // JPA가 사용할 기본 생성자
-    protected constructor() : this(null, "", "" , "", null, "")
+    protected constructor() : this(null, "", "" , "", null, "", MemberStatus.ACTIVE)
 
     fun toDto(): MemberDto =
         MemberDto(
-        id = this.id,
-        name = this.name,
-        password = this.password,
-        email = this.email,
-        loginType = this.loginType,
-        snsId = this.snsId
-    )
+            id = this.id,
+            name = this.name,
+            password = this.password,
+            email = this.email,
+            loginType = this.loginType,
+            snsId = this.snsId,
+            status = this.status
+        )
 }
 
 object ValidationMessage {

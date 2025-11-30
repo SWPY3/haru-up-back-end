@@ -1,6 +1,6 @@
 package com.haruUp.member.infrastructure
 
-import com.haruUp.member.domain.MemberSetting.MemberSetting
+import com.haruUp.member.domain.MemberSetting
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

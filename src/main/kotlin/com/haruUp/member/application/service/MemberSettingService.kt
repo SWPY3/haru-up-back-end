@@ -1,7 +1,7 @@
 package com.haruUp.member.application.service
 
-import com.haruUp.member.domain.MemberSetting.MemberSetting
-import com.haruUp.member.domain.MemberSetting.MemberSettingDto
+import com.haruUp.member.domain.MemberSetting
+import com.haruUp.member.domain.dto.MemberSettingDto
 import com.haruUp.member.infrastructure.MemberSettingRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service

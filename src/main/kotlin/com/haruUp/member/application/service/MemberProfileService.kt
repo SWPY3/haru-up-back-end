@@ -1,7 +1,7 @@
 package com.haruUp.member.application.service
 
-import com.haruUp.member.domain.profile.MemberProfile
-import com.haruUp.member.domain.profile.MemberProfileDto
+import com.haruUp.member.domain.MemberProfile
+import com.haruUp.member.domain.dto.MemberProfileDto
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import org.springframework.stereotype.Service
 

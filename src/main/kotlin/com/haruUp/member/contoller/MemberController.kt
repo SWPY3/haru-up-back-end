@@ -1,9 +1,9 @@
-package com.haruUp.member.controller
+package com.haruUp.member.contoller
 
 import com.haruUp.global.common.ApiResponse
 import com.haruUp.member.application.useCase.MemberUseCase
-import com.haruUp.member.domain.Member.MemberDto
-import com.haruUp.member.domain.Member.LoginType
+import com.haruUp.member.domain.dto.MemberDto
+import com.haruUp.member.domain.type.LoginType
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*

@@ -8,11 +8,11 @@ import com.haruUp.member.application.service.MemberProfileService
 import com.haruUp.member.application.service.MemberService
 import com.haruUp.member.application.service.MemberSettingService
 import com.haruUp.member.application.service.MemberValidator
-import com.haruUp.member.domain.Member.LoginType
-import com.haruUp.member.domain.Member.Member
-import com.haruUp.member.domain.Member.MemberDto
-import com.haruUp.member.domain.MemberSetting.MemberSettingDto
-import com.haruUp.member.domain.profile.MemberProfileDto
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.Member
+import com.haruUp.member.domain.dto.MemberDto
+import com.haruUp.member.domain.dto.MemberSettingDto
+import com.haruUp.member.domain.dto.MemberProfileDto
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

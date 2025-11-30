@@ -5,8 +5,8 @@ import com.haruUp.auth.infrastructure.RefreshTokenRepository
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.security.JwtTokenProvider
 import com.haruUp.member.application.useCase.MemberUseCase
-import com.haruUp.member.domain.Member.LoginType
-import com.haruUp.member.domain.Member.MemberDto
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.infrastructure.MemberRepository
 import com.haruUp.member.infrastructure.MemberSettingRepository
 import org.junit.jupiter.api.Assertions.*

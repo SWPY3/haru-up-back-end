@@ -2,8 +2,8 @@ package com.haruUp.member.application.service
 
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
-import com.haruUp.member.domain.Member.LoginType
-import com.haruUp.member.domain.Member.MemberDto
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.dto.MemberDto
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 
