@@ -227,6 +227,30 @@ class MemberUseCase(
         }
     }
 
+    // 이메일 중복 검사
+    @Transactional(readOnly = true)
+    fun isEmailDuplicate(email: String): Boolean {
+        val exists = memberService.findByEmailAndLoginType(email, LoginType.COMMON)
+        return exists != null
+    }
+
+    // 이메일 변경
+    @Transactional
+    fun changeEmail(memberId: Long, newEmail: String) : MemberDto {
+        // 1) 회원 조회
+        val member = memberService.getFindMemberId(memberId)
+            .orElseThrow {
+                BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
+            }
+
+        // 2) 이메일 중복 검증
+        memberValidator.validateEmailDuplication(newEmail)
+
+        // 3) 이메일 변경
+        member.email = newEmail
+        return memberService.updateMember(member)
+    }
+
     /**
      * 🔑 비밀번호 변경 (COMMON 계정만)
      * - 기존 비밀번호 검증 후 새 비밀번호로 교체
@@ -267,6 +291,7 @@ class MemberUseCase(
         memberService.updateMember(member)  // 반환값은 굳이 안 써도 됨
     }
 
+    // 회원 탈퇴
     @Transactional
     fun withdraw(memberId: Long, passwordForCheck: String?) {
         // 1) 회원 조회
@@ -327,5 +352,28 @@ class MemberUseCase(
 
         // 여기서 nickname 길이, 금지어 등 검증을 Validator로 뺄 수도 있음
         return memberProfileService.updateProfile(memberId, dto)
+    }
+
+    // 내 세팅 정보 조회
+    @Transactional(readOnly = true)
+    fun getMySetting(memberId: Long): MemberSettingDto {
+        val exists = memberService.getFindMemberId(memberId)
+        if (exists.isEmpty) {
+            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
+        }
+
+        return memberSettingService.getByMemberId(memberId)
+    }
+
+    // 내 세팅 정보 수정
+    @Transactional
+    fun updateMySetting(memberId: Long, dto: MemberSettingDto): MemberSettingDto {
+        val exists = memberService.getFindMemberId(memberId)
+        if (exists.isEmpty) {
+            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
+        }
+
+        // 필요하면 dto 내의 값들에 대한 검증도 수행
+        return memberSettingService.updateSettings(dto)
     }
 }
