@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/docker"
 
 select_service() {
-    local services=($(sudo docker compose config --services))
+    local services=($(docker compose config --services))
     local show_all=$1
 
     echo "Select service${show_all:+ to $show_all}:" >&2
@@ -33,9 +33,9 @@ up() {
     echo "Starting Docker containers..."
 
     if [ "$service" = "all" ]; then
-        sudo docker compose up -d --build || exit 1
+        docker compose up -d --build || exit 1
     else
-        sudo docker compose up -d --build $service || exit 1
+        docker compose up -d --build $service || exit 1
     fi
 
     echo "Containers started!"
@@ -48,9 +48,9 @@ down() {
     echo "Stopping Docker containers..."
 
     if [ "$service" = "all" ]; then
-        sudo docker compose down || exit 1
+        docker compose down || exit 1
     else
-        sudo docker compose stop $service || exit 1
+        docker compose stop $service || exit 1
     fi
 
     echo "Containers stopped!"
@@ -61,9 +61,9 @@ restart() {
     echo "Restarting Docker containers..."
 
     if [ "$service" = "all" ]; then
-        sudo docker compose down && sudo docker compose up -d --build || exit 1
+        docker compose down && docker compose up -d --build || exit 1
     else
-        sudo docker compose stop $service && sudo docker compose up -d --build $service || exit 1
+        docker compose stop $service && docker compose up -d --build $service || exit 1
     fi
 
     echo "Containers restarted!"
@@ -73,20 +73,20 @@ restart() {
 
 bash() {
     local service=$(select_service)
-    sudo docker ps | grep -q "$service" || { echo "Error: $service container is not running" >&2; exit 1; }
+    docker ps | grep -q "$service" || { echo "Error: $service container is not running" >&2; exit 1; }
 
     # Check if container has bash, otherwise use sh
-    if sudo docker exec "$service" test -f /bin/bash 2>/dev/null; then
-        sudo docker exec -it "$service" /bin/bash
+    if docker exec "$service" test -f /bin/bash 2>/dev/null; then
+        docker exec -it "$service" /bin/bash
     else
-        sudo docker exec -it "$service" /bin/sh
+        docker exec -it "$service" /bin/sh
     fi
 }
 
 logs() {
     local service=$(select_service)
     echo "Showing logs for $service..."
-    sudo docker compose logs -f $service || exit 1
+    docker compose logs -f $service || exit 1
 }
 
 # Main script logic
