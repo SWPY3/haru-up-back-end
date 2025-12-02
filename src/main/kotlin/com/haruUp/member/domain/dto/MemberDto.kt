@@ -1,9 +1,19 @@
-package com.haruUp.member.domain.Member
+package com.haruUp.member.domain.dto
 
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.Member
+import com.haruUp.member.domain.type.MemberStatus
+import com.haruUp.member.domain.ValidationMessage
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
+import lombok.AccessLevel
+import lombok.AllArgsConstructor
+import lombok.Builder
+import lombok.NoArgsConstructor
 
-
+@NoArgsConstructor(access = AccessLevel.PROTECTED)   // JPA용
+@AllArgsConstructor                                  // Builder용
+@Builder                                             // 체이닝용
 class MemberDto(
 
     val id: Long? = null,
@@ -20,15 +30,16 @@ class MemberDto(
 
     val snsId: String ?= "",
 
+    val status : MemberStatus?= MemberStatus.ACTIVE,
+
     var accessToken : String ?= "",
 
     var refreshToken : String ?= ""
 
 ) {
-    // JPA가 사용할 기본 생성자
-    protected constructor() : this(null, "", "", "", null, "" ,"" , "")
 
-    fun toEntity() : Member =
+    fun toEntity(): Member =
+
         Member(
             id = this.id,
             name = this.name,
@@ -36,19 +47,8 @@ class MemberDto(
             email = this.email,
             loginType = this.loginType,
             snsId = this.snsId,
+            status = this.status
         )
 
 
-    companion object {
-        fun fromEntity(member: Member): MemberDto {
-            return MemberDto(
-                id = member.id,
-                name = member.name,
-                password = member.password,
-                email = member.email,
-                loginType = member.loginType,
-                snsId = member.snsId,
-            )
-        }
-    }
 }

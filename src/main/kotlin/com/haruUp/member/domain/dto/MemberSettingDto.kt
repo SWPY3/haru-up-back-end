@@ -1,5 +1,7 @@
-package com.haruUp.member.domain.MemberSetting
+package com.haruUp.member.domain.dto
 
+import com.haruUp.member.domain.MemberSetting
+import com.haruUp.member.domain.type.ThemeType
 
 open class MemberSettingDto(
 

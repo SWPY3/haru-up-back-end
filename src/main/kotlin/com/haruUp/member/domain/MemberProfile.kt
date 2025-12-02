@@ -1,10 +1,14 @@
-package com.haruUp.member.domain.profile
+package com.haruUp.member.domain
 
+import com.haruUp.member.domain.dto.MemberProfileDto
+import com.haruUp.member.domain.type.MemberGender
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import org.hibernate.dialect.GroupBySummarizationRenderingStrategy
+import java.time.LocalDateTime
 
 @Entity
 class MemberProfile (
@@ -12,12 +16,16 @@ class MemberProfile (
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 
-    // 물리 FK 안 쓰는 대신 memberId만 숫자로 저장
     @Column(nullable = false, unique = true)
     var memberId: Long,
 
     @Column(nullable = true, length = 50)
     var nickname: String? = null,
+
+    @Column(nullable = true)
+    var birthDt : LocalDateTime ?= null,
+
+    var gender : MemberGender?= MemberGender.MALE,
 
     @Column(nullable = true, length = 255)
     var imgId: Long? = null,
@@ -26,7 +34,7 @@ class MemberProfile (
     var intro: String? = null,
 ) {
 
-    protected constructor() : this(null, 0, null, null, null)
+    protected constructor() : this(null, 0, null, null, null, null, null)
 
     fun toDto() : MemberProfileDto =
         MemberProfileDto(
@@ -34,6 +42,8 @@ class MemberProfile (
             memberId = this.memberId,
             nickname = this.nickname,
             imgId = this.imgId,
-            intro = this.intro
+            intro = this.intro,
+            birthDt = this.birthDt,
+            gender = this.gender
         )
 }
