@@ -18,10 +18,10 @@ import java.time.Duration
 @Configuration
 class RedisConfig {
 
-    @Value("\${spring.redis.host}")
+    @Value("\${spring.data.redis.host}")
     lateinit var redisHost: String
 
-    @Value("\${spring.redis.port}")
+    @Value("\${spring.data.redis.port}")
     lateinit var redisPort: String
 
     @Bean
@@ -49,8 +49,8 @@ class RedisConfig {
                RedisSerializationContext.SerializationPair.fromSerializer( GenericJackson2JsonRedisSerializer() )
            )
 
-        return RedisCacheManager.builder()
-            .cacheDefaults( config )
+        return RedisCacheManager.builder(connectionFactory)
+            .cacheDefaults(config)
             .build()
     }
 }
