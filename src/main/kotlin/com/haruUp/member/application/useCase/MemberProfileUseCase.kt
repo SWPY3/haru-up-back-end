@@ -46,4 +46,6 @@ class MemberProfileUseCase (
         return memberProfileService.updateProfile(memberId, dto)
     }
 
+
+
 }

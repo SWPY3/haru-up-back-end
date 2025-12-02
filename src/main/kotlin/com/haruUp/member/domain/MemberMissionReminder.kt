@@ -13,11 +13,11 @@ class MemberMissionReminder(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long?,
 
-    val memberId: Long,
+    var memberId: Long,
 
-    val reminderDt : LocalDateTime,
+    var reminderDt : LocalDateTime,
 
-) : BaseEntity() {
+    ) : BaseEntity() {
    protected constructor() : this(null, 0, LocalDateTime.now())
 
     fun toDto() = MemberMissionReminderDto(

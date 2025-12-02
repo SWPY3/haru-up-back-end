@@ -6,11 +6,11 @@ import java.time.LocalDateTime
 
 class MemberMissionReminderDto(
 
-    val id: Long?,
+    var id: Long?,
 
-    val memberId: Long,
+    var memberId: Long,
 
-    val reminderDt : LocalDateTime,
+    var reminderDt : LocalDateTime,
 
 ) : BaseEntity(){
 
