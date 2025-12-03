@@ -1,10 +1,11 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.9.25'
     id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
-    id 'war'
+    id 'org.jetbrains.kotlin.plugin.jpa' version '1.9.25'
+    id 'org.jetbrains.kotlin.kapt' version '1.9.25'
     id 'org.springframework.boot' version '3.5.7'
     id 'io.spring.dependency-management' version '1.1.7'
-    id 'org.jetbrains.kotlin.plugin.jpa' version '1.9.25'
+    id 'war'
 }
 
 group = 'com'
@@ -13,7 +14,10 @@ description = 'swyp'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+//        languageVersion = JavaLanguageVersion.of(21)
+
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
@@ -29,30 +33,41 @@ repositories {
 
 dependencies {
 
-    // JPA + Web
+    // JPA + Web + Security
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation' // ✅ @Valid, @Email 등 사용 시
 
     // JWT
     implementation "io.jsonwebtoken:jjwt-api:0.11.5"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:0.11.5"
-    runtimeOnly "io.jsonwebtoken:jjwt-jackson:0.11.5" // JSON 처리용
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:0.11.5"
 
     // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-reflect'
-    implementation 'org.mockito.kotlin:mockito-kotlin:5.2.1'
 
-    // Lombok (optional)
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    // Mockito Kotlin → 테스트 의존성이 더 자연스럽다
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.2.1'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    kapt 'org.projectlombok:lombok:1.18.34'
+    kaptTest 'org.projectlombok:lombok:1.18.34'
 
     // DB
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'org.postgresql:postgresql'
 
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // Swagger / OpenAPI
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+
+    // Prometheus
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -65,7 +80,10 @@ dependencies {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll '-Xjsr305=strict'
+        // Groovy DSL에서는 배열/리스트로 넘겨줘야 안전함
+        freeCompilerArgs.addAll([
+                '-Xjsr305=strict'
+        ])
     }
 }
 

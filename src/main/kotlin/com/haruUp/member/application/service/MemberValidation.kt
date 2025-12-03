@@ -2,8 +2,8 @@ package com.haruUp.member.application.service
 
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
-import com.haruUp.member.domain.Member.LoginType
-import com.haruUp.member.domain.Member.MemberDto
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.dto.MemberDto
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 
@@ -62,6 +62,14 @@ class MemberValidator(
         }
 
         return found
+    }
+
+    fun validateEmailDuplication(email: String) {
+        val exists = memberService.findByEmailAndLoginType(email, LoginType.COMMON)
+
+        if (exists != null) {
+            throw BusinessException(ErrorCode.DUPLICATE_MEMBER, "이미 COMMON 방식으로 가입된 이메일입니다.")
+        }
     }
 
     /**

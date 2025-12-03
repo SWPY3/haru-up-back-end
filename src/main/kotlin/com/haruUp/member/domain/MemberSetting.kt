@@ -1,6 +1,8 @@
-package com.haruUp.member.domain.MemberSetting
+package com.haruUp.member.domain
 
 import com.haruUp.global.common.BaseEntity
+import com.haruUp.member.domain.dto.MemberSettingDto
+import com.haruUp.member.domain.type.ThemeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -39,7 +41,7 @@ class MemberSetting(
             pushEnabled = this.pushEnabled,
             emailEnabled = this.emailEnabled,
             marketingConsent = this.marketingConsent,
-            theme =  this.theme
+            theme = this.theme
         )
 
 

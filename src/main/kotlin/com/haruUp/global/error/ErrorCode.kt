@@ -8,6 +8,8 @@ enum class ErrorCode(
     INTERNAL_SERVER_ERROR("C000", "서버 에러가 발생했습니다."),
     INVALID_INPUT("C001", "요청 값이 올바르지 않습니다."),
     INVALID_STATE("C002" ,"상태가 올바르지 않습니다."),
+    NOT_FOUND("C003", "찾을수 없습니다."),
+    ACCESS_DENIED("C004", "접속 권한이 없습니다."),
     UNAUTHORIZED("A001", "인증이 필요합니다."),
     FORBIDDEN("A002", "권한이 없습니다."),
 
@@ -21,4 +23,5 @@ enum class ErrorCode(
 
     // Token 영역
     INVALID_TOKEN("T001", "잘못된 토큰 값입니다.")
+
 }

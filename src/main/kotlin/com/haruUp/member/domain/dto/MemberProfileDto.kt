@@ -1,6 +1,9 @@
-package com.haruUp.member.domain.profile
+package com.haruUp.member.domain.dto
 
+import com.haruUp.member.domain.MemberProfile
+import com.haruUp.member.domain.type.MemberGender
 import jakarta.persistence.Column
+import java.time.LocalDateTime
 
 class MemberProfileDto (
     var id: Long? = null,
@@ -12,6 +15,10 @@ class MemberProfileDto (
     @Column(nullable = true, length = 50)
     var nickname: String? = null,
 
+    var birthDt : LocalDateTime ?= null,
+
+    var gender : MemberGender?= MemberGender.MALE,
+
     @Column(nullable = true, length = 255)
     var imgId: Long? = null,
 
@@ -19,7 +26,7 @@ class MemberProfileDto (
     var intro: String? = null,
 ) {
 
-    protected constructor() : this(null, 0, null, null, null)
+    protected constructor() : this(null, 0, null, null, null, null, null)
 
     fun toEntity() : MemberProfile =
         MemberProfile(
@@ -27,6 +34,8 @@ class MemberProfileDto (
             memberId = this.memberId,
             nickname = this.nickname,
             imgId = this.imgId,
-            intro = this.intro
+            intro = this.intro,
+            birthDt = this.birthDt,
+            gender = this.gender,
         )
 }
