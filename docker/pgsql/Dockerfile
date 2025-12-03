@@ -22,6 +22,10 @@ COPY conf/postgresql.conf /etc/postgresql/postgresql.conf
 # Copy initialization scripts
 COPY initdb/ /docker-entrypoint-initdb.d/
 
+# 🔧 Windows CRLF 줄바꿈 제거 + 실행 권한 부여
+RUN sed -i 's/\r$//' /docker-entrypoint-initdb.d/*.sh \
+    && chmod +x /docker-entrypoint-initdb.d/*.sh
+
 # Set shared memory size and ulimits
 RUN echo "kernel.shmmax = 1073741824" >> /etc/sysctl.conf && \
     echo "kernel.shmall = 262144" >> /etc/sysctl.conf
