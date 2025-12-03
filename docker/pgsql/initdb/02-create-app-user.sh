@@ -2,11 +2,14 @@
 set -e
 
 echo "Creating application user and database..."
-echo "  - Superuser: postgres (admin)"
+echo "  - Admin user (POSTGRES_USER): ${POSTGRES_USER}"
 echo "  - Application user: haruup_user (non-superuser)"
 
-# postgres 슈퍼유저로 postgres 데이터베이스에 연결하여 사용자 및 DB 생성
-psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
+# 애플리케이션 계정 비밀번호: 없으면 POSTGRES_PASSWORD를 기본값으로 사용
+: "${HARUUP_USER_PASSWORD:=${POSTGRES_PASSWORD}}"
+
+# 1) 클러스터 admin 계정(POSTGRES_USER)으로 접속해서 사용자/DB 생성
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "${POSTGRES_DB}" <<-EOSQL
     -- 1. 애플리케이션 일반 사용자 생성 (non-superuser)
     CREATE USER haruup_user WITH
         PASSWORD '${HARUUP_USER_PASSWORD}'
@@ -23,16 +26,13 @@ psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
         TEMPLATE template0;
 
     -- 3. 보안 설정: haruup_user는 haruup DB만 접근 가능
-    REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
-    REVOKE CONNECT ON DATABASE postgres FROM haruup_user;
+    REVOKE CONNECT ON DATABASE ${POSTGRES_DB} FROM PUBLIC;
+    REVOKE CONNECT ON DATABASE ${POSTGRES_DB} FROM haruup_user;
     GRANT CONNECT ON DATABASE haruup TO haruup_user;
-
-    -- 4. postgres 슈퍼유저는 모든 DB 접근 가능 (기본 유지)
-    GRANT CONNECT ON DATABASE postgres TO postgres;
 EOSQL
 
-# postgres 슈퍼유저로 haruup 데이터베이스에 연결하여 스키마 권한 설정
-psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "haruup" <<-EOSQL
+# 2) haruup DB에서 스키마/오브젝트 권한 설정
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "haruup" <<-EOSQL
     -- haruup_user에게 public 스키마의 모든 권한 부여
     GRANT ALL PRIVILEGES ON SCHEMA public TO haruup_user;
 
@@ -54,14 +54,11 @@ echo ""
 echo "✅ Database setup completed successfully!"
 echo ""
 echo "  📊 Database Configuration:"
-echo "    - Superuser:        postgres (password: set in .env)"
-echo "    - Application user: haruup_user (password: set in .env)"
-echo "    - Application DB:   haruup (owner: haruup_user)"
+echo "    - Admin user (POSTGRES_USER): ${POSTGRES_USER}"
+echo "    - Application user:           haruup_user (password: \$HARUUP_USER_PASSWORD)"
+echo "    - Application DB:             haruup (owner: haruup_user)"
 echo ""
 echo "  🔒 Security:"
 echo "    - haruup_user can ONLY access 'haruup' database"
 echo "    - haruup_user has full privileges on 'haruup' database"
-echo "    - haruup_user cannot access 'postgres' or other databases"
-echo "    - postgres user can access all databases"
 echo ""
-
