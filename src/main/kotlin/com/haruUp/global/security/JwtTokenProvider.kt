@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 
 @Component
@@ -91,16 +92,16 @@ class JwtTokenProvider(
             .body
     }
 
-    fun getRefreshTokenExpiryDate(): java.util.Date {
+    fun getRefreshTokenExpiryDate(): Date {
         val now = System.currentTimeMillis()
         val expiry = now + refreshTokenValidityInSeconds * 1000
-        return java.util.Date(expiry)
+        return Date(expiry)
     }
 
     fun getRefreshTokenExpiryLocalDateTime(): LocalDateTime {
         return getRefreshTokenExpiryDate()
             .toInstant()
-            .atZone(java.time.ZoneId.systemDefault())
+            .atZone(ZoneId.systemDefault())
             .toLocalDateTime()
     }
 

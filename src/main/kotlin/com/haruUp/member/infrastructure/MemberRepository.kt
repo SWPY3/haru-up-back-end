@@ -1,7 +1,7 @@
 package com.haruUp.member.infrastructure
 
-import com.haruUp.member.domain.Member.LoginType
-import com.haruUp.member.domain.Member.Member
+import com.haruUp.member.domain.type.LoginType
+import com.haruUp.member.domain.Member
 import org.springframework.data.jpa.repository.JpaRepository
 
 

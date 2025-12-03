@@ -59,3 +59,12 @@ jwt:
 
 server:
   port: 8080
+
+
+management:
+  endpoints:
+    web:
+      base-path: /jikgong
+      exposure:
+        include: prometheus
+
