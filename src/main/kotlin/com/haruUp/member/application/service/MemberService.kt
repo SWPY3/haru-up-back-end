@@ -13,7 +13,6 @@ class MemberService(
     private val memberRepository: MemberRepository
 ) {
 
-
     @Transactional
     fun addMember( member: Member)  : MemberDto {
         return memberRepository.save(member).toDto();

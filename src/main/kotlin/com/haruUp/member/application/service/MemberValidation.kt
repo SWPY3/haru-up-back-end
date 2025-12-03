@@ -64,6 +64,14 @@ class MemberValidator(
         return found
     }
 
+    fun validateEmailDuplication(email: String) {
+        val exists = memberService.findByEmailAndLoginType(email, LoginType.COMMON)
+
+        if (exists != null) {
+            throw BusinessException(ErrorCode.DUPLICATE_MEMBER, "이미 COMMON 방식으로 가입된 이메일입니다.")
+        }
+    }
+
     /**
      * SNS 로그인 입력값 검증 + snsId만 꺼내서 리턴
      */

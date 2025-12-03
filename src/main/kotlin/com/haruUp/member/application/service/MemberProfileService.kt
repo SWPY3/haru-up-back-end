@@ -10,7 +10,6 @@ class MemberProfileService (
     private val memberProfileRepository: MemberProfileRepository
 ) {
 
-
     fun getByMemberId(memberId: Long): MemberProfileDto? =
         memberProfileRepository.findByMemberId(memberId)?.toDto()
 

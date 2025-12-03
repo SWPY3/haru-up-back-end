@@ -6,7 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails
 class MemberPrincipal (
     val id: Long,
     val email: String,
-    val nickname: String
+    val name: String
 ) : UserDetails{
     override fun getAuthorities() = emptyList<Nothing>()
 
@@ -27,7 +27,7 @@ class MemberPrincipal (
             return MemberPrincipal(
                 id = member.id!!,
                 email = member.email!!,
-                nickname = member.name!!
+                name = member.name!!
             )
         }
     }

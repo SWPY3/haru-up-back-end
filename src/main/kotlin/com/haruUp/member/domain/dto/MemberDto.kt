@@ -6,7 +6,14 @@ import com.haruUp.member.domain.type.MemberStatus
 import com.haruUp.member.domain.ValidationMessage
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
+import lombok.AccessLevel
+import lombok.AllArgsConstructor
+import lombok.Builder
+import lombok.NoArgsConstructor
 
+@NoArgsConstructor(access = AccessLevel.PROTECTED)   // JPA용
+@AllArgsConstructor                                  // Builder용
+@Builder                                             // 체이닝용
 class MemberDto(
 
     val id: Long? = null,
@@ -30,10 +37,9 @@ class MemberDto(
     var refreshToken : String ?= ""
 
 ) {
-    // JPA가 사용할 기본 생성자
-    protected constructor() : this(null, "", "", "", null, "" , MemberStatus.ACTIVE , "", "")
 
-    fun toEntity() : Member =
+    fun toEntity(): Member =
+
         Member(
             id = this.id,
             name = this.name,
@@ -43,4 +49,6 @@ class MemberDto(
             snsId = this.snsId,
             status = this.status
         )
+
+
 }

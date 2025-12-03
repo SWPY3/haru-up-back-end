@@ -8,24 +8,26 @@ import com.haruUp.member.application.service.MemberProfileService
 import com.haruUp.member.application.service.MemberService
 import com.haruUp.member.application.service.MemberSettingService
 import com.haruUp.member.application.service.MemberValidator
-import com.haruUp.member.domain.type.LoginType
 import com.haruUp.member.domain.Member
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.dto.MemberSettingDto
-import com.haruUp.member.domain.dto.MemberProfileDto
+import com.haruUp.member.domain.type.LoginType
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
+import java.time.LocalDateTime
 
 @Component
-class MemberUseCase(
+class MemberAuthUseCase(
     private val memberService: MemberService,
     private val memberSettingService: MemberSettingService,
-    private val memberProfileService: MemberProfileService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val passwordEncoder: PasswordEncoder,
     private val memberValidator: MemberValidator,
     private val refreshTokenService: RefreshTokenService,
+    private val stringRedisTemplate: StringRedisTemplate
 ) {
 
     /**
@@ -112,9 +114,16 @@ class MemberUseCase(
         val accessToken = jwtTokenProvider.createAccessToken(memberId, memberName)
         val refreshToken = jwtTokenProvider.createRefreshToken(memberId, memberName)
 
-        // 4) refreshToken 저장 (기존 것들 정리하는 정책은 RefreshTokenService 내에서 처리)
+        // 4) refreshToken 저장 (DB)
         val refreshExpiry = jwtTokenProvider.getRefreshTokenExpiryLocalDateTime()
         refreshTokenService.saveNewToken(memberId, refreshToken, refreshExpiry)
+
+        // 4-1) ✅ Redis에도 저장 (예: refreshToken 기준)
+        val now = LocalDateTime.now()
+        val ttlSeconds = java.time.Duration.between(now, refreshExpiry).seconds
+        val redisKey = "auth:refresh:$refreshToken"       // key 전략은 프로젝트 규칙에 맞게
+        stringRedisTemplate.opsForValue()
+            .set(redisKey, memberId.toString(), Duration.ofSeconds(ttlSeconds))
 
         // 5) 토큰 세팅해서 반환
         return memberDto.apply {
@@ -160,18 +169,6 @@ class MemberUseCase(
 
         // 4) 폐기
         refreshTokenService.revokeToken(refreshToken)
-    }
-
-    /**
-     *  토큰 재발급 전용 (Refresh API)
-     * - refreshToken의 유효성을 확인하고
-     * - 새 accessToken + refreshToken 세트를 발급 후 반환
-     *
-     * tokenLogin() 과 로직은 동일하고, API 레벨에서 의미만 다르게 가져갈 수 있음.
-     */
-    @Transactional
-    fun refresh(refreshToken: String): MemberDto {
-        return reissueTokens(refreshToken)
     }
 
     /**
@@ -227,105 +224,9 @@ class MemberUseCase(
         }
     }
 
-    /**
-     * 🔑 비밀번호 변경 (COMMON 계정만)
-     * - 기존 비밀번호 검증 후 새 비밀번호로 교체
-     */
-    @Transactional
-    fun changePassword(memberId: Long, currentPassword: String, newPassword: String) {
-        // 1) 회원 조회
-        val member = memberService.getFindMemberId(memberId)
-            .orElseThrow {
-                BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-            }
-
-        // 2) COMMON 계정만 비밀번호 변경 허용
-        if (member.loginType != LoginType.COMMON) {
-            throw BusinessException(
-                ErrorCode.INVALID_INPUT,
-                "SNS 로그인 계정은 비밀번호를 변경할 수 없습니다."
-            )
-        }
-
-        // 3) 기존 비밀번호 검증
-        val encoded = member.password
-            ?: throw BusinessException(ErrorCode.INVALID_STATE, "저장된 비밀번호가 없습니다.")
-
-        if (!passwordEncoder.matches(currentPassword, encoded)) {
-            throw BusinessException(ErrorCode.INVALID_CREDENTIALS, "기존 비밀번호가 일치하지 않습니다.")
-        }
-
-        // 4) 새 비밀번호 검증 (간단 버전 – 필요하면 Validator로 분리)
-        if (newPassword.length < 8) {
-            throw BusinessException(ErrorCode.INVALID_INPUT, "새 비밀번호는 8자리 이상이어야 합니다.")
-        }
-
-        // 5) 새 비밀번호 저장
-        val newEncoded = passwordEncoder.encode(newPassword)
-        member.password = newEncoded
-
-        memberService.updateMember(member)  // 반환값은 굳이 안 써도 됨
+    fun refresh(refreshToken: String) : String? {
+        val newTokens = reissueTokens(refreshToken)
+        return newTokens.accessToken
     }
 
-    @Transactional
-    fun withdraw(memberId: Long, passwordForCheck: String?) {
-        // 1) 회원 조회
-        val member = memberService.getFindMemberId(memberId)
-            .orElseThrow {
-                BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-            }
-
-        // 2) COMMON 계정은 비밀번호 검증
-        if (member.loginType == LoginType.COMMON) {
-            val raw = passwordForCheck
-                ?: throw BusinessException(ErrorCode.INVALID_INPUT, "비밀번호가 필요합니다.")
-
-            val encoded = member.password
-                ?: throw BusinessException(ErrorCode.INVALID_STATE, "저장된 비밀번호가 없습니다.")
-
-            if (!passwordEncoder.matches(raw, encoded)) {
-                throw BusinessException(ErrorCode.INVALID_CREDENTIALS, "비밀번호가 일치하지 않습니다.")
-            }
-        }
-
-        val id = requireNotNull(member.id) { "member.id 가 없습니다." }
-
-        // 3) RefreshToken은 어차피 수명 짧고, 보안상 확실히 제거하는 게 좋아서 hard delete 유지
-        refreshTokenService.deleteAllByMemberId(memberId)
-
-        // 4) MemberSetting soft delete
-        val byMemberId = memberSettingService.getByMemberId(memberId)
-        memberSettingService.softDelete(byMemberId.toEntity())
-
-        // 5) Member soft delete
-        memberService.softDelete(member)
-    }
-
-
-
-    @Transactional(readOnly = true)
-    fun getMyProfile(memberId: Long): MemberProfileDto {
-        // 회원 존재 여부 먼저 확인해도 좋음
-        val exists = memberService.getFindMemberId(memberId)
-        if (exists.isEmpty) {
-            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-        }
-
-        return memberProfileService.getByMemberId(memberId)
-            ?: memberProfileService.createDefaultProfile(memberId)
-    }
-
-    /**
-     * ✏️ 내 프로필 수정
-     */
-    @Transactional
-    fun updateMyProfile(memberId: Long, dto: MemberProfileDto): MemberProfileDto {
-        val exists = memberService.getFindMemberId(memberId)
-        if (exists.isEmpty) {
-            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-        }
-
-        // 여기서 nickname 길이, 금지어 등 검증을 Validator로 뺄 수도 있음
-        return memberProfileService.updateProfile(memberId, dto)
-    }
 }

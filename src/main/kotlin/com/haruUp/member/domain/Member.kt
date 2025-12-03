@@ -7,9 +7,15 @@ import com.haruUp.member.domain.type.MemberStatus
 import jakarta.persistence.*
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
+import lombok.AccessLevel
+import lombok.AllArgsConstructor
+import lombok.Builder
+import lombok.NoArgsConstructor
 
-// 전면 수정
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 class Member (
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,23 +24,23 @@ class Member (
     @Column(nullable = false)
     var name: String? = "",
 
-    @param:Pattern(regexp = "^[a-zA-Z0-9!@#$%^&*]{8,16}$", message = ValidationMessage.PASSWORD)
-    var password: String? = "",
-
     @Column(nullable = false) @param:Email(message = ValidationMessage.EMAIL)
     var email : String ?= "",
 
-    @Column(nullable = false) @Enumerated(EnumType.STRING)
-    var loginType : LoginType?= LoginType.COMMON,
+    @param:Pattern(regexp = "^[a-zA-Z0-9!@#$%^&*]{8,16}$", message = ValidationMessage.PASSWORD)
+    var password: String? = "",
 
     var snsId : String ?= "",
+
+    @Column(nullable = false) @Enumerated(EnumType.STRING)
+    var loginType : LoginType?= LoginType.COMMON,
 
     @Column(nullable = false) @Enumerated(EnumType.STRING)
     var status : MemberStatus?= MemberStatus.ACTIVE,
 
     ) : BaseEntity() {
     // JPA가 사용할 기본 생성자
-    protected constructor() : this(null, "", "" , "", null, "", MemberStatus.ACTIVE)
+    protected constructor() : this(null, "", "" , "", "", null,  MemberStatus.ACTIVE)
 
     fun toDto(): MemberDto =
         MemberDto(
