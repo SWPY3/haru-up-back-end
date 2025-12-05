@@ -22,18 +22,10 @@ class MemberAccountController(
     private val memberAccountUseCase: MemberAccountUseCase,
 ) {
 
-    @Operation(summary = "CI/CD 테스트용 ")
-    @GetMapping("/CICDTest")
-    fun CICDTest( @AuthenticationPrincipal principal: MemberPrincipal ): ApiResponse<MemberDto> {
-        val memberId = principal.id
-        val member = memberAccountUseCase.findMemberById(memberId)
-        return ApiResponse.success(member)
-    }
 
     // =====================
     // 비밀번호 / 계정
     // =====================
-
     @Operation(summary = "사용자 조회")
     @GetMapping("/get-member")
     fun findMember( @AuthenticationPrincipal principal: MemberPrincipal ): ApiResponse<MemberDto> {

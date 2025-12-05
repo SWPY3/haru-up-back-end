@@ -12,12 +12,15 @@ import com.haruUp.member.domain.Member
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.dto.MemberSettingDto
 import com.haruUp.member.domain.type.LoginType
+import lombok.extern.slf4j.Slf4j
+import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.math.log
 
 @Component
 class MemberAuthUseCase(
@@ -29,6 +32,15 @@ class MemberAuthUseCase(
     private val refreshTokenService: RefreshTokenService,
     private val stringRedisTemplate: StringRedisTemplate
 ) {
+
+private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
+
+    companion object {
+        private const val REFRESH_REDIS_PREFIX = "auth:refresh:"
+    }
+
+    private fun refreshRedisKey(refreshToken: String) =
+        "$REFRESH_REDIS_PREFIX$refreshToken"
 
     /**
      * COMMON 회원가입
@@ -120,8 +132,9 @@ class MemberAuthUseCase(
 
         // 4-1) ✅ Redis에도 저장 (예: refreshToken 기준)
         val now = LocalDateTime.now()
-        val ttlSeconds = java.time.Duration.between(now, refreshExpiry).seconds
-        val redisKey = "auth:refresh:$refreshToken"       // key 전략은 프로젝트 규칙에 맞게
+        val ttlSeconds = Duration.between(now, refreshExpiry).seconds
+        val redisKey = refreshRedisKey(refreshToken)
+
         stringRedisTemplate.opsForValue()
             .set(redisKey, memberId.toString(), Duration.ofSeconds(ttlSeconds))
 
@@ -151,10 +164,13 @@ class MemberAuthUseCase(
      */
     @Transactional
     fun logout(refreshToken: String) {
+        val redisKey = refreshRedisKey(refreshToken)
+
         // 1) 토큰이 유효하지 않더라도(DB에는 남아있을 수 있으므로) revoke는 시도
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            // 이미 만료되었더라도 DB의 토큰은 폐기
             refreshTokenService.revokeToken(refreshToken)
+            // ✅ Redis 세션 키도 제거
+            stringRedisTemplate.delete(redisKey)
             return
         }
 
@@ -167,8 +183,9 @@ class MemberAuthUseCase(
             throw BusinessException(ErrorCode.INVALID_TOKEN, "토큰 소유자가 일치하지 않습니다.")
         }
 
-        // 4) 폐기
+        // 4) 토큰 폐기 + Redis 세션 제거
         refreshTokenService.revokeToken(refreshToken)
+        stringRedisTemplate.delete(redisKey)
     }
 
     /**
@@ -183,20 +200,62 @@ class MemberAuthUseCase(
      * tokenLogin() / refresh() 에서 공통으로 사용
      */
     private fun reissueTokens(refreshToken: String): MemberDto {
+        val redisKey = refreshRedisKey(refreshToken)
+
+        // 0) Redis 세션 확인 (없으면 이미 로그아웃되었거나 만료된 토큰으로 간주)
+        val redisMemberIdStr = stringRedisTemplate.opsForValue().get(redisKey)
+            ?: throw BusinessException(
+                ErrorCode.INVALID_TOKEN,
+                "로그아웃되었거나 만료된 리프레시 토큰입니다."
+            )
+
         // 1) JWT 자체 유효성 검사 (서명 + 만료)
         if (!jwtTokenProvider.validateToken(refreshToken)) {
+            // JWT는 이미 만료 → Redis에 남아있는 세션도 정리
+            stringRedisTemplate.delete(redisKey)
             throw BusinessException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.")
         }
 
         // 2) DB 상태 검사 (존재, revoked, 만료)
         val stored = refreshTokenService.validateAndGet(refreshToken)
-
         val memberIdFromToken = jwtTokenProvider.getMemberIdFromToken(refreshToken)
-        if (stored.memberId != memberIdFromToken) {
-            throw BusinessException(ErrorCode.INVALID_TOKEN, "리프레시 토큰의 회원 정보가 일치하지 않습니다.")
+
+        // ✅ 디버깅용 로그 (토큰 전체는 노출 안 되게 앞부분만)
+        val tokenPreview = if (refreshToken.length > 10) {
+            refreshToken.substring(0, 10) + "..."
+        } else {
+            refreshToken
         }
 
-        // 3) 회원 조회 (Optional<Member> 라고 가정)
+        log.info(
+            "ReissueTokens check - tokenPrefix={}, stored.memberId={}, memberIdFromToken={}",
+            tokenPreview,
+            stored.memberId,
+            memberIdFromToken
+        )
+
+        if (stored.memberId != memberIdFromToken) {
+            log.warn(
+                "ReissueTokens member mismatch - tokenPrefix={}, stored.memberId={}, memberIdFromToken={}",
+                tokenPreview,
+                stored.memberId,
+                memberIdFromToken
+            )
+            throw BusinessException(
+                ErrorCode.INVALID_TOKEN,
+                "리프레시 토큰의 회원 정보가 일치하지 않습니다."
+            )
+        }
+
+        // Redis 안의 memberId와도 일치하는지 확인
+        if (redisMemberIdStr.toLong() != memberIdFromToken) {
+            throw BusinessException(
+                ErrorCode.INVALID_TOKEN,
+                "리프레시 토큰의 회원 정보가 일치하지 않습니다.(Redis)"
+            )
+        }
+
+        // 3) 회원 조회
         val memberOpt = memberService.getFindMemberId(memberIdFromToken)
         if (memberOpt.isEmpty) {
             throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
@@ -213,9 +272,18 @@ class MemberAuthUseCase(
         val newRefreshToken = jwtTokenProvider.createRefreshToken(memberIdFromToken, memberName)
         val newRefreshExpiry = jwtTokenProvider.getRefreshTokenExpiryLocalDateTime()
 
-        // 5) 기존 refreshToken 폐기 + 새 refreshToken 저장
+        // 5) 기존 refreshToken 폐기 + 새 refreshToken 저장 (DB)
         refreshTokenService.revokeToken(refreshToken)
         refreshTokenService.saveNewToken(memberIdFromToken, newRefreshToken, newRefreshExpiry)
+
+        // 5-1) ✅ Redis 세션 갱신
+        stringRedisTemplate.delete(redisKey)
+
+        val ttlSeconds = Duration.between(LocalDateTime.now(), newRefreshExpiry).seconds
+        val newRedisKey = refreshRedisKey(newRefreshToken)
+
+        stringRedisTemplate.opsForValue()
+            .set(newRedisKey, memberIdFromToken.toString(), Duration.ofSeconds(ttlSeconds))
 
         // 6) 유저 정보 + 새 토큰 세트 반환
         return member.toDto().apply {

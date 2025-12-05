@@ -16,9 +16,9 @@ import lombok.NoArgsConstructor
 @Builder                                             // 체이닝용
 class MemberDto(
 
-    val id: Long? = null,
+    var id: Long? = null,
 
-    val name: String? = "",
+    var name: String? = "",
 
     @param:Pattern(regexp = "^[a-zA-Z0-9!@#$%^&*]{8,16}$", message = ValidationMessage.PASSWORD)
     var password: String? = "",
@@ -26,11 +26,11 @@ class MemberDto(
     @param:Email(message = ValidationMessage.EMAIL)
     var email: String? = "",
 
-    val loginType: LoginType? = LoginType.COMMON,
+    var loginType: LoginType? = LoginType.COMMON,
 
-    val snsId: String ?= "",
+    var snsId: String ?= "",
 
-    val status : MemberStatus?= MemberStatus.ACTIVE,
+    var status : MemberStatus?= MemberStatus.ACTIVE,
 
     var accessToken : String ?= "",
 
