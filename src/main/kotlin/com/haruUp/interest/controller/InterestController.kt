@@ -36,15 +36,23 @@ class InterestController(
         return ApiResponse.success(interests)
     }
 
-    @Operation(summary = "관심사 AI 추천데이터 가져오기", description = "관심사 데이터를 AI를 통해 가져옵니다.")
+    @Operation(
+        summary = "관심사 AI 추천데이터 가져오기",
+        description = """
+            관심사 데이터를 AI를 통해 가져옵니다.
+            interests 파라미터를 배열로 전달하여 관심사 경로를 지정합니다.
+            예시:
+            - /ai-recommend (기본 추천)
+            - /ai-recommend?interests=프로그래밍 (대분류)
+            - /ai-recommend?interests=프로그래밍&interests=웹개발 (대분류 > 중분류)
+        """
+    )
     @GetMapping("/ai-recommend")
     fun getAiRecommendInterests(
-        @Parameter(description = "부모 관심사 ID (중/소분류 조회 시 사용)")
-        @RequestParam(required = false) parentId: Long?,
-        @Parameter(description = "사용자가 입력한 관심사 메시지")
-        @RequestParam(required = false) message: String?
+        @Parameter(description = "관심사 경로 배열 (예: [\"대분류\", \"중분류\"])")
+        @RequestParam(required = false) interests: List<String>?
     ): ApiResponse<List<InterestDto>> {
-        val interests = interestService.getAiRecommendInterests(parentId, message)
-        return ApiResponse.success(interests)
+        val recommendedInterests = interestService.getAiRecommendInterests(interests)
+        return ApiResponse.success(recommendedInterests)
     }
 }

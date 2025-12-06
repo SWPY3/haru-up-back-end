@@ -22,8 +22,8 @@ class ClovaApiConfig {
     fun clovaRestClient(): RestClient {
         val builder = RestClient.builder()
             .baseUrl(clovaApiUrl)
-            .defaultHeader("X-NCP-CLOVASTUDIO-API-KEY", clovaApiKey)
-            .defaultHeader("Content-Type", "application/json; charset=utf-8")
+            .defaultHeader("Authorization", "Bearer $clovaApiKey")
+            .defaultHeader("Content-Type", "application/json")
 
         // API Gateway Key가 있으면 추가
         if (clovaApiGatewayKey.isNotBlank()) {

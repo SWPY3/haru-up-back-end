@@ -1,15 +1,22 @@
 package com.haruUp.interest.application
 
+import com.haruUp.global.security.SecurityUtils
 import com.haruUp.interest.domain.InterestDto
 import com.haruUp.interest.infrastructure.InterestRepository
+import com.haruUp.member.domain.type.MemberGender
+import com.haruUp.member.infrastructure.MemberProfileRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
+import java.time.Period
 
 @Service
 class InterestService(
     private val interestRepository: InterestRepository,
-    private val clovaApiService: ClovaApiService
+    private val clovaApiService: ClovaApiService,
+    private val memberProfileRepository: MemberProfileRepository,
+    private val securityUtils: SecurityUtils
 ) {
 
     companion object {
@@ -57,36 +64,19 @@ class InterestService(
     /**
      * AI 추천 관심사 목록 조회
      * Clova API를 호출하여 추천받은 관심사를 반환
-     * @param parentId 부모 관심사 ID (중/소분류 선택 시)
-     * @param message 사용자가 입력한 관심사 내용
+     * @param interests 관심사 경로 배열 (예: ["프로그래밍", "웹개발"])
      */
     @Transactional
-    fun getAiRecommendInterests(parentId: Long?, message: String?): List<InterestDto> {
-        // parentId로 최상위까지 경로 조회 및 조합
-        val interestPath = if (parentId != null) {
-            buildInterestPath(parentId)
-        } else {
-            ""
-        }
+    fun getAiRecommendInterests(interests: List<String>?): List<InterestDto> {
+        // 배열을 " > "로 조합하여 경로 생성
+        val interestPath = interests?.filter { it.isNotBlank() }?.joinToString(" > ") ?: ""
 
-        // message 추가
-        val fullPath = if (message.isNullOrBlank()) {
-            interestPath
-        } else {
-            if (interestPath.isBlank()) message else "$interestPath > $message"
-        }
+        // 사용자 프로필 정보 가져오기
+        val userInfo = buildUserInfo()
 
-        logger.info("관심사 경로: {}", fullPath)
-
-        // 동적 프롬프트 생성
-        val prompt = if (fullPath.isNotBlank()) {
-            "사용자가 '$fullPath' 관심사에 관심이 있습니다. 이와 관련하여 사용자에게 추천할 만한 세부 관심사 카테고리를 정확히 5개 추천해주세요. 각 관심사는 쉼표로 구분하고, 간단한 이름만 나열해주세요."
-        } else {
-            "사용자에게 추천할 만한 인기 관심사 카테고리를 정확히 5개 추천해주세요. 각 관심사는 쉼표로 구분하고, 간단한 이름만 나열해주세요."
-        }
-
-        // Clova API 호출
-        val recommendedKeywords = clovaApiService.getRecommendedInterests(prompt)
+        // Clova API 호출 (관심사 경로가 비어있으면 일반 추천)
+        val finalPath = interestPath.ifBlank { "관심사" }
+        val recommendedKeywords = clovaApiService.getRecommendedInterests(finalPath, userInfo)
 
         logger.info("AI 추천 관심사: {}", recommendedKeywords)
 
@@ -100,12 +90,8 @@ class InterestService(
             recommendedKeywords.mapIndexed { index, keyword ->
                 InterestDto(
                     id = null,
-                    parentId = parentId,
-                    depth = if (parentId != null) {
-                        interestRepository.findById(parentId).map { it.depth + 1 }.orElse(1)
-                    } else {
-                        1
-                    },
+                    parentId = null,  // 배열 기반이므로 parentId는 사용하지 않음
+                    depth = (interests?.size ?: 0) + 1,  // 현재 경로 깊이 + 1
                     interestName = keyword,
                     normalizedKey = null,
                     createdSource = com.haruUp.interest.domain.CreatedSourceType.AI
@@ -115,22 +101,54 @@ class InterestService(
     }
 
     /**
-     * parentId로부터 최상위 관심사까지 경로를 조회하여 "대분류 > 중분류" 형태로 반환
+     * 사용자 프로필 정보로부터 프롬프트용 문자열 생성
+     * @return 사용자 정보 문자열 (예: "나이: 30세, 성별: 남성, 자기소개: 개발자")
      */
-    private fun buildInterestPath(parentId: Long): String {
-        val path = mutableListOf<String>()
-        var currentId: Long? = parentId
+    private fun buildUserInfo(): String? {
+        try {
+            val memberId = securityUtils.getCurrentMemberId() ?: return null
+            val profile = memberProfileRepository.findByMemberId(memberId) ?: return null
 
-        while (currentId != null) {
-            val interest = interestRepository.findById(currentId).orElse(null)
-            if (interest != null) {
-                path.add(0, interest.interestName) // 앞에 추가 (역순)
-                currentId = interest.parentId
-            } else {
-                break
+            val userInfoParts = mutableListOf<String>()
+
+            // 나이 정보 추가
+            profile.birthDt?.let { birthDt ->
+                val age = calculateAge(birthDt)
+                if (age > 0) userInfoParts.add("나이: ${age}세")
             }
-        }
 
-        return path.joinToString(" > ")
+            // 성별 정보 추가
+            profile.gender?.let { gender ->
+                val genderText = when (gender) {
+                    MemberGender.MALE -> "남성"
+                    MemberGender.FEMALE -> "여성"
+                    MemberGender.OTHER -> "기타"
+                }
+                userInfoParts.add("성별: $genderText")
+            }
+
+            // 자기소개 정보 추가
+            profile.intro?.takeIf { it.isNotBlank() }?.let { intro ->
+                userInfoParts.add("자기소개: $intro")
+            }
+
+            return if (userInfoParts.isNotEmpty()) {
+                userInfoParts.joinToString(", ")
+            } else null
+        } catch (e: Exception) {
+            logger.error("사용자 정보 조회 실패", e)
+            return null
+        }
+    }
+
+    /**
+     * 생년월일로부터 나이 계산
+     * @param birthDt 생년월일
+     * @return 만 나이
+     */
+    private fun calculateAge(birthDt: LocalDateTime): Int {
+        val birthDate = birthDt.toLocalDate()
+        val today = LocalDateTime.now().toLocalDate()
+        return Period.between(birthDate, today).years
     }
 }

@@ -30,12 +30,20 @@ select_service() {
 
 up() {
     local service=$(select_service "start")
-    echo "Starting Docker containers..."
+    local build_flag=""
+
+    # Check if --build flag is passed
+    if [[ "$1" == "--build" ]] || [[ "$1" == "-b" ]]; then
+        build_flag="--build"
+        echo "Starting Docker containers with build..."
+    else
+        echo "Starting Docker containers..."
+    fi
 
     if [ "$service" = "all" ]; then
-        docker compose up -d --build || exit 1
+        docker compose up -d $build_flag || exit 1
     else
-        docker compose up -d --build $service || exit 1
+        docker compose up -d $build_flag $service || exit 1
     fi
 
     echo "Containers started!"
@@ -58,12 +66,20 @@ down() {
 
 restart() {
     local service=$(select_service "restart")
-    echo "Restarting Docker containers..."
+    local build_flag=""
+
+    # Check if --build flag is passed
+    if [[ "$1" == "--build" ]] || [[ "$1" == "-b" ]]; then
+        build_flag="--build"
+        echo "Restarting Docker containers with build..."
+    else
+        echo "Restarting Docker containers..."
+    fi
 
     if [ "$service" = "all" ]; then
-        docker compose down && docker compose up -d --build || exit 1
+        docker compose down && docker compose up -d $build_flag || exit 1
     else
-        docker compose stop $service && docker compose up -d --build $service || exit 1
+        docker compose stop $service && docker compose up -d $build_flag $service || exit 1
     fi
 
     echo "Containers restarted!"
@@ -89,16 +105,55 @@ logs() {
     docker compose logs -f $service || exit 1
 }
 
+clean() {
+    local service=$(select_service "clean")
+    echo "Cleaning Docker containers and volumes..."
+
+    if [ "$service" = "all" ]; then
+        docker compose down -v || exit 1
+        echo "All containers and volumes removed!"
+    else
+        echo "Stopping and removing container: $service"
+
+        # Get container ID before removing
+        local container_id=$(docker compose ps -q $service 2>/dev/null)
+
+        # Get volumes used by this container
+        local volumes=""
+        if [ -n "$container_id" ]; then
+            volumes=$(docker inspect $container_id --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}} {{end}}{{end}}' 2>/dev/null)
+        fi
+
+        # Stop and remove the container
+        docker compose rm -sf $service || exit 1
+
+        # Remove associated volumes
+        if [ -n "$volumes" ]; then
+            echo "Found volumes: $volumes"
+            for volume in $volumes; do
+                echo "Removing volume: $volume"
+                docker volume rm "$volume" 2>/dev/null && echo "✓ Volume removed: $volume" || {
+                    echo "✗ Warning: Could not remove volume $volume"
+                }
+            done
+            echo "Container and volumes removed for service: $service"
+        else
+            echo "No volumes found for service: $service"
+            echo "Container removed!"
+        fi
+    fi
+}
+
 # Main script logic
 case "$1" in
     up)
-        up
+        up "$2"
         ;;
     down)
         down
         ;;
     restart)
-        restart
+        restart "$2"
         ;;
     bash)
         bash
@@ -106,8 +161,13 @@ case "$1" in
     logs)
         logs
         ;;
+    clean)
+        clean
+        ;;
     *)
-        echo "Usage: ./server-start.sh {up|down|restart|bash|logs}"
+        echo "Usage: ./server-start.sh {up|down|restart|bash|logs|clean}"
+        echo "  up [--build|-b]      Start containers (with optional build)"
+        echo "  restart [--build|-b] Restart containers (with optional build)"
         exit 1
         ;;
 esac

@@ -56,6 +56,10 @@ jwt:
   access-token-validity-in-seconds: 86400 # 1 day
   refresh-token-validity-in-seconds: 604800 # 7 days
 
+clova:
+  api:
+    url: https://clovastudio.stream.ntruss.com
+    key: ${CLOVA_API_KEY}
 
 server:
   port: 8080
