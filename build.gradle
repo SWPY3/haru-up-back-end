@@ -38,6 +38,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation' // ✅ @Valid, @Email 등 사용 시
+    implementation 'org.springframework.boot:spring-boot-starter-aop' // AOP for rate limiting
 
     // JWT
     implementation "io.jsonwebtoken:jjwt-api:0.11.5"
@@ -46,6 +47,9 @@ dependencies {
 
     // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.34'
@@ -76,6 +80,9 @@ dependencies {
 
     // WAR deploy
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    // 코드 변경 감지 (개발환경에서 사용할 목적)
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 }
 
 kotlin {
@@ -93,6 +100,27 @@ allOpen {
     annotation 'jakarta.persistence.Embeddable'
 }
 
+// Spring Boot 메인 클래스 지정 (bootRun 및 build용)
+springBoot {
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 관심사 임베딩 초기화 태스크
+tasks.register('initEmbeddings', JavaExec) {
+    group = 'application'
+    description = '관심사 임베딩 초기화 실행'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.haruUp.domain.interest.InitEmbeddingsRunner'
+
+    // JVM 설정
+    jvmArgs = ['-Dspring.profiles.active=default']
+
+    // 커맨드라인 인자 전달
+    if (project.hasProperty('args')) {
+        args project.property('args').toString().split('\\s+')
+    }
 }
