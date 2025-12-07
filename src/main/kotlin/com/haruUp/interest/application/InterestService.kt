@@ -26,17 +26,17 @@ class InterestService(
     /**
      * 관심사 트리 조회
      * @param parentId 부모 ID (null이면 최상위 조회)
-     * @param depth 깊이 (1:대분류, 2:중분류, 3:소분류)
+     * @param level 레벨 ("MAIN", "MIDDLE", "SUB")
      * @return 관심사 목록
      */
     @Transactional
-    fun getInterests(parentId: Long?, depth: Int?): List<InterestDto> {
-        logger.info("api 요청: parentId={}, depth={}", parentId, depth)
+    fun getInterests(parentId: Long?, level: String?): List<InterestDto> {
+        logger.info("api 요청: parentId={}, level={}", parentId, level)
 
         val entities = when {
-            // parentId와 depth가 모두 주어진 경우
-            parentId != null && depth != null -> {
-                interestRepository.findByDepthAndParentIdAndDeletedFalse(depth, parentId)
+            // parentId와 level이 모두 주어진 경우
+            parentId != null && level != null -> {
+                interestRepository.findByLevelAndParentIdAndDeletedFalse(level, parentId)
                     .map { it.toDto() }
             }
             // parentId만 주어진 경우 - 해당 부모의 자식 조회
@@ -44,19 +44,19 @@ class InterestService(
                 interestRepository.findByParentIdAndDeletedFalse(parentId)
                     .map { it.toDto() }
             }
-            // depth만 주어진 경우 - 해당 depth의 모든 항목 조회
-            depth != null -> {
-                interestRepository.findByDepthAndDeletedFalse(depth)
+            // level만 주어진 경우 - 해당 level의 모든 항목 조회
+            level != null -> {
+                interestRepository.findByLevelAndDeletedFalse(level)
                     .map { it.toDto() }
             }
-            // 둘 다 없으면 기본적으로 대분류(depth=1) 조회
+            // 둘 다 없으면 기본적으로 대분류("MAIN") 조회
             else -> {
-                interestRepository.findByDepthAndDeletedFalse(1)
+                interestRepository.findByLevelAndDeletedFalse("MAIN")
                     .map { it.toDto() }
             }
         }
 
-        logger.info("Repository 조회 완료: 조회된 관심사 개수={}", entities)
+        logger.info("Repository 조회 완료: 조회된 관심사 개수={}", entities.size)
 
         return entities
     }
@@ -87,13 +87,18 @@ class InterestService(
             emptyList()
         } else {
             // AI가 추천한 키워드를 그대로 InterestDto로 변환하여 반환
-            recommendedKeywords.mapIndexed { index, keyword ->
+            recommendedKeywords.mapIndexed { _, keyword ->
+                val level = when ((interests?.size ?: 0) + 1) {
+                    1 -> "MAIN"
+                    2 -> "MIDDLE"
+                    3 -> "SUB"
+                    else -> "MAIN"
+                }
                 InterestDto(
                     id = null,
                     parentId = null,  // 배열 기반이므로 parentId는 사용하지 않음
-                    depth = (interests?.size ?: 0) + 1,  // 현재 경로 깊이 + 1
-                    interestName = keyword,
-                    normalizedKey = null,
+                    level = level,
+                    name = keyword,
                     createdSource = com.haruUp.interest.domain.CreatedSourceType.AI
                 )
             }.take(5)

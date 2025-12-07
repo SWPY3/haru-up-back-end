@@ -11,28 +11,28 @@ echo "  - Application user: haruup_user (non-superuser)"
 # 1) 클러스터 admin 계정(POSTGRES_USER)으로 접속해서 사용자/DB 생성
 psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "${POSTGRES_DB}" <<-EOSQL
     -- 1. 애플리케이션 일반 사용자 생성 (non-superuser)
-    CREATE USER '${HARUUP_USER}' WITH
+    CREATE USER ${HARUUP_USER} WITH
         PASSWORD '${HARUUP_USER_PASSWORD}'
         NOCREATEDB
         NOCREATEROLE
         NOSUPERUSER;
 
     -- 2. 애플리케이션 데이터베이스 생성 (owner: HARUUP_USER)
-    CREATE DATABASE '{HARUUP_USER}'
-        OWNER '{HARUUP_USER}'
+    CREATE DATABASE ${HARUUP_DB}
+        OWNER ${HARUUP_USER}
         ENCODING 'UTF8'
         LC_COLLATE 'en_US.utf8'
         LC_CTYPE 'en_US.utf8'
         TEMPLATE template0;
 
-    -- 3. 보안 설정: HARUUP_USER는 haruup DB만 접근 가능
+    -- 3. 보안 설정: HARUUP_USER는 HARUUP_DB만 접근 가능
     REVOKE CONNECT ON DATABASE ${POSTGRES_DB} FROM PUBLIC;
     REVOKE CONNECT ON DATABASE ${POSTGRES_DB} FROM ${HARUUP_USER};
-    GRANT CONNECT ON DATABASE haruup TO ${HARUUP_USER};
+    GRANT CONNECT ON DATABASE ${HARUUP_DB} TO ${HARUUP_USER};
 EOSQL
 
-# 2) haruup DB에서 스키마/오브젝트 권한 설정
-psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "haruup" <<-EOSQL
+# 2) HARUUP_DB에서 스키마/오브젝트 권한 설정
+psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" --dbname "${HARUUP_DB}" <<-EOSQL
     -- HARUUP_USER에게 public 스키마의 모든 권한 부여
     GRANT ALL PRIVILEGES ON SCHEMA public TO ${HARUUP_USER};
 
@@ -56,9 +56,9 @@ echo ""
 echo "  📊 Database Configuration:"
 echo "    - Admin user (POSTGRES_USER): ${POSTGRES_USER}"
 echo "    - Application user:           ${HARUUP_USER} (password: \$HARUUP_USER_PASSWORD)"
-echo "    - Application DB:             haruup (owner: ${HARUUP_USER})"
+echo "    - Application DB:             ${HARUUP_DB} (owner: ${HARUUP_USER})"
 echo ""
 echo "  🔒 Security:"
-echo "    - ${HARUUP_USER} can ONLY access 'haruup' database"
-echo "    - ${HARUUP_USER} has full privileges on 'haruup' database"
+echo "    - ${HARUUP_USER} can ONLY access '${HARUUP_DB}' database"
+echo "    - ${HARUUP_USER} has full privileges on '${HARUUP_DB}' database"
 echo ""

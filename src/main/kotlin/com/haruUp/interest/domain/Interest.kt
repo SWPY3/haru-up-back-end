@@ -14,30 +14,29 @@ class Interest(
     @Column(name = "parent_id", nullable = true)
     var parentId: Long? = null,
 
-    @Column(nullable = false)
-    var depth: Int = 0,
+    @Column(name = "level", nullable = false, length = 20)
+    var level: String = "MAIN",  // "MAIN", "MIDDLE", "SUB"
 
-    @Column(name = "interest_name", nullable = false, length = 255)
-    var interestName: String = "",
-
-    @Column(name = "normalized_key", nullable = true, length = 255)
-    var normalizedKey: String? = null,
+    @Column(name = "name", nullable = false, length = 255)
+    var name: String = "",
 
     @Column(name = "created_source", nullable = false)
     @Enumerated(EnumType.STRING)
-    var createdSource: CreatedSourceType = CreatedSourceType.SYSTEM
+    var createdSource: CreatedSourceType = CreatedSourceType.SYSTEM,
+
+    @Column(name = "usage_count", nullable = false)
+    var usageCount: Int = 0
 
 ) : BaseEntity() {
 
     // JPA가 사용할 기본 생성자
-    protected constructor() : this(null, null, 0, "", null, CreatedSourceType.SYSTEM)
+    protected constructor() : this(null, null, "MAIN", "", CreatedSourceType.SYSTEM, 0)
 
     fun toDto(): InterestDto = InterestDto(
         id = this.id,
         parentId = this.parentId,
-        depth = this.depth,
-        interestName = this.interestName,
-        normalizedKey = this.normalizedKey,
+        level = this.level,
+        name = this.name,
         createdSource = this.createdSource
     )
 }

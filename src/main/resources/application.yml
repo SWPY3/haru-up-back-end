@@ -35,7 +35,7 @@ spring:
         hbm2ddl:
           halt_on_error: false
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     open-in-view: true
 
   data:
@@ -60,6 +60,17 @@ clova:
   api:
     url: https://clovastudio.stream.ntruss.com
     key: ${CLOVA_API_KEY}
+    model: HCX-DASH-002              # AI 추천 모델
+    embedding-model: clir-emb-dolphin # 임베딩 모델 (1024차원)
+
+# 관심사 임베딩 설정
+interest:
+  embedding:
+    min-usage-count: 3        # 최소 사용 횟수
+    delay-days: 7             # 검증 기간 (일)
+    batch-size: 100           # 배치 크기
+    batch-cron: "0 0 3 * * *" # 배치 실행 시간 (매일 새벽 3시)
+    vector-size: 1024         # Clova Embedding 벡터 차원
 
 server:
   port: 8080

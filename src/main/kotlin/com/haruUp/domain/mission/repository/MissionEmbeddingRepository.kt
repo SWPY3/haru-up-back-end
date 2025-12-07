@@ -1,0 +1,136 @@
+package com.haruUp.domain.mission.repository
+
+import com.haruUp.domain.mission.entity.MissionEmbeddingEntity
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
+
+/**
+ * 미션 임베딩 Repository
+ */
+@Repository
+interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Long> {
+    /**
+     * 미션 내용과 카테고리로 중복 체크
+     */
+    @Query(
+        value = """
+            SELECT * FROM mission_embeddings
+            WHERE mission_content = :missionContent
+            AND main_category = :mainCategory
+            AND (:middleCategory IS NULL OR middle_category = :middleCategory)
+            AND (:subCategory IS NULL OR sub_category = :subCategory)
+            LIMIT 1
+        """,
+        nativeQuery = true
+    )
+    fun findByMissionContentAndCategory(
+        @Param("missionContent") missionContent: String,
+        @Param("mainCategory") mainCategory: String,
+        @Param("middleCategory") middleCategory: String?,
+        @Param("subCategory") subCategory: String?
+    ): MissionEmbeddingEntity?
+
+    /**
+     * 벡터 유사도 검색 (코사인 유사도)
+     *
+     * @param embedding 검색할 임베딩 벡터
+     * @param mainCategory 대분류
+     * @param middleCategory 중분류
+     * @param subCategory 소분류
+     * @param difficulty 난이도 (null이면 모든 난이도)
+     * @param limit 반환할 결과 개수
+     */
+    @Query(
+        value = """
+            SELECT * FROM mission_embeddings
+            WHERE is_activated = true
+            AND main_category = :mainCategory
+            AND (:middleCategory IS NULL OR middle_category = :middleCategory)
+            AND (:subCategory IS NULL OR sub_category = :subCategory)
+            AND (:difficulty IS NULL OR difficulty = :difficulty OR difficulty IS NULL)
+            AND embedding IS NOT NULL
+            ORDER BY embedding <=> CAST(:embedding AS vector)
+            LIMIT :limit
+        """,
+        nativeQuery = true
+    )
+    fun findByVectorSimilarity(
+        @Param("embedding") embedding: String,
+        @Param("mainCategory") mainCategory: String,
+        @Param("middleCategory") middleCategory: String?,
+        @Param("subCategory") subCategory: String?,
+        @Param("difficulty") difficulty: Int?,
+        @Param("limit") limit: Int
+    ): List<MissionEmbeddingEntity>
+
+    /**
+     * 인기 미션 조회 (사용 횟수 기준)
+     */
+    @Query(
+        value = """
+            SELECT * FROM mission_embeddings
+            WHERE is_activated = true
+            AND main_category = :mainCategory
+            AND (:middleCategory IS NULL OR middle_category = :middleCategory)
+            AND (:subCategory IS NULL OR sub_category = :subCategory)
+            AND (:difficulty IS NULL OR difficulty = :difficulty OR difficulty IS NULL)
+            ORDER BY usage_count DESC
+            LIMIT :limit
+        """,
+        nativeQuery = true
+    )
+    fun findPopularMissions(
+        @Param("mainCategory") mainCategory: String,
+        @Param("middleCategory") middleCategory: String?,
+        @Param("subCategory") subCategory: String?,
+        @Param("difficulty") difficulty: Int?,
+        @Param("limit") limit: Int
+    ): List<MissionEmbeddingEntity>
+
+    /**
+     * 미션 임베딩 저장 (vector 타입 캐스팅 포함)
+     *
+     * Note: RETURNING을 사용하기 위해 @Query만 사용 (@Modifying 제거)
+     */
+    @Query(
+        value = """
+            INSERT INTO mission_embeddings
+            (main_category, middle_category, sub_category, difficulty, mission_content, embedding, usage_count, is_activated, created_at)
+            VALUES (:mainCategory, :middleCategory, :subCategory, :difficulty, :missionContent, CAST(:embedding AS vector), :usageCount, :isActivated, :createdAt)
+            RETURNING id
+        """,
+        nativeQuery = true
+    )
+    fun insertMissionEmbedding(
+        @Param("mainCategory") mainCategory: String,
+        @Param("middleCategory") middleCategory: String?,
+        @Param("subCategory") subCategory: String?,
+        @Param("difficulty") difficulty: Int?,
+        @Param("missionContent") missionContent: String,
+        @Param("embedding") embedding: String?,
+        @Param("usageCount") usageCount: Int,
+        @Param("isActivated") isActivated: Boolean,
+        @Param("createdAt") createdAt: java.time.LocalDateTime
+    ): Long
+
+    /**
+     * 사용 횟수 증가 (UPDATE without touching embedding field)
+     */
+    @Modifying
+    @Query(
+        value = """
+            UPDATE mission_embeddings
+            SET usage_count = usage_count + 1,
+                updated_at = :updatedAt
+            WHERE id = :id
+        """,
+        nativeQuery = true
+    )
+    fun incrementUsageCount(
+        @Param("id") id: Long,
+        @Param("updatedAt") updatedAt: java.time.LocalDateTime
+    )
+}

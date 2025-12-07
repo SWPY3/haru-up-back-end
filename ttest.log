@@ -1,74 +1,283 @@
-대분류	중분류	소분류
-외국어 공부	영어	단어 학습
-	영어	시험 공부 (토익/토익스피킹/오픽/토플 등)
-	영어	회화 공부
-	일본어	단어 학습
-	일본어	시험 공부
-	일본어	회화 공부
-	중국어	단어 학습
-	중국어	시험 공부
-	중국어	회화 공부
-	기타	단어 학습
-	기타	시험 공부
-	기타	회화 공부
-재테크/투자 공부	지출 관리·예산 세우기	지출 점검하기
-	지출 관리·예산 세우기	카테고리별 소비 분석
-	지출 관리·예산 세우기	고정지출/변동지출 정리
-	지출 관리·예산 세우기	한달 예산 세우기
-	지출 관리·예산 세우기	카드 소비 패턴 파악
-	저축·적금하기	월간 저축 목표 설정
-	저축·적금하기	저축 루틴 만들기
-	저축·적금하기	적금 시작하기
-	저축·적금하기	소비 절약 루틴 만들기
-	금융지식 쌓기	금융 상품 종류 익히기(주식/ETF)
-	금융지식 쌓기	시장·경제 흐름 읽기 (환율/물가)
-	금융지식 쌓기	금융 용어 기본 개념 배우기 (금리/세금)
-	투자 시작하기	소액 투자
-	투자 시작하기	투자 상품 이해하기
-	투자 시작하기	투자금 만들기
-	투자 시작하기	나에게 맞는 투자 방향 찾기
-체력관리 및 운동	헬스	체력 증진
-	헬스	체중 조절
-	헬스	근력 키우기
-	헬스	체형 교정
-	러닝	체력 증진
-	러닝	체중 조절
-	러닝	스트레스 해소
-	러닝	마라톤/러닝대회 준비
-	필라테스/요가	체력 증진
-	필라테스/요가	체중 조절
-	필라테스/요가	근력 키우기
-	필라테스/요가	체형 교정
-	자전거	체력 증진
-	자전거	체중 조절
-	자전거	근력 키우기
-	자전거	출퇴근·이동 등 교통수단 활용
-자격증 공부	직무 전문 분야	(온보딩 시 입력한 개인정보 기반)
-	국가자격	전기기능사
-	국가자격	소방설비기사
-	국가자격	공인회계사
-	어학 자격 능력	토익
-	어학 자격 능력	토익스피킹
-	어학 자격 능력	오픽
-	어학 자격 능력	토플
-	어학 자격 능력	HSK
-	기술 분야	손뜨개전문가
-	기술 분야	청소 전문가
-	기술 분야	반려동물장례지도사
-	기술 분야	베이비시터
-	기술 분야	전기 기사
-	기술 분야	컬러리스트 기사
-	기술 분야	미용사(네일)
-직무 관련 역량 개발	직무별 프로그램 학습	AI 프롬프트 학습
-	직무별 프로그램 학습	작업용 프로그램 학습
-	커리어 전환 준비	포트폴리오 제작
-	커리어 전환 준비	이력서 관리
-	커리어 전환 준비	자격증 취득
-	커리어 전환 준비	어학 공부
-	자격증	직무 전문 분야 자격증
-	자격증	어학
-	업무 능력 향상	업무 효율 높이기 (우선순위/시간관리)
-	업무 능력 향상	커뮤니케이션·협업 능력 키우기
-	업무 능력 향상	문제 해결능력 향상
-	업무 능력 향상	문서·기획·정리 스킬 향상(PPT·보고서)
-	업무 능력 향상	직접 입력하기
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :kaptGenerateStubsKotlin UP-TO-DATE
+> Task :kaptKotlin UP-TO-DATE
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava NO-SOURCE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName UP-TO-DATE
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.7)
+
+2025-12-06T16:54:53.381+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : Starting HaruUpApplicationKt using Java 21.0.9 with PID 38045 (/Users/myjung/work/swyp/haru-up-back-end/build/classes/kotlin/main started by myjung in /Users/myjung/work/swyp/haru-up-back-end)
+2025-12-06T16:54:53.382+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : The following 1 profile is active: "dev"
+2025-12-06T16:54:53.407+09:00  INFO 38045 --- [haruUp] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-12-06T16:54:53.407+09:00  INFO 38045 --- [haruUp] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-12-06T16:54:53.951+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-06T16:54:53.952+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-06T16:54:54.042+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 85 ms. Found 8 JPA repository interfaces.
+2025-12-06T16:54:54.050+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-06T16:54:54.051+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-12-06T16:54:54.061+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.auth.infrastructure.RefreshTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.061+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.061+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.interest.infrastructure.InterestRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberMissionReminderRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberProfileRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberSettingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.notification.infrastructure.NotificationDeviceTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:54:54.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 7 ms. Found 0 Redis repository interfaces.
+2025-12-06T16:54:54.462+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-12-06T16:54:54.470+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-06T16:54:54.471+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-12-06T16:54:54.490+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-06T16:54:54.491+09:00  INFO 38045 --- [haruUp] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1084 ms
+2025-12-06T16:54:54.581+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-06T16:54:54.604+09:00  INFO 38045 --- [haruUp] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.33.Final
+2025-12-06T16:54:54.618+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-06T16:54:54.748+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-06T16:54:54.762+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-12-06T16:54:54.876+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@57003fbf
+2025-12-06T16:54:54.876+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-12-06T16:54:54.900+09:00  WARN 38045 --- [haruUp] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-06T16:54:54.918+09:00  INFO 38045 --- [haruUp] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 17.7
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-06T16:54:55.442+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-06T16:54:55.507+09:00  INFO 38045 --- [haruUp] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T16:54:55.889+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-12-06T16:54:56.358+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector extension 초기화 시작
+2025-12-06T16:54:56.362+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector extension 활성화 완료
+2025-12-06T16:54:56.364+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector 버전: 0.8.1
+2025-12-06T16:54:57.239+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-12-06T16:54:57.257+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-12-06T16:54:57.265+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : Started HaruUpApplicationKt in 4.092 seconds (process running for 4.289)
+2025-12-06T16:55:23.127+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-06T16:55:23.128+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-06T16:55:23.129+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2025-12-06T16:55:23.213+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] c.h.d.i.controller.InterestController    : 관심사 추천 요청 - 사용자: 1, 레벨: MAIN, 목표: 5개
+2025-12-06T16:55:23.269+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] c.h.d.i.controller.InterestController    : 사용자 프로필 조회 완료 - 나이: 35, 성별: FEMALE
+2025-12-06T16:55:23.269+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] c.h.d.i.controller.InterestController    : 변환된 관심사 경로: []
+2025-12-06T16:55:23.270+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] .i.s.HybridInterestRecommendationService : 추천 요청 - 레벨: MAIN, 목표: 5개
+2025-12-06T16:55:23.282+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] .i.s.HybridInterestRecommendationService : RAG 추천: 3개 (목표: 3개)
+2025-12-06T16:55:23.282+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] .i.s.HybridInterestRecommendationService : AI 추가 추천 필요: 2개
+2025-12-06T16:55:23.282+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] c.h.d.i.service.AIInterestRecommender    : AI 추천 시작 - 레벨: MAIN, 개수: 2
+2025-12-06T16:55:25.027+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] c.h.d.i.service.AIInterestRecommender    : AI 추천 성공: 2개
+2025-12-06T16:55:25.027+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] .i.s.HybridInterestRecommendationService : AI 추천: 2개
+2025-12-06T16:55:25.030+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] c.h.d.i.controller.InterestController    : 추천 성공: 총 5개 (RAG: 3개 60%, AI: 2개 40%)
+2025-12-06T16:55:26.523+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] c.h.d.i.controller.InterestController    : 관심사 추천 요청 - 사용자: 1, 레벨: MIDDLE, 목표: 10개
+2025-12-06T16:55:26.535+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] c.h.d.i.controller.InterestController    : 사용자 프로필 조회 완료 - 나이: 35, 성별: FEMALE
+2025-12-06T16:55:26.535+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] c.h.d.i.controller.InterestController    : 변환된 관심사 경로: [운동]
+2025-12-06T16:55:26.536+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] .i.s.HybridInterestRecommendationService : 추천 요청 - 레벨: MIDDLE, 목표: 10개
+2025-12-06T16:55:27.734+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] .i.s.HybridInterestRecommendationService : RAG 추천: 0개 (목표: 7개)
+2025-12-06T16:55:27.734+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] .i.s.HybridInterestRecommendationService : AI 추가 추천 필요: 10개
+2025-12-06T16:55:27.734+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] c.h.d.i.service.AIInterestRecommender    : AI 추천 시작 - 레벨: MIDDLE, 개수: 10
+2025-12-06T16:55:30.601+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] c.h.d.i.service.AIInterestRecommender    : AI 추천 성공: 10개
+2025-12-06T16:55:30.601+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] .i.s.HybridInterestRecommendationService : AI 추천: 10개
+2025-12-06T16:55:30.601+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-2] c.h.d.i.controller.InterestController    : 추천 성공: 총 10개 (RAG: 0개 0%, AI: 10개 100%)
+2025-12-06T16:55:32.138+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 관심사 추천 요청 - 사용자: 1, 레벨: MIDDLE, 목표: 10개
+2025-12-06T16:55:32.153+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 사용자 프로필 조회 완료 - 나이: 35, 성별: FEMALE
+2025-12-06T16:55:32.153+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 변환된 관심사 경로: [운동, 공부]
+2025-12-06T16:55:32.153+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : 추천 요청 - 레벨: MIDDLE, 목표: 10개
+2025-12-06T16:55:33.500+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : RAG 추천: 0개 (목표: 7개)
+2025-12-06T16:55:33.500+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : AI 추가 추천 필요: 10개
+2025-12-06T16:55:33.500+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.service.AIInterestRecommender    : AI 추천 시작 - 레벨: MIDDLE, 개수: 10
+2025-12-06T16:55:35.722+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.service.AIInterestRecommender    : AI 추천 성공: 10개
+2025-12-06T16:55:35.722+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : AI 추천: 10개
+2025-12-06T16:55:35.722+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 추천 성공: 총 10개 (RAG: 0개 0%, AI: 10개 100%)
+2025-12-06T16:56:21.158+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 424 ms
+2025-12-06T16:56:35.519+09:00  INFO 38045 --- [haruUp] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 5 class path changes (0 additions, 5 deletions, 0 modifications)
+2025-12-06T16:56:35.533+09:00  INFO 38045 --- [haruUp] [       Thread-5] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-06T16:56:35.537+09:00  INFO 38045 --- [haruUp] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-12-06T16:56:35.563+09:00  INFO 38045 --- [haruUp] [       Thread-5] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T16:56:35.566+09:00  INFO 38045 --- [haruUp] [       Thread-5] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-12-06T16:56:35.567+09:00  INFO 38045 --- [haruUp] [       Thread-5] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.7)
+
+2025-12-06T16:56:35.710+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : Starting HaruUpApplicationKt using Java 21.0.9 with PID 38045 (/Users/myjung/work/swyp/haru-up-back-end/build/classes/kotlin/main started by myjung in /Users/myjung/work/swyp/haru-up-back-end)
+2025-12-06T16:56:35.712+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : The following 1 profile is active: "dev"
+2025-12-06T16:56:35.902+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-06T16:56:35.902+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-06T16:56:35.923+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 20 ms. Found 8 JPA repository interfaces.
+2025-12-06T16:56:35.926+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-06T16:56:35.926+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.auth.infrastructure.RefreshTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.interest.infrastructure.InterestRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberMissionReminderRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberProfileRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberSettingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.notification.infrastructure.NotificationDeviceTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:35.931+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 4 ms. Found 0 Redis repository interfaces.
+2025-12-06T16:56:36.061+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-12-06T16:56:36.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-06T16:56:36.062+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-12-06T16:56:36.068+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-06T16:56:36.068+09:00  INFO 38045 --- [haruUp] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 355 ms
+2025-12-06T16:56:36.111+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-06T16:56:36.112+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-06T16:56:36.117+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-06T16:56:36.118+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2025-12-06T16:56:36.154+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection org.postgresql.jdbc.PgConnection@7e6eaad9
+2025-12-06T16:56:36.154+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2025-12-06T16:56:36.161+09:00  WARN 38045 --- [haruUp] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-06T16:56:36.165+09:00  INFO 38045 --- [haruUp] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-2)']
+	Database driver: undefined/unknown
+	Database version: 17.7
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-06T16:56:36.274+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-06T16:56:36.330+09:00  INFO 38045 --- [haruUp] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T16:56:36.548+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector extension 초기화 시작
+2025-12-06T16:56:36.552+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector extension 활성화 완료
+2025-12-06T16:56:36.558+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector 버전: 0.8.1
+2025-12-06T16:56:37.084+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-12-06T16:56:37.093+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-12-06T16:56:37.097+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : Started HaruUpApplicationKt in 1.406 seconds (process running for 104.123)
+2025-12-06T16:56:37.098+09:00  INFO 38045 --- [haruUp] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
+2025-12-06T16:56:39.515+09:00  INFO 38045 --- [haruUp] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 5 class path changes (5 additions, 0 deletions, 0 modifications)
+2025-12-06T16:56:39.517+09:00  INFO 38045 --- [haruUp] [      Thread-10] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-06T16:56:39.519+09:00  INFO 38045 --- [haruUp] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-12-06T16:56:39.523+09:00  INFO 38045 --- [haruUp] [      Thread-10] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T16:56:39.524+09:00  INFO 38045 --- [haruUp] [      Thread-10] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
+2025-12-06T16:56:39.524+09:00  INFO 38045 --- [haruUp] [      Thread-10] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.7)
+
+2025-12-06T16:56:39.586+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : Starting HaruUpApplicationKt using Java 21.0.9 with PID 38045 (/Users/myjung/work/swyp/haru-up-back-end/build/classes/kotlin/main started by myjung in /Users/myjung/work/swyp/haru-up-back-end)
+2025-12-06T16:56:39.586+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : The following 1 profile is active: "dev"
+2025-12-06T16:56:39.706+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-06T16:56:39.706+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-06T16:56:39.721+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 14 ms. Found 8 JPA repository interfaces.
+2025-12-06T16:56:39.723+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-06T16:56:39.723+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.auth.infrastructure.RefreshTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.interest.infrastructure.InterestRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberMissionReminderRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberProfileRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.727+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.member.infrastructure.MemberSettingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.728+09:00  INFO 38045 --- [haruUp] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.haruUp.notification.infrastructure.NotificationDeviceTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-06T16:56:39.728+09:00  INFO 38045 --- [haruUp] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 4 ms. Found 0 Redis repository interfaces.
+2025-12-06T16:56:39.828+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-12-06T16:56:39.829+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-06T16:56:39.829+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-12-06T16:56:39.834+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-06T16:56:39.835+09:00  INFO 38045 --- [haruUp] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 248 ms
+2025-12-06T16:56:39.872+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-06T16:56:39.873+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-06T16:56:39.876+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-06T16:56:39.876+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Starting...
+2025-12-06T16:56:39.912+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-3 - Added connection org.postgresql.jdbc.PgConnection@2fd1715e
+2025-12-06T16:56:39.912+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Start completed.
+2025-12-06T16:56:39.920+09:00  WARN 38045 --- [haruUp] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-06T16:56:39.926+09:00  INFO 38045 --- [haruUp] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-3)']
+	Database driver: undefined/unknown
+	Database version: 17.7
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-06T16:56:39.995+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-06T16:56:40.037+09:00  INFO 38045 --- [haruUp] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-06T16:56:40.254+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector extension 초기화 시작
+2025-12-06T16:56:40.255+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector extension 활성화 완료
+2025-12-06T16:56:40.256+09:00  INFO 38045 --- [haruUp] [  restartedMain] c.h.g.c.PgVectorConfig$$SpringCGLIB$$0   : pgvector 버전: 0.8.1
+2025-12-06T16:56:40.731+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-12-06T16:56:40.739+09:00  INFO 38045 --- [haruUp] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-12-06T16:56:40.741+09:00  INFO 38045 --- [haruUp] [  restartedMain] com.haruUp.HaruUpApplicationKt           : Started HaruUpApplicationKt in 1.167 seconds (process running for 107.768)
+2025-12-06T16:56:40.742+09:00  INFO 38045 --- [haruUp] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
+2025-12-06T16:57:45.386+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-06T16:57:45.389+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-06T16:57:45.397+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 8 ms
+2025-12-06T16:57:45.842+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-9] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 281 ms
+2025-12-06T16:58:03.736+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] c.h.d.i.controller.InterestController    : 관심사 추천 요청 - 사용자: 1, 레벨: MAIN, 목표: 10개
+2025-12-06T16:58:03.761+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] c.h.d.i.controller.InterestController    : 사용자 프로필 조회 완료 - 나이: 35, 성별: FEMALE
+2025-12-06T16:58:03.761+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] c.h.d.i.controller.InterestController    : 변환된 관심사 경로: []
+2025-12-06T16:58:03.762+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] .i.s.HybridInterestRecommendationService : 추천 요청 - 레벨: MAIN, 목표: 10개
+2025-12-06T16:58:03.773+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] .i.s.HybridInterestRecommendationService : RAG 추천: 5개 (목표: 7개)
+2025-12-06T16:58:03.773+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] .i.s.HybridInterestRecommendationService : AI 추가 추천 필요: 5개
+2025-12-06T16:58:03.773+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] c.h.d.i.service.AIInterestRecommender    : AI 추천 시작 - 레벨: MAIN, 개수: 5
+2025-12-06T16:58:05.137+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] c.h.d.i.service.AIInterestRecommender    : AI 추천 성공: 5개
+2025-12-06T16:58:05.137+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] .i.s.HybridInterestRecommendationService : AI 추천: 5개
+2025-12-06T16:58:05.139+09:00  INFO 38045 --- [haruUp] [io-8080-exec-10] c.h.d.i.controller.InterestController    : 추천 성공: 총 10개 (RAG: 5개 50%, AI: 5개 50%)
+2025-12-06T16:58:59.046+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] c.h.d.i.controller.InterestController    : 관심사 추천 요청 - 사용자: 1, 레벨: MIDDLE, 목표: 10개
+2025-12-06T16:58:59.060+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] c.h.d.i.controller.InterestController    : 사용자 프로필 조회 완료 - 나이: 35, 성별: FEMALE
+2025-12-06T16:58:59.060+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] c.h.d.i.controller.InterestController    : 변환된 관심사 경로: [운동, 공부]
+2025-12-06T16:58:59.060+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] .i.s.HybridInterestRecommendationService : 추천 요청 - 레벨: MIDDLE, 목표: 10개
+2025-12-06T16:58:59.489+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] .i.s.HybridInterestRecommendationService : RAG 추천: 0개 (목표: 7개)
+2025-12-06T16:58:59.490+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] .i.s.HybridInterestRecommendationService : AI 추가 추천 필요: 10개
+2025-12-06T16:58:59.490+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] c.h.d.i.service.AIInterestRecommender    : AI 추천 시작 - 레벨: MIDDLE, 개수: 10
+2025-12-06T16:59:01.236+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] c.h.d.i.service.AIInterestRecommender    : AI 추천 성공: 10개
+2025-12-06T16:59:01.236+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] .i.s.HybridInterestRecommendationService : AI 추천: 10개
+2025-12-06T16:59:01.236+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-6] c.h.d.i.controller.InterestController    : 추천 성공: 총 10개 (RAG: 0개 0%, AI: 10개 100%)
+2025-12-06T17:00:00.581+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 관심사 추천 요청 - 사용자: 1, 레벨: SUB, 목표: 10개
+2025-12-06T17:00:00.604+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 사용자 프로필 조회 완료 - 나이: 35, 성별: FEMALE
+2025-12-06T17:00:00.604+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 변환된 관심사 경로: [운동 > 헬스, 운동 > 영어, 공부 > 헬스, 공부 > 영어]
+2025-12-06T17:00:00.604+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : 추천 요청 - 레벨: SUB, 목표: 10개
+2025-12-06T17:00:01.183+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : RAG 추천: 0개 (목표: 7개)
+2025-12-06T17:00:01.183+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : AI 추가 추천 필요: 10개
+2025-12-06T17:00:01.183+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.service.AIInterestRecommender    : AI 추천 시작 - 레벨: SUB, 개수: 10
+2025-12-06T17:00:03.079+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.service.AIInterestRecommender    : AI 추천 성공: 10개
+2025-12-06T17:00:03.079+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] .i.s.HybridInterestRecommendationService : AI 추천: 10개
+2025-12-06T17:00:03.079+09:00  INFO 38045 --- [haruUp] [nio-8080-exec-4] c.h.d.i.controller.InterestController    : 추천 성공: 총 10개 (RAG: 0개 0%, AI: 10개 100%)
+
+> Task :bootRun FAILED
+
+[Incubating] Problems report is available at: file:///Users/myjung/work/swyp/haru-up-back-end/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':bootRun'.
+> Process 'command '/opt/homebrew/Cellar/openjdk@21/21.0.9/libexec/openjdk.jdk/Contents/Home/bin/java'' finished with non-zero exit value 137
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 8m 55s
+7 actionable tasks: 2 executed, 5 up-to-date
