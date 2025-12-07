@@ -4,6 +4,7 @@ import com.haruUp.domain.interest.dto.*
 import com.haruUp.domain.interest.model.InterestLevel
 import com.haruUp.domain.interest.service.HybridInterestRecommendationService
 import com.haruUp.global.clova.UserProfile
+import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -156,6 +157,7 @@ class InterestController(
             )
         ]
     )
+    @RateLimit(key = "api:interests:recommend", limit = 50)
     @PostMapping("/recommend")
     fun recommendInterests(
         @Parameter(

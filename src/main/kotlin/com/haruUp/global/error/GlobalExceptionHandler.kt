@@ -18,6 +18,7 @@ class GlobalExceptionHandler {
             ErrorCode.FORBIDDEN -> HttpStatus.FORBIDDEN
             ErrorCode.MEMBER_NOT_FOUND -> HttpStatus.NOT_FOUND
             ErrorCode.MEMBER_DUPLICATE_EMAIL -> HttpStatus.BAD_REQUEST
+            ErrorCode.RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS
             else -> HttpStatus.BAD_REQUEST
         }
 
