@@ -80,3 +80,6 @@ management:
       exposure:
         include: prometheus
 
+
+file:
+  upload-dir: ./uploads

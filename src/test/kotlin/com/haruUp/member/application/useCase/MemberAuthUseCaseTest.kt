@@ -30,6 +30,7 @@ import java.util.Optional
 
 // RefreshToken 엔티티 패키지는 실제 프로젝트에 맞게 조정
 import com.haruUp.auth.domain.RefreshToken
+import com.haruUp.character.application.CharacterUseCase
 import com.haruUp.member.application.service.MemberProfileService
 import org.mockito.Mockito.lenient
 
@@ -44,6 +45,7 @@ class MemberAuthUseCaseTest {
     @Mock lateinit var memberValidator: MemberValidator
     @Mock lateinit var refreshTokenService: RefreshTokenService
     @Mock lateinit var stringRedisTemplate: StringRedisTemplate
+    @Mock lateinit var characterUseCase: CharacterUseCase
 
     // Redis valueOps 는 필드만 잡아두고
     private lateinit var valueOps: ValueOperations<String, String>
@@ -64,6 +66,7 @@ class MemberAuthUseCaseTest {
             passwordEncoder = passwordEncoder,
             memberValidator = memberValidator,
             refreshTokenService = refreshTokenService,
+            characterUseCase = characterUseCase,
             stringRedisTemplate = stringRedisTemplate
         )
     }
