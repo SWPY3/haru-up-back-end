@@ -46,6 +46,9 @@ dependencies {
 
     // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3'
 
     // Mockito Kotlin → 테스트 의존성이 더 자연스럽다
     testImplementation 'org.mockito.kotlin:mockito-kotlin:5.2.1'
@@ -76,6 +79,9 @@ dependencies {
 
     // WAR deploy
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    // 코드 변경 감지 (개발환경에서 사용할 목적)
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 }
 
 kotlin {
@@ -93,6 +99,27 @@ allOpen {
     annotation 'jakarta.persistence.Embeddable'
 }
 
+// Spring Boot 메인 클래스 지정 (bootRun 및 build용)
+springBoot {
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 관심사 임베딩 초기화 태스크
+tasks.register('initEmbeddings', JavaExec) {
+    group = 'application'
+    description = '관심사 임베딩 초기화 실행'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.haruUp.domain.interest.InitEmbeddingsRunner'
+
+    // JVM 설정
+    jvmArgs = ['-Dspring.profiles.active=default']
+
+    // 커맨드라인 인자 전달
+    if (project.hasProperty('args')) {
+        args project.property('args').toString().split('\\s+')
+    }
 }

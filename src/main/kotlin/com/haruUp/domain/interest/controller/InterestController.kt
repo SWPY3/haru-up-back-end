@@ -1,0 +1,362 @@
+package com.haruUp.domain.interest.controller
+
+import com.haruUp.domain.interest.dto.*
+import com.haruUp.domain.interest.model.InterestLevel
+import com.haruUp.domain.interest.service.HybridInterestRecommendationService
+import com.haruUp.global.clova.UserProfile
+import com.haruUp.member.infrastructure.MemberProfileRepository
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.ExampleObject
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
+import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
+import java.time.Period
+
+/**
+ * 관심사 API Controller
+ *
+ * RAG + AI 하이브리드 추천 시스템 API
+ */
+@Tag(name = "관심사 API", description = "RAG + AI 하이브리드 관심사 추천 시스템")
+@RestController
+@RequestMapping("/api/interests")
+class InterestController(
+    private val recommendationService: HybridInterestRecommendationService,
+    private val memberProfileRepository: MemberProfileRepository,
+    private val memberInterestRepository: com.haruUp.domain.interest.repository.MemberInterestJpaRepository,
+    private val interestEmbeddingRepository: com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository
+) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    /**
+     * 관심사 추천 API
+     *
+     * RAG + AI 하이브리드 방식으로 관심사 추천
+     *
+     * @param request 추천 요청
+     * @return 추천된 관심사 목록
+     */
+    @Operation(
+        summary = "관심사 추천",
+        description = """
+            RAG + AI 하이브리드 방식으로 관심사를 추천합니다.
+
+            **호출 예시:**
+            ```json
+            {
+              "userId": 1,
+              "category": [{"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스"}],
+              "currentLevel": "SUB",
+              "targetCount": 10
+            }
+            ```
+        """
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "추천 성공",
+                content = [Content(
+                    mediaType = "application/json",
+                    schema = Schema(implementation = InterestRecommendationResponse::class),
+                    examples = [
+                        ExampleObject(
+                            name = "대분류 추천 예시",
+                            value = """
+                                {
+                                  "interests": [
+                                    {
+                                      "id": "1",
+                                      "name": "운동",
+                                      "level": "MAIN",
+                                      "parentId": null,
+                                      "isEmbedded": false,
+                                      "isUserGenerated": false,
+                                      "usageCount": 15,
+                                      "parentName": null,
+                                      "fullPath": "운동"
+                                    },
+                                    {
+                                      "id": "2",
+                                      "name": "공부",
+                                      "level": "MAIN",
+                                      "parentId": null,
+                                      "isEmbedded": false,
+                                      "isUserGenerated": false,
+                                      "usageCount": 12,
+                                      "parentName": null,
+                                      "fullPath": "공부"
+                                    }
+                                  ],
+                                  "ragCount": 2,
+                                  "aiCount": 0,
+                                  "totalCount": 2,
+                                  "ragRatio": 1.0,
+                                  "aiRatio": 0.0,
+                                  "summary": "총 2개 (RAG: 2개 100%, AI: 0개 0%)"
+                                }
+                            """
+                        ),
+                        ExampleObject(
+                            name = "중분류 추천 예시",
+                            value = """
+                                {
+                                  "interests": [
+                                    {
+                                      "id": "11",
+                                      "name": "헬스",
+                                      "level": "MIDDLE",
+                                      "parentId": "1",
+                                      "isEmbedded": false,
+                                      "isUserGenerated": false,
+                                      "usageCount": 10,
+                                      "parentName": "운동",
+                                      "fullPath": "운동 > 헬스"
+                                    },
+                                    {
+                                      "id": "12",
+                                      "name": "요가",
+                                      "level": "MIDDLE",
+                                      "parentId": "1",
+                                      "isEmbedded": false,
+                                      "isUserGenerated": false,
+                                      "usageCount": 8,
+                                      "parentName": "운동",
+                                      "fullPath": "운동 > 요가"
+                                    }
+                                  ],
+                                  "ragCount": 0,
+                                  "aiCount": 2,
+                                  "totalCount": 2,
+                                  "ragRatio": 0.0,
+                                  "aiRatio": 1.0,
+                                  "summary": "총 2개 (RAG: 0개 0%, AI: 2개 100%)"
+                                }
+                            """
+                        )
+                    ]
+                )]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "잘못된 요청 (유효하지 않은 userId, currentLevel 등)"
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "서버 에러"
+            )
+        ]
+    )
+    @PostMapping("/recommend")
+    fun recommendInterests(
+        @Parameter(
+            description = "관심사 추천 요청 정보",
+            required = true,
+            schema = Schema(implementation = InterestRecommendationRequest::class)
+        )
+        @RequestBody request: InterestRecommendationRequest,
+        @Parameter(
+            description = "하이브리드 스코어링 사용 여부 (false: 유사도만, true: 유사도+인기도)",
+            required = false
+        )
+        @RequestParam(defaultValue = "false") useHybridScoring: Boolean
+    ): ResponseEntity<InterestRecommendationResponse> = runBlocking {
+        val scoringMode = if (useHybridScoring) "하이브리드(유사도+인기도)" else "유사도만"
+        logger.info("관심사 추천 요청 - 사용자: ${request.userId}, 레벨: ${request.currentLevel}, 목표: ${request.targetCount}개, 스코어링: $scoringMode")
+
+        try {
+            // DB에서 사용자 프로필 조회
+            val memberProfile = memberProfileRepository.findByMemberId(request.userId)
+                ?: return@runBlocking ResponseEntity.badRequest().build<InterestRecommendationResponse>().also {
+                    logger.error("사용자 프로필을 찾을 수 없음: ${request.userId}")
+                }
+
+            // MemberProfile → UserProfile 변환
+            val userProfile = UserProfile(
+                age = memberProfile.birthDt?.let { calculateAge(it) },
+                gender = memberProfile.gender?.name,
+                occupation = null, // MemberProfile에 occupation 필드 없음
+                existingInterests = null // 별도 조회 필요시 추가
+            )
+
+            logger.info("사용자 프로필 조회 완료 - 나이: ${userProfile.age}, 성별: ${userProfile.gender}")
+
+            val currentLevel = InterestLevel.valueOf(request.currentLevel)
+
+            // category가 비어있거나 seqNo가 없으면 기존 방식
+            if (request.category.isEmpty() || request.category.all { it.seqNo == null }) {
+                // 기존 로직: 모든 category를 한 번에 처리
+                val selectedInterests = request.category.map { it.toModel() }
+                logger.info("선택된 관심사 경로: ${selectedInterests.map { it.toPathString() }}")
+
+                val result = recommendationService.recommend(
+                    selectedInterests = selectedInterests,
+                    currentLevel = currentLevel,
+                    targetCount = request.targetCount,
+                    userProfile = userProfile,
+                    useHybridScoring = useHybridScoring
+                )
+
+                val response = InterestRecommendationResponse(
+                    interests = result.interests.map { InterestNodeDto.from(it) },
+                    ragCount = result.ragCount,
+                    aiCount = result.aiCount,
+                    totalCount = result.totalCount,
+                    ragRatio = result.ragRatio,
+                    aiRatio = result.aiRatio,
+                    usedHybridScoring = result.usedHybridScoring
+                )
+
+                logger.info("추천 성공: ${response.summary}")
+                return@runBlocking ResponseEntity.ok(response)
+            }
+
+            // 새로운 로직: category별로 추천 처리 (seqNo 추적)
+            logger.info("category별 추천 처리 시작 - ${request.category.size}개")
+
+            val allInterests = mutableListOf<InterestNodeDto>()
+            var totalRagCount = 0
+            var totalAiCount = 0
+
+            // 각 category에 대해 개별적으로 추천
+            val targetCountPerCategory = request.targetCount / request.category.size.coerceAtLeast(1)
+
+            for (categoryDto in request.category) {
+                val selectedInterest = categoryDto.toModel()
+                logger.info("처리 중: seqNo=${categoryDto.seqNo}, path=${selectedInterest.toPathString()}")
+
+                val result = recommendationService.recommend(
+                    selectedInterests = listOf(selectedInterest),
+                    currentLevel = currentLevel,
+                    targetCount = targetCountPerCategory,
+                    userProfile = userProfile,
+                    useHybridScoring = useHybridScoring
+                )
+
+                // seqNo를 포함해서 DTO 변환
+                val interestsWithSeqNo = result.interests.map { InterestNodeDto.from(it, categoryDto.seqNo) }
+                allInterests.addAll(interestsWithSeqNo)
+
+                totalRagCount += result.ragCount
+                totalAiCount += result.aiCount
+
+                logger.info("seqNo=${categoryDto.seqNo} 추천 완료: RAG=${result.ragCount}, AI=${result.aiCount}")
+            }
+
+            val response = InterestRecommendationResponse(
+                interests = allInterests,
+                ragCount = totalRagCount,
+                aiCount = totalAiCount,
+                totalCount = allInterests.size,
+                ragRatio = if (allInterests.isNotEmpty()) totalRagCount.toDouble() / allInterests.size else 0.0,
+                aiRatio = if (allInterests.isNotEmpty()) totalAiCount.toDouble() / allInterests.size else 0.0,
+                usedHybridScoring = useHybridScoring
+            )
+
+            logger.info("전체 추천 성공: ${response.summary}")
+
+            ResponseEntity.ok(response)
+
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().build()
+        } catch (e: Exception) {
+            logger.error("추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+    /**
+     * 생년월일로부터 나이 계산
+     */
+    private fun calculateAge(birthDt: LocalDateTime): Int {
+        val birthDate = birthDt.toLocalDate()
+        val now = LocalDateTime.now().toLocalDate()
+        return Period.between(birthDate, now).years
+    }
+
+    /**
+     * 멤버 관심사 조회 API
+     *
+     * 사용자가 선택한 관심사 목록을 조회합니다 (vector 데이터 제외)
+     *
+     * @param userId 사용자 ID
+     * @return 사용자가 선택한 관심사 목록
+     */
+    @Operation(
+        summary = "멤버 관심사 조회",
+        description = "사용자가 선택한 관심사 목록을 조회합니다 (임베딩 벡터 데이터는 제외)"
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "조회 성공"
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "사용자를 찾을 수 없음"
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "서버 에러"
+            )
+        ]
+    )
+    @GetMapping("/member/{userId}")
+    fun getMemberInterests(
+        @Parameter(
+            description = "사용자 ID",
+            required = true,
+            example = "1"
+        )
+        @PathVariable userId: Long
+    ): ResponseEntity<MemberInterestsResponse> {
+        logger.info("멤버 관심사 조회 - userId: $userId")
+
+        return try {
+            // member_interest 테이블에서 사용자가 선택한 관심사 조회
+            val memberInterests = memberInterestRepository.findByMemberId(userId)
+
+            if (memberInterests.isEmpty()) {
+                logger.info("멤버 관심사 조회 완료 - userId: $userId, 관심사 없음")
+                return ResponseEntity.ok(MemberInterestsResponse(emptyList(), 0))
+            }
+
+            // 각 관심사에 대해 interest_embeddings에서 상세 정보 조회
+            val interests = memberInterests.mapNotNull { memberInterest ->
+                val interestEmbedding = interestEmbeddingRepository.findById(memberInterest.interestId).orElse(null)
+                interestEmbedding?.let {
+                    MemberInterestDto(
+                        id = it.id.toString(),
+                        name = it.name,
+                        level = it.level.name,
+                        parentId = it.parentId,
+                        parentName = it.parentName,
+                        fullPath = it.fullPath,
+                        usageCount = it.usageCount,
+                        isActivated = it.isActivated
+                    )
+                }
+            }
+
+            logger.info("멤버 관심사 조회 완료 - userId: $userId, count: ${interests.size}")
+
+            ResponseEntity.ok(MemberInterestsResponse(interests, interests.size))
+
+        } catch (e: Exception) {
+            logger.error("멤버 관심사 조회 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+}
