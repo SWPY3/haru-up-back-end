@@ -22,18 +22,15 @@ spring:
     #password: ${MY_SQL_DB_PASSWORD}
 
   jpa:
-    show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect  # 또는 이 줄도 빼도 됨(드라이버로 자동 추론)
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         use_sql_comments: false
         default_batch_fetch_size: 1000
-        jdbc:
-          time_zone: Asia/Seoul
-        hbm2ddl:
-          halt_on_error: false
+        jdbc.time_zone: Asia/Seoul
+        hbm2ddl.halt_on_error: false
     hibernate:
       ddl-auto: update
     open-in-view: true
