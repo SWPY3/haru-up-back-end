@@ -22,21 +22,18 @@ spring:
     #password: ${MY_SQL_DB_PASSWORD}
 
   jpa:
-    show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect  # 또는 이 줄도 빼도 됨(드라이버로 자동 추론)
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         use_sql_comments: false
         default_batch_fetch_size: 1000
-        jdbc:
-          time_zone: Asia/Seoul
-        hbm2ddl:
-          halt_on_error: false
+        jdbc.time_zone: Asia/Seoul
+        hbm2ddl.halt_on_error: false
     hibernate:
-      ddl-auto: create-drop
-    open-in-view: true
+      ddl-auto: update   # 로컬/E2E: 첫 실행에 테이블 생성, 이후 스키마 유지
+    open-in-view: false   # API 서버면 false 권장 (원하면 true 유지해도 됨)
 
   data:
     redis:

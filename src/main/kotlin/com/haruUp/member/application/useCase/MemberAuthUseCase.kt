@@ -26,6 +26,7 @@ import kotlin.math.log
 class MemberAuthUseCase(
     private val memberService: MemberService,
     private val memberSettingService: MemberSettingService,
+    private val memberProfileService : MemberProfileService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val passwordEncoder: PasswordEncoder,
     private val memberValidator: MemberValidator,
@@ -109,9 +110,13 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
                         }
                     )
 
+                    val foundMemberId = found.id ?: BusinessException(ErrorCode.MEMBER_NOT_FOUND ,"회원의 정보가 없습니다.")
+
                     memberSettingService.createDefaultSetting(
-                        MemberSettingDto().apply { memberId = requireNotNull(found.id) }
+                        MemberSettingDto().apply { memberId = foundMemberId as Long }
                     )
+
+                     memberProfileService.createDefaultProfile( foundMemberId as Long)
                 }
 
                 found

@@ -9,48 +9,30 @@ import com.haruUp.member.infrastructure.MemberSettingRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.data.redis.core.ValueOperations
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 @SpringBootTest
 @Transactional               // 각 테스트마다 롤백
-class MemberAuthUseCaseIntegrationTest(
+class MemberAuthUseCaseIntegrationTest @Autowired constructor(
 
-    @Autowired
     private val memberAuthUseCase: MemberAuthUseCase,
-
-    @Autowired
     private val memberRepository: MemberRepository,
-
-    @Autowired
     private val memberSettingRepository: MemberSettingRepository,
-
-    @Autowired
     private val refreshTokenRepository: RefreshTokenRepository,
-
-    @Autowired
-    private var jwtTokenProvider: JwtTokenProvider,
-
-    @Autowired
-    private var stringRedisTemplate: StringRedisTemplate
-
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val stringRedisTemplate: StringRedisTemplate
 ) {
 
-
     @BeforeEach
-    fun setUp() {
-        // DB는 @Transactional 때문에 매 테스트마다 롤백됨
-        memberRepository.deleteAll()
-        memberSettingRepository.deleteAll()
+    fun cleanUp() {
+        // 트랜잭션 롤백으로도 정리되지만, 명시적으로도 한 번 정리
         refreshTokenRepository.deleteAll()
+        memberSettingRepository.deleteAll()
+        memberRepository.deleteAll()
     }
 
     // =========================================
@@ -68,42 +50,51 @@ class MemberAuthUseCaseIntegrationTest(
             email = email,
             password = null,
             name = name,
-            loginType = LoginType.KAKAO,
+            loginType = LoginType.KAKAO,   // 실제 enum 값에 맞게 사용
             snsId = snsId
         )
-
-        // JWT 발급 부분은 실제 구현 대신 Stub
-        whenever(jwtTokenProvider.createAccessToken(any(), any()))
-            .thenReturn("ACCESS_TOKEN")
-        whenever(jwtTokenProvider.createRefreshToken(any(), any()))
-            .thenReturn("REFRESH_TOKEN")
-        val refreshExpiry = LocalDateTime.now().plusDays(7)
-        whenever(jwtTokenProvider.getRefreshTokenExpiryLocalDateTime())
-            .thenReturn(refreshExpiry)
 
         // when
         val result = memberAuthUseCase.login(request)
 
         // then - 반환 DTO 검증
         assertNotNull(result.id)
+        val memberId = requireNotNull(result.id)
         assertEquals(LoginType.KAKAO, result.loginType)
-        assertEquals("ACCESS_TOKEN", result.accessToken)
-        assertEquals("REFRESH_TOKEN", result.refreshToken)
 
+        // 토큰이 실제로 발급되었는지
+        assertNotNull(result.accessToken)
+        assertNotNull(result.refreshToken)
+
+        val accessToken = requireNotNull(result.accessToken)
+        val refreshToken = requireNotNull(result.refreshToken)
+
+        // JWT 토큰이 실제로 유효한지, memberId가 맞는지 확인
+        assertTrue(jwtTokenProvider.validateToken(accessToken))
+        assertTrue(jwtTokenProvider.validateToken(refreshToken))
+        assertEquals(memberId, jwtTokenProvider.getMemberIdFromToken(accessToken))
+        assertEquals(memberId, jwtTokenProvider.getMemberIdFromToken(refreshToken))
+
+        // DB: Member 가 실제로 저장되었는지
         val savedMember = memberRepository
             .findByLoginTypeAndSnsIdAndDeletedFalse(LoginType.KAKAO, snsId)
         assertNotNull(savedMember)
-        val memberId = requireNotNull(savedMember!!.id)
+        assertEquals(memberId, savedMember!!.id)
 
-        // MemberSetting 이 생성되었는지
+        // DB: MemberSetting 이 생성되었는지
         val setting = memberSettingRepository.getByMemberId(memberId)
         assertNotNull(setting)
 
-        // RefreshToken 이 DB에 저장되었는지
-        val refreshEntity = refreshTokenRepository.findByToken("REFRESH_TOKEN")
+        // DB: RefreshToken 이 저장되었는지
+        val refreshEntity = refreshTokenRepository.findByToken(refreshToken)
         assertNotNull(refreshEntity)
         assertEquals(memberId, refreshEntity!!.memberId)
         assertFalse(refreshEntity.revoked)
+
+        // Redis: 세션 키가 생성되었는지 (MemberAuthUseCase 에서 쓰는 prefix에 맞춰야 함)
+        val redisKey = "auth:refresh:$refreshToken"
+        val redisVal = stringRedisTemplate.opsForValue().get(redisKey)
+        assertEquals(memberId.toString(), redisVal)
     }
 
     // =========================================
@@ -125,35 +116,33 @@ class MemberAuthUseCaseIntegrationTest(
             snsId = snsId
         )
 
-        whenever(jwtTokenProvider.createAccessToken(any(), any()))
-            .thenReturn("ACCESS1", "ACCESS2")  // 첫 로그인, 두번째 로그인
-        whenever(jwtTokenProvider.createRefreshToken(any(), any()))
-            .thenReturn("REFRESH1", "REFRESH2")
-        val refreshExpiry = LocalDateTime.now().plusDays(7)
-        whenever(jwtTokenProvider.getRefreshTokenExpiryLocalDateTime())
-            .thenReturn(refreshExpiry)
-
         // when 1) 첫 로그인 (자동 회원가입 + 기본 설정)
         val first = memberAuthUseCase.login(request)
 
         val memberCountAfterFirst = memberRepository.count()
         val settingCountAfterFirst = memberSettingRepository.count()
+        val firstMemberId = requireNotNull(first.id)
 
         // when 2) 같은 snsId로 다시 로그인
         val second = memberAuthUseCase.login(request)
 
         val memberCountAfterSecond = memberRepository.count()
         val settingCountAfterSecond = memberSettingRepository.count()
+        val secondMemberId = requireNotNull(second.id)
 
         // then
         assertEquals(memberCountAfterFirst, memberCountAfterSecond, "회원 수는 그대로여야 한다")
-        assertEquals(1, memberCountAfterSecond)   // 실제로는 1명만 있어야 정상
+        assertEquals(1, memberCountAfterSecond, "SNS 로그인으로 생성된 회원은 1명이어야 한다")
 
         assertEquals(settingCountAfterFirst, settingCountAfterSecond, "기본 설정도 한 번만 생성되어야 한다")
-        assertEquals(1, settingCountAfterSecond)
+        assertEquals(1, settingCountAfterSecond, "기본 설정 레코드도 1개여야 한다")
 
         // 두 번 로그인 결과가 같은 memberId 여야 함
-        assertEquals(first.id, second.id)
+        assertEquals(firstMemberId, secondMemberId)
+
+        // 두 번째 로그인에서도 토큰이 정상 발급되는지만 간단히 확인
+        assertNotNull(second.accessToken)
+        assertNotNull(second.refreshToken)
     }
 
     // =========================================
@@ -176,23 +165,17 @@ class MemberAuthUseCaseIntegrationTest(
             snsId = null
         )
 
-        // signUp 내부에서 PasswordEncoder, Validator 등은 실제 Bean이 쓰임
-        // 로그인 시에는 JWT + RefreshToken 저장이 필요하므로 여기서 미리 Stubbing
-        whenever(jwtTokenProvider.createAccessToken(any(), any()))
-            .thenReturn("ACCESS_COMMON")
-        whenever(jwtTokenProvider.createRefreshToken(any(), any()))
-            .thenReturn("REFRESH_COMMON")
-        val refreshExpiry = LocalDateTime.now().plusDays(7)
-        whenever(jwtTokenProvider.getRefreshTokenExpiryLocalDateTime())
-            .thenReturn(refreshExpiry)
-
         // when 1) 회원가입
         val saved = memberAuthUseCase.signUp(signUpRequest)
 
         // then 1) DB에 회원 + 기본 설정이 실제로 존재
-        val memberEntity = memberRepository.findById(saved.id!!).orElse(null)
+        assertNotNull(saved.id)
+        val memberId = requireNotNull(saved.id)
+
+        val memberEntity = memberRepository.findById(memberId).orElse(null)
         assertNotNull(memberEntity)
-        val settingEntity = memberSettingRepository.getByMemberId(saved.id!!)
+
+        val settingEntity = memberSettingRepository.getByMemberId(memberId)
         assertNotNull(settingEntity)
 
         // when 2) COMMON 로그인
@@ -208,13 +191,27 @@ class MemberAuthUseCaseIntegrationTest(
         val loginResult = memberAuthUseCase.login(loginRequest)
 
         // then 2) 로그인 결과에 토큰이 세팅되고, 같은 회원으로 로그인됨
-        assertEquals(saved.id, loginResult.id)
-        assertEquals("ACCESS_COMMON", loginResult.accessToken)
-        assertEquals("REFRESH_COMMON", loginResult.refreshToken)
+        assertEquals(memberId, loginResult.id)
+        assertNotNull(loginResult.accessToken)
+        assertNotNull(loginResult.refreshToken)
+
+        val accessToken = requireNotNull(loginResult.accessToken)
+        val refreshToken = requireNotNull(loginResult.refreshToken)
+
+        // 토큰 유효성 및 memberId 일치 확인
+        assertTrue(jwtTokenProvider.validateToken(accessToken))
+        assertTrue(jwtTokenProvider.validateToken(refreshToken))
+        assertEquals(memberId, jwtTokenProvider.getMemberIdFromToken(accessToken))
+        assertEquals(memberId, jwtTokenProvider.getMemberIdFromToken(refreshToken))
 
         // RefreshToken 이 DB에 저장되었는지
-        val refreshEntity = refreshTokenRepository.findByToken("REFRESH_COMMON")
+        val refreshEntity = refreshTokenRepository.findByToken(refreshToken)
         assertNotNull(refreshEntity)
-        assertEquals(saved.id, refreshEntity!!.memberId)
+        assertEquals(memberId, refreshEntity!!.memberId)
+
+        // Redis에 세션이 존재하는지
+        val redisKey = "auth:refresh:$refreshToken"
+        val redisVal = stringRedisTemplate.opsForValue().get(redisKey)
+        assertEquals(memberId.toString(), redisVal)
     }
 }
