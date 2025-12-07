@@ -9,6 +9,7 @@ import com.haruUp.domain.mission.dto.MissionSelectionResponse
 import com.haruUp.domain.mission.service.MissionRecommendationService
 import com.haruUp.domain.mission.service.MissionSelectionService
 import com.haruUp.global.clova.MissionUserProfile
+import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -92,6 +93,7 @@ class MissionController(
             )
         ]
     )
+    @RateLimit(key = "api:missions:recommend", limit = 50)
     @PostMapping("/recommend")
     fun recommendMissions(
         @Parameter(
