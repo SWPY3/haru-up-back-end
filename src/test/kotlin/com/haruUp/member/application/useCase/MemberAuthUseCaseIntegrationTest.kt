@@ -17,8 +17,9 @@ import org.springframework.transaction.annotation.Transactional
 
 @SpringBootTest
 @Transactional               // 각 테스트마다 롤백
-class MemberAuthUseCaseIntegrationTest @Autowired constructor(
+class MemberAuthUseCaseIntegrationTest
 
+@Autowired constructor(
     private val memberAuthUseCase: MemberAuthUseCase,
     private val memberRepository: MemberRepository,
     private val memberSettingRepository: MemberSettingRepository,

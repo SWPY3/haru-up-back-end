@@ -1,6 +1,7 @@
 package com.haruUp.member.application.useCase
 
 import com.haruUp.auth.application.RefreshTokenService
+import com.haruUp.character.application.CharacterUseCase
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
 import com.haruUp.global.security.JwtTokenProvider
@@ -12,7 +13,6 @@ import com.haruUp.member.domain.Member
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.dto.MemberSettingDto
 import com.haruUp.member.domain.type.LoginType
-import lombok.extern.slf4j.Slf4j
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -20,7 +20,6 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.LocalDateTime
-import kotlin.math.log
 
 @Component
 class MemberAuthUseCase(
@@ -31,7 +30,8 @@ class MemberAuthUseCase(
     private val passwordEncoder: PasswordEncoder,
     private val memberValidator: MemberValidator,
     private val refreshTokenService: RefreshTokenService,
-    private val stringRedisTemplate: StringRedisTemplate
+    private val stringRedisTemplate: StringRedisTemplate,
+    private val characterUseCase : CharacterUseCase
 ) {
 
 private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
@@ -115,8 +115,6 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
                     memberSettingService.createDefaultSetting(
                         MemberSettingDto().apply { memberId = foundMemberId as Long }
                     )
-
-                     memberProfileService.createDefaultProfile( foundMemberId as Long)
                 }
 
                 found
@@ -300,6 +298,16 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
     fun refresh(refreshToken: String) : String? {
         val newTokens = reissueTokens(refreshToken)
         return newTokens.accessToken
+    }
+
+    fun createDefaulProfile(memberId: Long?, characterId: Long) {
+
+        if(memberId  == null) throw BusinessException(ErrorCode.MEMBER_NOT_FOUND , "회원의 memberId 찾을수 없습니다.")
+
+        memberProfileService.createDefaultProfile(memberId)
+        characterUseCase.createInitialCharacter(memberId, characterId);
+
+
     }
 
 }

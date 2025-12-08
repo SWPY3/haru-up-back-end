@@ -6,6 +6,7 @@ import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.type.LoginType
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -85,6 +86,20 @@ class MemberAuthController(
         )
         val result = memberAuthUseCase.login(memberDto)
         return ApiResponse.success(result)
+    }
+
+    @Operation(summary = "프로필, 캐릭터 CREATE",
+        description = """
+            캐릭터 선택후 프로필 입력완료 시점에 호출하기
+        """
+        )
+    @PostMapping("/add_profile")
+    fun createDefaultProfile(@AuthenticationPrincipal memberDto : MemberDto, characterId : Long) : ApiResponse<String>{
+
+
+         memberAuthUseCase.createDefaulProfile(memberDto.id, characterId)
+
+        return ApiResponse.success( "OK")
     }
 
     // =====================
