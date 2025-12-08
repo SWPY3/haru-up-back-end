@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface LevelRepository : JpaRepository<Level, Long> {
 
-    fun findByLevelNumber(id : Long) : Level
+    fun findByLevelNumber(levelNumber : Int) : Level?
 
 }

@@ -10,7 +10,7 @@ class LevelService(
 ) {
 
     fun getInitialLevelId(): Long {
-        return levelRepository.findByLevelNumber(1).id
+        return levelRepository.findByLevelNumber(1)?.id
             ?: throw IllegalStateException("Level 1 not found")
     }
 
@@ -18,5 +18,5 @@ class LevelService(
         levelRepository.findById(levelId).orElseThrow()
 
     fun getNextLevel(levelNumber: Int): Level? =
-        levelRepository.findByLevelNumber(levelNumber + 1 as Long)
+        levelRepository.findByLevelNumber(levelNumber + 1 )
 }

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class MemberCharacterService(
-    private val repo: MemberCharacterRepository
+    private val memberCharacterRepository: MemberCharacterRepository
 ) {
 
     fun createInitial(memberId: Long, characterId: Long, levelId: Long): MemberCharacter {
@@ -21,12 +21,11 @@ class MemberCharacterService(
             levelId = levelId
         )
 
-        return repo.save(mc)
+        return memberCharacterRepository.save(mc)
     }
 
-    fun getSelectedCharacter(memberId: Long) : MemberCharacter {
-        TODO("Not yet implemented")
-
+    fun getSelectedCharacter(memberId: Long): MemberCharacter? {
+        return memberCharacterRepository.findByMemberId(memberId)
     }
 
     @Transactional
@@ -57,6 +56,6 @@ class MemberCharacterService(
             if (newNext == null) break
         }
 
-        return repo.save(mc)
+        return memberCharacterRepository.save(mc)
     }
 }
