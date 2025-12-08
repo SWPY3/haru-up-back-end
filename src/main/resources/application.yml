@@ -76,9 +76,14 @@ server:
 management:
   endpoints:
     web:
-      base-path: /jikgong
       exposure:
-        include: prometheus
+        include: "health,info,prometheus"  # 혹은 "*"
+  endpoint:
+    health:
+      show-details: "always"
+  metrics:
+    tags:
+      application: my-spring-app   # 공통 태그
 
 
 file:
