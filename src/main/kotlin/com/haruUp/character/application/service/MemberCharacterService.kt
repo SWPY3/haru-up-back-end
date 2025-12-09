@@ -7,6 +7,8 @@ import com.haruUp.character.domain.dto.MemberCharacterDto
 import com.haruUp.character.infrastructure.MemberCharacterRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
+import java.time.LocalDate
+import kotlin.math.max
 
 @Service
 class MemberCharacterService(
@@ -29,32 +31,33 @@ class MemberCharacterService(
     }
 
     @Transactional
-    fun applyExp(
+    fun applyExpWithResolvedValues(
         mc: MemberCharacter,
-        expEarned: Int,
-        currentLevel: Level,
-        nextLevel: Level?
+        newLevelId: Long,
+        totalExp: Int,
+        currentExp: Int
     ): MemberCharacter {
 
-        mc.totalExp += expEarned
-        mc.currentExp += expEarned
+        mc.levelId = newLevelId
+        mc.totalExp = totalExp
+        mc.currentExp = currentExp
 
-        // 레벨업 조건 확인
-        while (nextLevel != null && mc.currentExp >= currentLevel.requiredExp) {
+        // streak, mission count 등 업데이트
+        mc.totalMissions += 1
+        mc.completedMissions += 1
 
-            // 경험치 차감
-            mc.currentExp -= currentLevel.requiredExp
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
 
-            // 레벨 업
-            mc.levelId = nextLevel.id!!
-
-            // 다음 레벨 갱신
-            val newLevel = nextLevel
-            val newNext = null // 최고레벨이면 null
-
-            // 반복 여부 판단
-            if (newNext == null) break
+        if (mc.lastMissionDate == yesterday) {
+            mc.currentStreakDays += 1
+        } else {
+            mc.currentStreakDays = 1
         }
+
+        mc.longestStreakDays = max(mc.longestStreakDays, mc.currentStreakDays)
+
+        mc.lastMissionDate = today
 
         return memberCharacterRepository.save(mc)
     }

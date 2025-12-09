@@ -6,8 +6,8 @@ import com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.domain.mission.dto.CategoryInfo
 import com.haruUp.domain.mission.dto.MissionSelectionRequest
 import com.haruUp.domain.mission.dto.MissionSelectionResponse
-import com.haruUp.domain.mission.entity.MemberMissionEntity
-import com.haruUp.domain.mission.repository.MemberMissionRepository
+import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.infrastructure.MemberMissionRepository
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -67,9 +67,10 @@ class MissionSelectionService(
                     ?: throw IllegalStateException("미션 임베딩 ID가 null입니다")
 
                 // 3. 사용자-미션 연결 저장 (중복 체크 없이 항상 새로운 row 생성)
-                val memberMission = MemberMissionEntity(
+                val memberMission = MemberMission(
                     memberId = request.userId,
-                    missionId = missionId
+                    missionId = missionId,
+                    expEarned = 0
                 )
                 val saved = memberMissionRepository.save(memberMission)
                 saved.id?.let { savedMemberMissionIds.add(it) }

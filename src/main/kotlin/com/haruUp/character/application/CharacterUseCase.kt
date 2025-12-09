@@ -58,7 +58,7 @@ class CharacterUseCase(
         // nextLevel == null 이면 최고 레벨 → 그대로 진행
 
         // 4) 경험치 및 레벨업 처리
-        val updatedMc = memberCharacterService.applyExp(
+        val updatedMc = memberCharacterService.applyExpWithResolvedValues(
             mc = mc,
             expEarned = expEarned,
             currentLevel = currentLevel,
