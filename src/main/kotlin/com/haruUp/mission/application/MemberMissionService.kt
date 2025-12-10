@@ -12,6 +12,28 @@ class MemberMissionService(
     private val memberMissionRepository: MemberMissionRepository
 ) {
 
+    // 전체 미션 조회
+    fun getAllMissions(memberId: Long): List<MemberMissionDto> {
+        return memberMissionRepository.findByMemberId(memberId)
+            .map { mission -> mission.toDto() }
+            .toList()
+    }
+
+    // 오늘의 미션 조회
+    fun getTodayMissions(memberId: Long, today: LocalDateTime): List<MemberMissionDto> {
+        val startOfDay = today.toLocalDate().atStartOfDay()
+        val endOfDay = startOfDay.plusDays(1).minusNanos(1)
+
+        return memberMissionRepository.findByMemberIdAndCreatedAtBetween(memberId, startOfDay, endOfDay)
+            .map { mission -> mission.toDto() }
+            .toList()
+    }
+
+    // 사용자 미션 선택
+    fun memberSelectMission(mission: MemberMission): MemberMission {
+        return memberMissionRepository.save(mission)
+    }
+
 
 
     // 미션 완료처리

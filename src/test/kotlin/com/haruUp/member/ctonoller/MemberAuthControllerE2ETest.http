@@ -10,9 +10,9 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNS_E2E_001",
-  "email": "e2e-test@example.com",
-  "name": "E2E테스트유저"
+  "snsId": "SNS_E2E_002",
+  "email": "e2e-test2@example.com",
+  "name": "E2E테스트유저2"
 }
 
 > {%
@@ -39,6 +39,7 @@ Content-Type: application/json
 ### 2. jwt-token-login - 리프레시 토큰으로 자동 로그인 (앱 재실행용)
 POST {{baseUrl}}/api/member/auth/jwt-token-login
 jwt-token: {{refreshToken}}
+//jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwibmFtZSI6IkUyRe2FjOyKpO2KuOycoOyggDEiLCJ0eXBlIjoiUkVGUkVTSCIsImlhdCI6MTc2NTMzNzkzNiwiZXhwIjoxODI1ODE3OTM2fQ.77DfcV3XaEkNXcJ3_SF0--Tazz0c82GDpYnQvAkH6is
 
 > {%
     // 디버그용: 현재 글로벌에 들어있는 값 확인
@@ -76,3 +77,13 @@ jwt-token: {{refreshToken}}
 ### 4. (옵션) 로그아웃된 리프레시 토큰으로 다시 jwt-token-login 시도 → 실패 기대
 POST {{baseUrl}}/api/member/auth/jwt-token-login
 jwt-token: {{refreshToken}}
+
+
+### 5. (옵션) 프로필 추가 정보 등록
+POST {{baseUrl}}/api/member/profile/add_profile
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{
+    "id" : 2
+}

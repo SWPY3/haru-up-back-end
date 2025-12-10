@@ -34,6 +34,8 @@ class MemberMission (
     @Column(name = "is_completed", nullable = false)
     var isCompleted: Boolean = false,
 
+    var missionStatus : MissionStatus = MissionStatus.ACTIVE,
+
     var expEarned : Int
 
 ) : BaseEntity() {

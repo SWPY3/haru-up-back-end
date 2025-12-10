@@ -4,6 +4,7 @@ import com.haruUp.member.application.service.MemberService
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource
@@ -25,6 +26,8 @@ class JwtAuthenticationFilter(
     private val memberService: MemberService,
 ) : OncePerRequestFilter() {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     /**
      * 실제 필터 로직이 들어가는 메서드
      *
@@ -38,60 +41,93 @@ class JwtAuthenticationFilter(
         filterChain: FilterChain
     ) {
 
+        log.info("JwtAuthenticationFilter - {} {}", request.method, request.requestURI)
+
         // 1) 이미 SecurityContext에 인증 정보가 있는 경우
-        //    -> 이 필터가 다시 인증할 필요 없음 (다음 필터로 바로 넘김)
-        //
-        // 🔴 기존 코드에선 == null 일 때 그냥 통과해버려서,
-        //    "인증이 안 되어 있는" 경우에 인증을 시도하지 않는 버그가 있었음.
-        //    그래서 != null 로 바꿔야 정상 동작.
-        if (SecurityContextHolder.getContext().authentication != null) {
+        val existingAuth = SecurityContextHolder.getContext().authentication
+        if (existingAuth != null) {
+            log.info(
+                "JwtAuthenticationFilter - existing authentication found: principal={}, authorities={}",
+                existingAuth.principal,
+                existingAuth.authorities
+            )
             filterChain.doFilter(request, response)
             return
         }
 
         // 2) 요청 헤더에서 JWT 토큰 추출 (Authorization / jwt-token)
         val token = resolveToken(request)
+        if (token == null) {
+            log.warn("JwtAuthenticationFilter - no JWT token found in request headers")
+            filterChain.doFilter(request, response)
+            return
+        } else {
+            log.info(
+                "JwtAuthenticationFilter - token resolved, prefix={}...",
+                token.take(15)
+            )
+        }
 
-        // 3) 토큰이 있고, 서명 & 만료 시간 등 유효성이 검증되면
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            // 3-1) 토큰에서 memberId 추출
-            val memberId = jwtTokenProvider.getMemberIdFromToken(token)
+        // 3) 토큰 유효성 검증
+        val valid = jwtTokenProvider.validateToken(token)
+        log.info("JwtAuthenticationFilter - validateToken(token) = {}", valid)
 
-            // 3-2) DB에서 회원 정보 조회
-            val memberOpt = memberService.getFindMemberId(memberId)
-            if (memberOpt.isPresent) {
-                val member = memberOpt.get()
+        if (valid) {
+            try {
+                // 3-1) 토큰에서 memberId 추출
+                val memberId = jwtTokenProvider.getMemberIdFromToken(token)
+                log.info("JwtAuthenticationFilter - memberId from token = {}", memberId)
 
-                // 3-3) Spring Security용 Principal 객체 생성
-                //      - 인증된 유저의 id, email, name 등 보안 관련 정보 담는 역할
-                val principal = MemberPrincipal(
-                    id = requireNotNull(member.id),
-                    email = member.email ?: "",
-                    name = member.name ?: ""
-                )
+                // 3-2) DB에서 회원 정보 조회
+                val memberOpt = memberService.getFindMemberId(memberId)
+                if (memberOpt.isPresent) {
+                    val member = memberOpt.get()
+                    log.info(
+                        "JwtAuthenticationFilter - member loaded. id={}, email={}",
+                        member.id,
+                        member.email
+                    )
 
-                // 3-4) UsernamePasswordAuthenticationToken 생성
-                //      - principal: 인증된 사용자 정보
-                //      - credentials: 비밀번호 등 (JWT 기반이라 null)
-                //      - authorities: 권한 목록 (MemberPrincipal이 UserDetails 구현했다고 가정)
-                val auth = UsernamePasswordAuthenticationToken(
-                    principal,
-                    null,
-                    principal.authorities
-                )
+                    // 3-3) Principal 생성
+                    val principal = MemberPrincipal(
+                        id = requireNotNull(member.id),
+                        email = member.email ?: "",
+                        name = member.name ?: ""
+                    )
 
-                // 3-5) 현재 요청(request)에 대한 세부 정보(IP, 세션 등)도 Authentication에 세팅
-                auth.details = WebAuthenticationDetailsSource().buildDetails(request)
+                    // 3-4) Authentication 생성
+                    val auth = UsernamePasswordAuthenticationToken(
+                        principal,
+                        null,
+                        principal.authorities
+                    )
 
-                // 3-6) SecurityContext 에 Authentication 저장
-                //      -> 이후 컨트롤러에서는 @AuthenticationPrincipal 로 principal 사용 가능
-                SecurityContextHolder.getContext().authentication = auth
+                    // 3-5) request detail 세팅
+                    auth.details = WebAuthenticationDetailsSource().buildDetails(request)
+
+                    // 3-6) SecurityContext에 저장
+                    SecurityContextHolder.getContext().authentication = auth
+                    log.info(
+                        "JwtAuthenticationFilter - authentication set in SecurityContext. principalId={}",
+                        principal.id
+                    )
+                } else {
+                    log.warn(
+                        "JwtAuthenticationFilter - member not found for memberId={}",
+                        memberId
+                    )
+                }
+            } catch (ex: Exception) {
+                log.error("JwtAuthenticationFilter - error while setting authentication", ex)
             }
+        } else {
+            log.warn("JwtAuthenticationFilter - token is not valid")
         }
 
         // 4) 나머지 필터 체인 계속 진행
         filterChain.doFilter(request, response)
     }
+
 
     /**
      * HTTP 요청 헤더에서 JWT 토큰을 꺼내는 역할
@@ -100,20 +136,38 @@ class JwtAuthenticationFilter(
      * 없으면 기존 호환을 위해 "jwt-token" 헤더도 허용.
      */
     private fun resolveToken(request: HttpServletRequest): String? {
-        // 1) 표준: Authorization 헤더 (예: "Authorization: Bearer eyJ...")
+        // 요청 기본 정보
+        log.info("resolveToken - {} {}", request.method, request.requestURI)
+
+        // 1) 표준 Authorization 헤더
         val bearer = request.getHeader("Authorization")
+        log.info("resolveToken - Authorization header = {}", bearer)
+
         if (!bearer.isNullOrBlank() && bearer.startsWith("Bearer ", ignoreCase = true)) {
-            // "Bearer " 이후의 실제 토큰 문자열만 잘라서 반환
-            return bearer.substring(7)
+            val token = bearer.substring(7)
+            // 토큰 전체는 말고 앞부분만
+            log.info(
+                "resolveToken - Bearer token found, prefix = {}...",
+                token.take(15)
+            )
+            return token
         }
 
-        // 2) 이전 코드와의 호환: "jwt-token" 헤더가 있다면 그것도 토큰으로 간주
+        // 2) legacy "jwt-token" 헤더
         val legacy = request.getHeader("jwt-token")
+        log.info("resolveToken - jwt-token header = {}", legacy)
+
         if (!legacy.isNullOrBlank()) {
+            log.info(
+                "resolveToken - using legacy jwt-token header, prefix = {}...",
+                legacy.take(15)
+            )
             return legacy
         }
 
-        // 3) 둘 다 없으면 null
+        // 3) 둘 다 없으면
+        log.warn("resolveToken - no token found in Authorization or jwt-token header")
         return null
     }
+
 }

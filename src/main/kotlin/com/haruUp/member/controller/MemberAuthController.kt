@@ -1,6 +1,10 @@
 package com.haruUp.member.controller
 
+import com.haruUp.character.domain.dto.CharacterDto
 import com.haruUp.global.common.ApiResponse
+import com.haruUp.global.error.BusinessException
+import com.haruUp.global.error.ErrorCode
+import com.haruUp.global.security.MemberPrincipal
 import com.haruUp.member.application.useCase.MemberAuthUseCase
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.type.LoginType
@@ -8,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
+import java.io.Serializable
 
 @RestController
 @RequestMapping("/api/member/auth")
@@ -16,9 +21,9 @@ class MemberAuthController(
     private val memberAuthUseCase: MemberAuthUseCase,
 ) {
 
-    // =====================
-    // COMMON 인증 (예비용 / 내부용)
-    // =====================
+// =====================
+// COMMON 인증 (예비용 / 내부용)
+// =====================
 
 //    @Operation(
 //        summary = "회원가입 (COMMON)",
@@ -88,19 +93,6 @@ class MemberAuthController(
         return ApiResponse.success(result)
     }
 
-    @Operation(summary = "프로필, 캐릭터 CREATE",
-        description = """
-            캐릭터 선택후 프로필 입력완료 시점에 호출하기
-        """
-        )
-    @PostMapping("/add_profile")
-    fun createDefaultProfile(@AuthenticationPrincipal memberDto : MemberDto, characterId : Long) : ApiResponse<String>{
-
-
-         memberAuthUseCase.createDefaulProfile(memberDto.id, characterId)
-
-        return ApiResponse.success( "OK")
-    }
 
     // =====================
     // 토큰 / 세션 관리

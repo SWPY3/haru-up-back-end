@@ -22,7 +22,6 @@ class BaseEntity (
     @Column
     var deletedAt: LocalDateTime? = null,
 
-    @Column(nullable = false)
     var deleted: Boolean = false,
 ) {
     fun softDelete() {

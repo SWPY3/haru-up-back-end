@@ -31,7 +31,6 @@ class MemberAuthUseCase(
     private val memberValidator: MemberValidator,
     private val refreshTokenService: RefreshTokenService,
     private val stringRedisTemplate: StringRedisTemplate,
-    private val characterUseCase : CharacterUseCase
 ) {
 
 private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
@@ -300,14 +299,6 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
         return newTokens.accessToken
     }
 
-    fun createDefaulProfile(memberId: Long?, characterId: Long) {
 
-        if(memberId  == null) throw BusinessException(ErrorCode.MEMBER_NOT_FOUND , "회원의 memberId 찾을수 없습니다.")
-
-        memberProfileService.createDefaultProfile(memberId)
-        characterUseCase.createInitialCharacter(memberId, characterId);
-
-
-    }
 
 }
