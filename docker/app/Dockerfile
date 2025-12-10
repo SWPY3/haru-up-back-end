@@ -20,7 +20,7 @@ COPY src ./src
 
 # 3. 애플리케이션 빌드
 #   - bootJar만 빌드 (스프링 부트 실행용 JAR)
-RUN ./gradlew clean build -x test --no-daemon
+RUN ./gradlew clean bootWar -x test --no-daemon
 
 # =======================
 # Stage 2: Runtime
@@ -36,12 +36,11 @@ ENV TZ=Asia/Seoul \
 # 2. non-root 유저 생성
 RUN groupadd -r spring && useradd -r -g spring spring
 
-# 3. 빌드 결과 JAR 복사
-#    - build/libs 안에 있는 부트 JAR 하나를 app.jar로 이름 바꿔서 복사
-COPY --from=build /workspace/build/libs/*.jar app.jar
+# 빌드된 WAR 복사 (하나만 있다고 가정)
+COPY --from=build /workspace/build/libs/*.war app.war
 
-# 4. 디버깅 + 권한 변경
-RUN ls -al && chown spring:spring app.jar
+# 디버깅 + 권한 변경
+RUN ls -al && chown spring:spring app.war
 
 USER spring
 
