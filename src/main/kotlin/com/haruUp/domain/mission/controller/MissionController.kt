@@ -6,11 +6,13 @@ import com.haruUp.domain.mission.dto.MissionRecommendationRequest
 import com.haruUp.domain.mission.dto.MissionRecommendationResponse
 import com.haruUp.domain.mission.dto.MissionSelectionRequest
 import com.haruUp.domain.mission.dto.MissionSelectionResponse
+import com.haruUp.domain.mission.repository.MissionEmbeddingRepository
 import com.haruUp.domain.mission.service.MissionRecommendationService
 import com.haruUp.domain.mission.service.MissionSelectionService
 import com.haruUp.global.clova.MissionUserProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
+import com.haruUp.mission.infrastructure.MemberMissionRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -24,6 +26,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.time.Period
+import kotlin.collections.mapNotNull
 
 /**
  * 미션 API Controller
@@ -35,8 +38,8 @@ class MissionController(
     private val missionRecommendationService: MissionRecommendationService,
     private val missionSelectionService: MissionSelectionService,
     private val memberProfileRepository: MemberProfileRepository,
-    private val memberMissionRepository: com.haruUp.domain.mission.repository.MemberMissionRepository,
-    private val missionEmbeddingRepository: com.haruUp.domain.mission.repository.MissionEmbeddingRepository
+    private val memberMissionRepository: MemberMissionRepository,
+    private val missionEmbeddingRepository: MissionEmbeddingRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 

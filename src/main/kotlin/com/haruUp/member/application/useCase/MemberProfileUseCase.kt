@@ -1,6 +1,7 @@
 package com.haruUp.member.application.useCase
 
 import com.haruUp.auth.application.RefreshTokenService
+import com.haruUp.character.application.CharacterUseCase
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
 import com.haruUp.global.security.JwtTokenProvider
@@ -17,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional
 class MemberProfileUseCase (
     private val memberService: MemberService,
     private val memberProfileService: MemberProfileService,
+    private val characterUseCase : CharacterUseCase
 ) {
+
+
 
 
     @Transactional(readOnly = true)
@@ -45,6 +49,16 @@ class MemberProfileUseCase (
         // 여기서 nickname 길이, 금지어 등 검증을 Validator로 뺄 수도 있음
         return memberProfileService.updateProfile(memberId, dto)
     }
+
+    fun createDefaulProfile(memberId: Long?, characterId: Long) {
+
+        if(memberId  == null) throw BusinessException(ErrorCode.MEMBER_NOT_FOUND , "회원의 memberId 찾을수 없습니다.")
+
+        memberProfileService.createDefaultProfile(memberId)
+        characterUseCase.createInitialCharacter(memberId, characterId);
+
+    }
+
 
 
 

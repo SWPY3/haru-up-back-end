@@ -40,32 +40,35 @@ class CharacterUseCase(
         return mc.toDto()
     }
 
-    /**
-     * 미션 완료 후 경험치를 적용하고 레벨업 여부를 반영한다.
-     */
-    @Transactional
-    fun applyMissionExp(memberId: Long, expEarned: Int): MemberCharacterDto {
-
-        // 1) 선택된 캐릭터 조회
-        val mc = memberCharacterService.getSelectedCharacter(memberId)
-            ?: throw IllegalStateException("선택된 캐릭터가 없습니다.")
-
-        // 2) 현재 레벨 조회
-        val currentLevel = levelService.getById(mc.levelId)
-
-        // 3) 다음 레벨 조회 (null → 최고 레벨)
-        val nextLevel = levelService.getNextLevel(currentLevel.levelNumber)
-        // nextLevel == null 이면 최고 레벨 → 그대로 진행
-
-        // 4) 경험치 및 레벨업 처리
-        val updatedMc = memberCharacterService.applyExp(
-            mc = mc,
-            expEarned = expEarned,
-            currentLevel = currentLevel,
-            nextLevel = nextLevel
-        )
-
-        // 5) DTO 반환
-        return updatedMc.toDto()
-    }
+//    /**
+//     * 미션 완료 후 경험치를 적용하고 레벨업 여부를 반영한다.
+//     */
+//    @Transactional
+//    fun applyMissionExp(memberId: Long, expEarned: Int): MemberCharacterDto {
+//
+//        // 1) 선택된 캐릭터 조회
+//        val mc = memberCharacterService.getSelectedCharacter(memberId)
+//            ?: throw IllegalStateException("선택된 캐릭터가 없습니다.")
+//
+//        // 2) 현재 레벨 조회
+//        val currentLevel = levelService.getById(mc.levelId)
+//
+//        // 3) 다음 레벨 조회 (null → 최고 레벨)
+//        val nextLevel = levelService.getNextLevel(currentLevel.levelNumber)
+//        // nextLevel == null 이면 최고 레벨 → 그대로 진행
+//
+//        // 4) 경험치 및 레벨업 처리
+//        val updatedMc = memberCharacterService.applyExpWithResolvedValues(
+//            mc = mc,
+//            expEarned = expEarned,
+//            currentLevel = currentLevel,
+//            nextLevel = nextLevel,
+//            newLevelId = TODO(),
+//            totalExp = TODO(),
+//            currentExp = TODO()
+//        )
+//
+//        // 5) DTO 반환
+//        return updatedMc.toDto()
+//    }
 }

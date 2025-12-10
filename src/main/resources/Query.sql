@@ -1,0 +1,17 @@
+INSERT INTO public.member (deleted, created_at, deleted_at, id, updated_at, email, login_type, name, password, sns_id, status) VALUES (false, '2025-12-10 12:38:56.585499', null, 1, '2025-12-10 12:38:56.585499', 'e2e-test1@example.com', 'KAKAO', 'E2E테스트유저1', '', 'SNS_E2E_001', 'ACTIVE');
+INSERT INTO public.member (deleted, created_at, deleted_at, id, updated_at, email, login_type, name, password, sns_id, status) VALUES (false, '2025-12-10 12:39:05.384317', null, 2, '2025-12-10 12:39:05.384317', 'e2e-test2@example.com', 'KAKAO', 'E2E테스트유저2', '', 'SNS_E2E_002', 'ACTIVE');
+INSERT INTO public.member (deleted, created_at, deleted_at, id, updated_at, email, login_type, name, password, sns_id, status) VALUES (false, '2025-12-10 12:39:12.287571', null, 3, '2025-12-10 12:39:12.287571', 'e2e-test2@example.com', 'KAKAO', 'E2E테스트유저3', '', 'SNS_E2E_003', 'ACTIVE');
+INSERT INTO public.member (deleted, created_at, deleted_at, id, updated_at, email, login_type, name, password, sns_id, status) VALUES (false, '2025-12-10 12:39:20.877620', null, 4, '2025-12-10 12:39:20.877620', 'e2e-test2@example.com', 'KAKAO', 'E2E테스트유저4', '', 'SNS_E2E_004', 'ACTIVE');
+INSERT INTO public.member (deleted, created_at, deleted_at, id, updated_at, email, login_type, name, password, sns_id, status) VALUES (false, '2025-12-10 12:39:27.046819', null, 5, '2025-12-10 12:39:27.046819', 'e2e-test2@example.com', 'KAKAO', 'E2E테스트유저5', '', 'SNS_E2E_005', 'ACTIVE');
+
+INSERT INTO public.member_setting (deleted, email_enabled, marketing_consent, push_enabled, created_at, deleted_at, id, member_id, updated_at, theme) VALUES (false, false, false, false, '2025-12-10 12:38:56.630444', null, 1, 1, '2025-12-10 12:38:56.630444', 'LIGTH');
+INSERT INTO public.member_setting (deleted, email_enabled, marketing_consent, push_enabled, created_at, deleted_at, id, member_id, updated_at, theme) VALUES (false, false, false, false, '2025-12-10 12:39:05.386989', null, 2, 2, '2025-12-10 12:39:05.386989', 'LIGTH');
+INSERT INTO public.member_setting (deleted, email_enabled, marketing_consent, push_enabled, created_at, deleted_at, id, member_id, updated_at, theme) VALUES (false, false, false, false, '2025-12-10 12:39:12.289674', null, 3, 3, '2025-12-10 12:39:12.289674', 'LIGTH');
+INSERT INTO public.member_setting (deleted, email_enabled, marketing_consent, push_enabled, created_at, deleted_at, id, member_id, updated_at, theme) VALUES (false, false, false, false, '2025-12-10 12:39:20.880029', null, 4, 4, '2025-12-10 12:39:20.880029', 'LIGTH');
+INSERT INTO public.member_setting (deleted, email_enabled, marketing_consent, push_enabled, created_at, deleted_at, id, member_id, updated_at, theme) VALUES (false, false, false, false, '2025-12-10 12:39:27.049634', null, 5, 5, '2025-12-10 12:39:27.049634', 'LIGTH');
+
+INSERT INTO public.character (character_img_ref, name, description, deleted) VALUES (1, '하루냥', '매일 작은 습관을 응원해 주는 고양이 캐릭터', false);
+INSERT INTO public.character (character_img_ref, name, description, deleted) VALUES (2, '부지런벌', '부지런하게 미션을 수행하는 벌 캐릭터', false);
+INSERT INTO public.character (character_img_ref, name, description, deleted) VALUES (3, '도전토끼', '새로운 도전을 좋아하는 토끼 캐릭터', false);
+
+INSERT INTO public.level (level_number, required_exp, max_exp, deleted) VALUES (1, 100, 50, false);

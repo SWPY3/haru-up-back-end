@@ -32,7 +32,7 @@ spring:
         jdbc.time_zone: Asia/Seoul
         hbm2ddl.halt_on_error: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     open-in-view: true
 
   data:
@@ -50,8 +50,8 @@ jwt:
   secret-key: ${JWT_SECRET_KEY}
   #expiration: ${JWT_EXPIRATION}
   issuer: ${JWT_ISSUER}
-  access-token-validity-in-seconds: 86400 # 1 day
-  refresh-token-validity-in-seconds: 604800 # 7 days
+  access-token-validity-in-seconds: 8640000 # 1 day
+  refresh-token-validity-in-seconds: 60480000 # 7 days
 
 clova:
   api:
