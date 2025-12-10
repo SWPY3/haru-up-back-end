@@ -1,9 +1,9 @@
-package com.haruUp.domain.interest.service
+package com.haruUp.interest.service
 
-import com.haruUp.domain.interest.model.InterestNode
-import com.haruUp.domain.interest.repository.EmbeddingQueueRepository
-import com.haruUp.domain.interest.repository.InterestRepository
-import com.haruUp.domain.interest.repository.VectorInterestRepository
+import com.haruUp.interest.model.InterestNode
+import com.haruUp.interest.repository.EmbeddingQueueRepository
+import com.haruUp.interest.repository.InterestRepository
+import com.haruUp.interest.repository.VectorInterestRepository
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled

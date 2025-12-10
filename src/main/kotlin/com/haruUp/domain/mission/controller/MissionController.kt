@@ -1,7 +1,7 @@
 package com.haruUp.domain.mission.controller
 
-import com.haruUp.domain.interest.dto.MemberMissionDto
-import com.haruUp.domain.interest.dto.MemberMissionsResponse
+import com.haruUp.interest.dto.MemberMissionDto
+import com.haruUp.interest.dto.MemberMissionsResponse
 import com.haruUp.domain.mission.dto.MissionRecommendationRequest
 import com.haruUp.domain.mission.dto.MissionRecommendationResponse
 import com.haruUp.domain.mission.dto.MissionSelectionRequest
@@ -284,7 +284,7 @@ class MissionController(
             example = "123"
         )
         @PathVariable missionId: Long,
-        @RequestBody request: com.haruUp.domain.interest.dto.UpdateMissionStatusRequest
+        @RequestBody request: com.haruUp.interest.dto.UpdateMissionStatusRequest
     ): ResponseEntity<Void> {
         logger.info("미션 상태 업데이트 - missionId: $missionId, isCompleted: ${request.isCompleted}")
 

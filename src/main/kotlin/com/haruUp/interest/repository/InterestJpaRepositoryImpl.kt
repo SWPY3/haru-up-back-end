@@ -1,10 +1,10 @@
-package com.haruUp.domain.interest.repository
+package com.haruUp.interest.repository
 
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.model.InterestNode
-import com.haruUp.domain.interest.model.InterestPath
-import com.haruUp.interest.domain.CreatedSourceType
-import com.haruUp.interest.domain.Interest
+import com.haruUp.interest.entity.CreatedSourceType
+import com.haruUp.interest.entity.Interest
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestNode
+import com.haruUp.interest.model.InterestPath
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
@@ -18,7 +18,7 @@ import java.time.ZoneId
 @Repository
 @Primary
 class InterestJpaRepositoryImpl(
-    private val jpaRepository: com.haruUp.interest.infrastructure.InterestRepository
+    private val jpaRepository: InterestEntityJpaRepository
 ) : InterestRepository {
 
     override fun save(interest: InterestNode): InterestNode {

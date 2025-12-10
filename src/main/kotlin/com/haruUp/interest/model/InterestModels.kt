@@ -1,4 +1,4 @@
-package com.haruUp.domain.interest.model
+package com.haruUp.interest.model
 
 import java.time.LocalDateTime
 

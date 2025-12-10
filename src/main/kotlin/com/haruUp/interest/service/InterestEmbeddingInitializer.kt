@@ -1,8 +1,8 @@
-package com.haruUp.domain.interest.service
+package com.haruUp.interest.service
 
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.repository.InterestRepository
-import com.haruUp.domain.interest.repository.VectorInterestRepository
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.repository.InterestRepository
+import com.haruUp.interest.repository.VectorInterestRepository
 import com.haruUp.global.clova.ClovaEmbeddingClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -21,7 +21,7 @@ class InterestEmbeddingInitializer(
     private val interestRepository: InterestRepository,
     private val vectorRepository: VectorInterestRepository,
     private val clovaEmbeddingClient: ClovaEmbeddingClient,
-    private val embeddingJpaRepository: com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository
+    private val embeddingJpaRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 

@@ -1,6 +1,8 @@
-package com.haruUp.interest.domain
+package com.haruUp.interest.dto
 
-data class InterestDto(
+import com.haruUp.interest.entity.CreatedSourceType
+
+data class InterestEntityDto(
     val id: Long? = null,
     val parentId: Long? = null,
     val level: String,  // "MAIN", "MIDDLE", "SUB"

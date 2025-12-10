@@ -1,8 +1,8 @@
-package com.haruUp.domain.interest.controller
+package com.haruUp.interest.controller
 
-import com.haruUp.domain.interest.dto.*
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.service.HybridInterestRecommendationService
+import com.haruUp.interest.dto.*
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.service.HybridInterestRecommendationService
 import com.haruUp.global.clova.UserProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
@@ -32,8 +32,8 @@ import java.time.Period
 class InterestController(
     private val recommendationService: HybridInterestRecommendationService,
     private val memberProfileRepository: MemberProfileRepository,
-    private val memberInterestRepository: com.haruUp.domain.interest.repository.MemberInterestJpaRepository,
-    private val interestEmbeddingRepository: com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository
+    private val memberInterestRepository: com.haruUp.interest.repository.MemberInterestJpaRepository,
+    private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 

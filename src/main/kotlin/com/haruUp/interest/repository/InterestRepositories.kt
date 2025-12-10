@@ -1,8 +1,8 @@
-package com.haruUp.domain.interest.repository
+package com.haruUp.interest.repository
 
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.model.InterestNode
-import com.haruUp.domain.interest.model.InterestPath
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestNode
+import com.haruUp.interest.model.InterestPath
 
 /**
  * 관심사 Repository

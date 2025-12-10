@@ -1,6 +1,6 @@
-package com.haruUp.domain.interest.repository
+package com.haruUp.interest.repository
 
-import com.haruUp.domain.interest.model.InterestNode
+import com.haruUp.interest.model.InterestNode
 import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap
 

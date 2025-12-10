@@ -1,9 +1,9 @@
-package com.haruUp.interest.infrastructure
+package com.haruUp.interest.repository
 
-import com.haruUp.interest.domain.Interest
+import com.haruUp.interest.entity.Interest
 import org.springframework.data.jpa.repository.JpaRepository
 
-interface InterestRepository : JpaRepository<Interest, Long> {
+interface InterestEntityJpaRepository : JpaRepository<Interest, Long> {
 
     // parent_id로 자식 관심사 조회 (삭제되지 않은 것만)
     fun findByParentIdAndDeletedFalse(parentId: Long?): List<Interest>

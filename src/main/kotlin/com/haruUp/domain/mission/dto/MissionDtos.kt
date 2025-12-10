@@ -1,6 +1,6 @@
 package com.haruUp.domain.mission.dto
 
-import com.haruUp.domain.interest.dto.InterestPathDto
+import com.haruUp.interest.dto.InterestPathDto
 import io.swagger.v3.oas.annotations.media.Schema
 
 /**
