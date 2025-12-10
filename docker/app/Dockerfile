@@ -16,8 +16,6 @@ RUN chmod +x gradlew
 COPY src ./src
 
 # 3. 애플리케이션 빌드
-#   - war 기반이면 bootWar 또는 build 둘 중 하나 선택
-#   - spring boot war 실행용이면 bootWar 결과를 java -jar로 실행 가능
 RUN ./gradlew clean bootWar -x test --no-daemon
 
 # =======================

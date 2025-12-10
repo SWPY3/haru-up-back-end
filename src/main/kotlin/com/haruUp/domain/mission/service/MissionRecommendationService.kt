@@ -2,7 +2,7 @@ package com.haruUp.domain.mission.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.haruUp.domain.interest.model.InterestPath
+import com.haruUp.interest.model.InterestPath
 import com.haruUp.domain.mission.dto.MissionDto
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.ImprovedMissionRecommendationPrompt
