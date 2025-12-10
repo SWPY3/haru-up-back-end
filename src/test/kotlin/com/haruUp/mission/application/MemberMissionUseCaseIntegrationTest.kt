@@ -64,7 +64,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         val dto = mission.toDto()
 
         // When
-        val result = useCase.missionCompletedWithCharacterLeveling(dto)
+        val result = useCase.missionChangeStatus(dto)
 
         // Then
         assertEquals(3, result.levelId)     // 250 exp → 2단계 레벨업

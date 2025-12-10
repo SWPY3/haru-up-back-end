@@ -5,7 +5,6 @@ import com.haruUp.character.application.service.LevelService
 import com.haruUp.character.domain.Level
 import com.haruUp.character.domain.MemberCharacter
 import com.haruUp.character.domain.dto.MemberCharacterDto
-import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -14,7 +13,6 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.mockito.junit.jupiter.MockitoExtension
 
@@ -94,7 +92,7 @@ class MemberMissionUseCaseUnitTest {
         // -----------------------------------------
         // When
         // -----------------------------------------
-        val result = useCase.missionCompletedWithCharacterLeveling(missionDto)
+        val result = useCase.missionChangeStatus(missionDto)
 
         // -----------------------------------------
         // Then

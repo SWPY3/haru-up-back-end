@@ -9,6 +9,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
 import lombok.NoArgsConstructor
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
@@ -36,7 +37,9 @@ class MemberMission (
 
     var missionStatus : MissionStatus = MissionStatus.ACTIVE,
 
-    var expEarned : Int
+    var expEarned : Int,
+
+    var targetDate : LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
 
@@ -45,7 +48,9 @@ class MemberMission (
         memberId = this.memberId,
         missionId = this.missionId,
         isCompleted = this.isCompleted,
-        expEarned = this.expEarned
+        expEarned = this.expEarned,
+        missionStatus = this.missionStatus,
+        targetDate = this.targetDate
     )
 
 }

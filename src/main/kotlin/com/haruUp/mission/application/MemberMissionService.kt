@@ -30,11 +30,9 @@ class MemberMissionService(
     }
 
     // 사용자 미션 선택
-    fun memberSelectMission(mission: MemberMission): MemberMission {
+    fun activeMission(mission: MemberMission): MemberMission {
         return memberMissionRepository.save(mission)
     }
-
-
 
     // 미션 완료처리
     fun missionCompleted(mission: MemberMission): MemberMission {
@@ -51,6 +49,21 @@ class MemberMissionService(
         stored.updatedAt = LocalDateTime.now()
 
         return memberMissionRepository.save(stored)
+    }
+
+    // 사용자가 미션을 미루기로 선택했을때
+    fun postponeMission(mission : MemberMission) : MemberMission{
+
+        // 새부 로직은 검토 필요
+
+        return memberMissionRepository.save(mission)
+    }
+
+    // 사용자가 미션을 포기 했을때
+    fun failMission(mission : MemberMission) : MemberMission {
+
+        // 새부 로직은 거모 필요
+        return memberMissionRepository.save(mission)
     }
 
 

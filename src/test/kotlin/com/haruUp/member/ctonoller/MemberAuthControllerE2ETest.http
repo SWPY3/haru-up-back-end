@@ -10,9 +10,9 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNS_E2E_002",
-  "email": "e2e-test2@example.com",
-  "name": "E2E테스트유저2"
+  "snsId": "SNS_E2E_001",
+  "email": "",
+  "name": ""
 }
 
 > {%

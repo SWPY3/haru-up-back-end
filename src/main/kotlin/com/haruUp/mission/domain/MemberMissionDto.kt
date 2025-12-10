@@ -2,6 +2,10 @@ package com.haruUp.mission.domain
 
 import com.haruUp.global.common.BaseEntity
 import jakarta.persistence.Column
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import java.time.LocalDate
 
 class MemberMissionDto (
 
@@ -13,7 +17,11 @@ class MemberMissionDto (
 
     var isCompleted: Boolean = false,
 
-    var expEarned : Int
+    var missionStatus : MissionStatus = MissionStatus.ACTIVE,
+
+    var expEarned : Int,
+
+    var targetDate : LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
 
@@ -22,6 +30,8 @@ class MemberMissionDto (
         memberId = this.memberId,
         missionId = this.missionId,
         isCompleted = this.isCompleted,
-        expEarned = this.expEarned
+        expEarned = this.expEarned,
+        missionStatus = this.missionStatus,
+        targetDate = this.targetDate
     )
 }

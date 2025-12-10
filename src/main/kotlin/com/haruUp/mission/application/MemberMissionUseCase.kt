@@ -1,10 +1,14 @@
 package com.haruUp.mission.application
 
-import com.haruUp.character.application.service.CharacterService
 import com.haruUp.character.application.service.LevelService
 import com.haruUp.character.application.service.MemberCharacterService
 import com.haruUp.character.domain.dto.MemberCharacterDto
+import com.haruUp.global.error.BusinessException
+import com.haruUp.global.error.ErrorCode
+import com.haruUp.member.domain.type.MemberStatus
+import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
+import com.haruUp.mission.domain.MissionStatus
 import org.springframework.stereotype.Component
 
 @Component
@@ -15,17 +19,48 @@ class MemberMissionUseCase(
 ) {
 
     /**
-     * 미션 완료 처리 + 경험치 반영 + 레벨업까지 한번에 처리하는 유즈케이스
+     * 미션 상태 변경(완료 / 미루기 / 실패)
      */
-    fun missionCompletedWithCharacterLeveling(memberMissionDto: MemberMissionDto): MemberCharacterDto {
+    fun missionChangeStatus(memberMissionDto: MemberMissionDto): MemberCharacterDto {
+
+        return when (memberMissionDto.missionStatus) {
+
+            // 완료
+            MissionStatus.COMPLETED -> handleMissionCompleted(memberMissionDto)
+
+            // 선택
+            MissionStatus.ACTIVE -> {
+                memberMissionService.activeMission(memberMissionDto.toEntity()).toDto()
+                throw BusinessException(ErrorCode.NOT_FOUND, "미션을 찾을수 없습니다.")
+            }
+
+            // 미루기
+            MissionStatus.POSTPONED -> {
+                memberMissionService.postponeMission(memberMissionDto.toEntity()).toDto()
+                throw BusinessException(ErrorCode.NOT_FOUND, "미션을 찾을수 없습니다.")
+            }
+
+            // 삭제
+            MissionStatus.INACTIVE -> {
+                memberMissionService.failMission(memberMissionDto.toEntity()).toDto()
+                throw BusinessException(ErrorCode.NOT_FOUND, "미션을 찾을수 없습니다.")
+            }
+
+            else -> throw IllegalArgumentException("Invalid mission status: ${memberMissionDto.missionStatus}")
+        }
+    }
+
+
+    /**
+     * 미션 완료 → 경험치 반영 → 레벨업 처리
+     */
+    private fun handleMissionCompleted(dto: MemberMissionDto): MemberCharacterDto {
 
         // ----------------------------------------------------------------------
         // 1) 미션 완료 처리
         // ----------------------------------------------------------------------
         val missionCompleted = memberMissionService
-            .missionCompleted(
-                memberMissionDto.apply { this.isCompleted = true }.toEntity()
-            )
+            .missionCompleted(dto.apply { this.isCompleted = true }.toEntity())
 
         // ----------------------------------------------------------------------
         // 2) 선택된 캐릭터 조회
@@ -48,21 +83,17 @@ class MemberMissionUseCase(
         // ----------------------------------------------------------------------
         // ⭐ 5) 레벨업 반복 처리
         // ----------------------------------------------------------------------
-        // newCurrentExp 가 "현재 레벨의 requiredExp 이상"이면 계속 레벨업
         while (nextLevel != null && newCurrentExp >= currentLevel.requiredExp) {
 
-            // 경험치를 현재 레벨의 필요 경험치만큼 차감
             newCurrentExp -= currentLevel.requiredExp
-
-            // 실제 레벨 증가
             currentLevel = nextLevel
 
-            // 다음 레벨 조회 (LevelService가 자동 생성해줄 수도 있음)
+            // 다음 레벨 조회
             nextLevel = levelService.getNextLevel(currentLevel.levelNumber)
         }
 
         // ----------------------------------------------------------------------
-        // 6) 최종 계산 결과를 DB에 반영
+        // 6) 최종 계산 결과를 DB 반영
         // ----------------------------------------------------------------------
         val updatedMc = memberCharacterService.applyExpWithResolvedValues(
             mc = mc,
