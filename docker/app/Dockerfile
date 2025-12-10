@@ -20,7 +20,7 @@ COPY src ./src
 
 # 3. 애플리케이션 빌드
 #   - bootJar만 빌드 (스프링 부트 실행용 JAR)
-RUN ./gradlew clean bootJar -x test --no-daemon
+RUN ./gradlew clean build -x test --no-daemon
 
 # =======================
 # Stage 2: Runtime
