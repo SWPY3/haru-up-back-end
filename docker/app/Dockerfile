@@ -47,4 +47,4 @@ USER spring
 EXPOSE 8080
 
 # 5. 애플리케이션 실행
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.war"]
