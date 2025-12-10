@@ -1,8 +1,8 @@
 package com.haruUp.domain.mission.service
 
-import com.haruUp.domain.interest.entity.InterestEmbeddingEntity
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository
+import com.haruUp.interest.entity.InterestEmbeddingEntity
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.domain.mission.dto.CategoryInfo
 import com.haruUp.domain.mission.dto.MissionSelectionRequest
 import com.haruUp.domain.mission.dto.MissionSelectionResponse
@@ -27,7 +27,7 @@ class MissionSelectionService(
     private val missionEmbeddingService: MissionEmbeddingService,
     private val memberMissionRepository: MemberMissionRepository,
     private val interestEmbeddingJpaRepository: InterestEmbeddingJpaRepository,
-    private val memberInterestRepository: com.haruUp.domain.interest.repository.MemberInterestJpaRepository
+    private val memberInterestRepository: com.haruUp.interest.repository.MemberInterestJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -248,7 +248,7 @@ class MissionSelectionService(
         }
 
         // 새로운 연결 저장 (중복 체크 없이 항상 새로운 row 생성)
-        val memberInterest = com.haruUp.domain.interest.entity.MemberInterestEntity(
+        val memberInterest = com.haruUp.interest.entity.MemberInterestEntity(
             memberId = userId,
             interestId = interestId
         )

@@ -93,7 +93,8 @@ class SecurityConfig(
                         "/api/member/auth/**",  // Auth 관련 엔드포인트는 모두 허용
                         "/v3/api-docs/**",      // Swagger/OpenAPI 문서
                         "/swagger-ui/**",
-                        "/swagger-ui.html"
+                        "/swagger-ui.html",
+                        "/actuator/prometheus/**"
                     ).permitAll()
                     // 3-2) 위에서 명시한 경로를 제외한 나머지 모든 요청은 인증 필요
                     .anyRequest().authenticated()

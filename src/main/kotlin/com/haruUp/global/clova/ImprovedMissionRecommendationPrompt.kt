@@ -14,20 +14,22 @@ object ImprovedMissionRecommendationPrompt {
 해당 사용자가 실제로 실천할 수 있고 성장할 수 있는 구체적인 미션을 정확하게 추천해야 합니다.
 
 ## 미션 추천 규칙
-1. **다중 관심사 반영**: 사용자의 여러 관심사를 균형있게 또는 집중적으로 반영합니다.
-2. **사용자 맞춤형**: 사용자의 나이, 라이프스타일, 관심사 수준에 적합한 미션을 제안합니다.
-3. **실행 가능성**: 사용자가 실제로 실천할 수 있는 현실적이고 구체적인 미션이어야 합니다.
-4. **명확성**: 각 미션은 간결하고 명확한 행동으로 표현되어야 합니다 (10-30자).
-5. **난이도 다양성**: 쉬운 미션부터 도전적인 미션까지 다양한 난이도로 구성합니다.
-6. **연관성 표시**: 각 미션이 어떤 관심사와 관련되는지 명시합니다.
-7. **정확한 개수**: 정확히 5개의 미션을 추천합니다.
+1. **하루 단위 미션**: 모든 미션은 오늘 하루 안에 완료할 수 있는 단위여야 합니다. "주 3회", "한 달 안에", "등록하기", "시작하기" 같은 장기/일회성 목표가 아닌, 매일 반복 실행할 수 있는 미션을 제안하세요.
+2. **다중 관심사 반영**: 사용자의 여러 관심사를 균형있게 또는 집중적으로 반영합니다.
+3. **사용자 맞춤형**: 사용자의 나이, 라이프스타일, 관심사 수준에 적합한 미션을 제안합니다.
+4. **실행 가능성**: 사용자가 실제로 실천할 수 있는 현실적이고 구체적인 미션이어야 합니다.
+5. **명확성**: 각 미션은 간결하고 명확한 행동으로 표현되어야 합니다 (10-30자).
+6. **난이도 다양성**: 쉬운 미션부터 도전적인 미션까지 다양한 난이도로 구성합니다.
+7. **연관성 표시**: 각 미션이 어떤 관심사와 관련되는지 명시합니다.
+8. **정확한 개수**: 정확히 5개의 미션을 추천합니다.
 
 ## 미션 작성 가이드
-- 동사로 시작하여 구체적인 행동을 명시하세요 (예: "하루 30분 러닝하기", "주 3회 헬스장 가기")
+- 동사로 시작하여 구체적인 행동을 명시하세요 (예: "30분 러닝하기", "영단어 10개 암기하기")
 - 측정 가능한 목표를 포함하세요 (횟수, 시간, 거리 등)
 - 너무 추상적이거나 모호한 표현은 피하세요
-- 단계적으로 발전할 수 있는 미션을 제안하세요
 - 여러 관심사가 있다면 골고루 분배하거나, 집중 관심사가 있다면 그것을 우선하세요
+- **금지 표현**: "주 N회", "한 달", "등록하기", "시작하기", "가입하기", "구매하기" 등 일회성/장기 표현 금지
+- **권장 표현**: "오늘", "하루", "N분", "N개", "N페이지" 등 당일 완료 가능한 표현 사용
 
 ## 응답 형식
 반드시 JSON 객체 형식으로만 응답하세요. 다른 설명이나 텍스트는 포함하지 마세요.
@@ -40,11 +42,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "주 3회 가슴 운동 루틴 완수하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "매일 아침 15분 요가 스트레칭 하기", "relatedInterest": "운동 > 요가"},
-    {"content": "출퇴근 시간에 10분 영어 팟캐스트 듣기", "relatedInterest": "공부 > 영어 > 영어회화"},
-    {"content": "주 2회 영어 일기 작성하기", "relatedInterest": "공부 > 영어 > 영어회화"},
-    {"content": "주말에 요가 수업 1회 참여하기", "relatedInterest": "운동 > 요가"}
+    {"content": "가슴 운동 3세트 완수하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
+    {"content": "아침 15분 요가 스트레칭 하기", "relatedInterest": "운동 > 요가"},
+    {"content": "영어 팟캐스트 10분 듣기", "relatedInterest": "공부 > 영어 > 영어회화"},
+    {"content": "영어 일기 3문장 작성하기", "relatedInterest": "공부 > 영어 > 영어회화"},
+    {"content": "요가 동작 3가지 연습하기", "relatedInterest": "운동 > 요가"}
   ]
 }
 
@@ -57,11 +59,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 운동 > 헬스 > 가슴 운동
 응답: {
   "missions": [
-    {"content": "벤치프레스 10kg 증량 도전하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "주 4회 가슴 운동 루틴 수행하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "덤벨 플라이 정확한 자세로 3세트 완수하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
+    {"content": "벤치프레스 5세트 완수하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
+    {"content": "덤벨 플라이 정확한 자세로 3세트 하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
+    {"content": "푸쉬업 20개 3세트 하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
     {"content": "가슴 운동 후 스트레칭 10분 하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "운동 일지 작성하며 중량 기록하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"}
+    {"content": "오늘 운동 기록 일지에 작성하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"}
   ]
 }
 
@@ -74,11 +76,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "주 3회 3km 러닝 완주하기", "relatedInterest": "운동 > 러닝"},
-    {"content": "매일 새로운 인디 아티스트 1명 발견하기", "relatedInterest": "취미 > 음악 감상 > 인디음악"},
-    {"content": "하루 15분 드로잉 연습하기", "relatedInterest": "예술 > 그림 > 드로잉"},
-    {"content": "일본어 히라가나 완벽히 암기하기", "relatedInterest": "공부 > 외국어 > 일본어"},
-    {"content": "라이브 공연 1회 관람하기", "relatedInterest": "취미 > 음악 감상 > 인디음악"}
+    {"content": "3km 러닝 완주하기", "relatedInterest": "운동 > 러닝"},
+    {"content": "새로운 인디 아티스트 1명 발견하기", "relatedInterest": "취미 > 음악 감상 > 인디음악"},
+    {"content": "15분 드로잉 연습하기", "relatedInterest": "예술 > 그림 > 드로잉"},
+    {"content": "일본어 히라가나 10개 암기하기", "relatedInterest": "공부 > 외국어 > 일본어"},
+    {"content": "인디 음악 앨범 1장 감상하기", "relatedInterest": "취미 > 음악 감상 > 인디음악"}
   ]
 }
 
@@ -91,11 +93,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "주 3회 웨이트 트레이닝 루틴 완수하기", "relatedInterest": "운동 > 헬스 > 웨이트 트레이닝"},
-    {"content": "주 2회 5km 러닝 완주하기", "relatedInterest": "운동 > 러닝 > 장거리 달리기"},
-    {"content": "주 1회 수영장에서 30분 자유형 연습하기", "relatedInterest": "운동 > 수영"},
-    {"content": "한 달 안에 10km 러닝 도전하기", "relatedInterest": "운동 > 러닝 > 장거리 달리기"},
-    {"content": "스쿼트와 데드리프트 중량 10kg 증량하기", "relatedInterest": "운동 > 헬스 > 웨이트 트레이닝"}
+    {"content": "웨이트 트레이닝 1시간 하기", "relatedInterest": "운동 > 헬스 > 웨이트 트레이닝"},
+    {"content": "5km 러닝 완주하기", "relatedInterest": "운동 > 러닝 > 장거리 달리기"},
+    {"content": "수영장에서 30분 자유형 연습하기", "relatedInterest": "운동 > 수영"},
+    {"content": "러닝 전후 스트레칭 10분 하기", "relatedInterest": "운동 > 러닝 > 장거리 달리기"},
+    {"content": "스쿼트 5세트 완수하기", "relatedInterest": "운동 > 헬스 > 웨이트 트레이닝"}
   ]
 }
 
@@ -108,11 +110,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "기본 스펀지 케이크 레시피 마스터하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "주 1회 다른 맛의 케이크 시도하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "케이크 데코레이션 기법 3가지 연습하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "가족 생일 케이크 직접 만들어 선물하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "베이킹 일지 작성하며 개선점 기록하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"}
+    {"content": "케이크 레시피 1개 따라 만들기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
+    {"content": "케이크 데코레이션 기법 1가지 연습하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
+    {"content": "베이킹 유튜브 강의 1개 시청하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
+    {"content": "오늘 베이킹 결과 일지에 기록하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
+    {"content": "새로운 케이크 재료 1가지 사용해보기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"}
   ]
 }
 
@@ -124,6 +126,7 @@ object ImprovedMissionRecommendationPrompt {
 - 사용자의 나이, 소개, 모든 관심사를 종합적으로 고려하여 가장 적합한 미션을 추천하세요.
 - 집중 관심사가 지정되면 해당 관심사에 집중된 미션을, 없으면 균형있게 구성하세요.
 - 모든 미션은 구체적이고 실행 가능해야 합니다.
+- **필수**: 모든 미션은 오늘 하루 안에 완료할 수 있어야 합니다. "주 N회", "한 달", "등록하기", "시작하기", "가입하기" 같은 표현은 절대 사용하지 마세요.
 """
 
     /**
@@ -165,3 +168,14 @@ object ImprovedMissionRecommendationPrompt {
         return parts.joinToString(", ")
     }
 }
+
+/**
+ * 미션 추천을 위한 사용자 프로필 정보
+ *
+ * @property age 나이 (선택)
+ * @property introduction 사용자 소개 (선택, 예: "직장인, 운동 초보", "대학생, 음악 좋아함")
+ */
+data class MissionUserProfile(
+    val age: Int? = null,
+    val introduction: String? = null
+)
