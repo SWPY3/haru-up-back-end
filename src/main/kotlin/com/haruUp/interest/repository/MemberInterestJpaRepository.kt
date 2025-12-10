@@ -1,6 +1,6 @@
-package com.haruUp.domain.interest.repository
+package com.haruUp.interest.repository
 
-import com.haruUp.domain.interest.entity.MemberInterestEntity
+import com.haruUp.interest.entity.MemberInterestEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

@@ -1,8 +1,8 @@
-package com.haruUp.domain.interest.dto
+package com.haruUp.interest.dto
 
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.model.InterestNode
-import com.haruUp.domain.interest.model.InterestPath
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestNode
+import com.haruUp.interest.model.InterestPath
 import com.haruUp.global.clova.UserProfile
 import io.swagger.v3.oas.annotations.media.Schema
 

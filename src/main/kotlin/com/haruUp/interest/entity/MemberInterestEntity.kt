@@ -1,4 +1,4 @@
-package com.haruUp.domain.interest.entity
+package com.haruUp.interest.entity
 
 import jakarta.persistence.*
 import java.time.LocalDateTime

@@ -1,11 +1,11 @@
-package com.haruUp.domain.interest.service
+package com.haruUp.interest.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.haruUp.domain.interest.entity.InterestEmbeddingEntity
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.model.InterestNode
-import com.haruUp.domain.interest.model.InterestPath
+import com.haruUp.interest.entity.InterestEmbeddingEntity
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestNode
+import com.haruUp.interest.model.InterestPath
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.UserProfile
 import org.slf4j.LoggerFactory
@@ -21,8 +21,8 @@ import java.util.*
 @Service
 class AIInterestRecommender(
     private val clovaApiClient: ClovaApiClient,
-    private val interestRepository: com.haruUp.domain.interest.repository.InterestRepository,
-    private val embeddingRepository: com.haruUp.domain.interest.repository.InterestEmbeddingJpaRepository
+    private val interestRepository: com.haruUp.interest.repository.InterestRepository,
+    private val embeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
     private val objectMapper = jacksonObjectMapper()

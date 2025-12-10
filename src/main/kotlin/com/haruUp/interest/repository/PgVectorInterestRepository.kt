@@ -1,8 +1,8 @@
-package com.haruUp.domain.interest.repository
+package com.haruUp.interest.repository
 
-import com.haruUp.domain.interest.entity.InterestEmbeddingEntity
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.model.InterestNode
+import com.haruUp.interest.entity.InterestEmbeddingEntity
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestNode
 import com.haruUp.global.clova.ClovaEmbeddingClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

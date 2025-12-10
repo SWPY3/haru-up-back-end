@@ -1,4 +1,4 @@
-package com.haruUp.interest.domain
+package com.haruUp.interest.entity
 
 enum class CreatedSourceType {
     SYSTEM,  // 시스템 기본

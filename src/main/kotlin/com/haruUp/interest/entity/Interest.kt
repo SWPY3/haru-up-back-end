@@ -1,5 +1,6 @@
-package com.haruUp.interest.domain
+package com.haruUp.interest.entity
 
+import com.haruUp.interest.dto.InterestEntityDto
 import com.haruUp.global.common.BaseEntity
 import jakarta.persistence.*
 
@@ -32,7 +33,7 @@ class Interest(
     // JPA가 사용할 기본 생성자
     protected constructor() : this(null, null, "MAIN", "", CreatedSourceType.SYSTEM, 0)
 
-    fun toDto(): InterestDto = InterestDto(
+    fun toDto(): InterestEntityDto = InterestEntityDto(
         id = this.id,
         parentId = this.parentId,
         level = this.level,

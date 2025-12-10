@@ -1,8 +1,8 @@
-package com.haruUp.domain.interest.service
+package com.haruUp.interest.service
 
-import com.haruUp.domain.interest.model.*
-import com.haruUp.domain.interest.repository.InterestRepository
-import com.haruUp.domain.interest.repository.VectorInterestRepository
+import com.haruUp.interest.model.*
+import com.haruUp.interest.repository.InterestRepository
+import com.haruUp.interest.repository.VectorInterestRepository
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.UserProfile
 import org.slf4j.LoggerFactory

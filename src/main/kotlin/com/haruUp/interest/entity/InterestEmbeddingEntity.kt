@@ -1,7 +1,7 @@
-package com.haruUp.domain.interest.entity
+package com.haruUp.interest.entity
 
-import com.haruUp.domain.interest.model.InterestLevel
-import com.haruUp.domain.interest.model.InterestNode
+import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestNode
 import jakarta.persistence.*
 import org.hibernate.annotations.Type
 import java.time.LocalDateTime
