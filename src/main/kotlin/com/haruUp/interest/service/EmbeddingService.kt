@@ -2,7 +2,7 @@ package com.haruUp.interest.service
 
 import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.repository.EmbeddingQueueRepository
-import com.haruUp.interest.repository.InterestRepository
+import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.VectorInterestRepository
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -30,7 +30,7 @@ object EmbeddingConfig {
 class EmbeddingService(
     private val clovaEmbeddingClient: com.haruUp.global.clova.ClovaEmbeddingClient,
     private val vectorRepository: VectorInterestRepository,
-    private val interestRepository: InterestRepository,
+    private val embeddingRepository: InterestEmbeddingJpaRepository,
     private val queueRepository: EmbeddingQueueRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -113,12 +113,9 @@ class EmbeddingService(
             // Vector DB에 저장
             batch.zip(embeddings).forEach { (interest, embedding) ->
                 try {
-                    vectorRepository.insert(
+                    // interest_embeddings 테이블에 임베딩 업데이트
+                    vectorRepository.update(
                         interestId = interest.id,
-                        name = interest.name,
-                        level = interest.level,
-                        parentName = interest.parentName,
-                        fullPath = interest.fullPath,
                         embedding = embedding,
                         metadata = mapOf(
                             "usageCount" to interest.usageCount,
@@ -126,11 +123,6 @@ class EmbeddingService(
                             "isUserGenerated" to interest.isUserGenerated
                         )
                     )
-
-                    // 상태 업데이트
-                    interest.isEmbedded = true
-                    interest.embeddedAt = LocalDateTime.now()
-                    interestRepository.save(interest)
 
                     // 큐에서 제거
                     queueRepository.delete(interest)
@@ -172,8 +164,5 @@ class EmbeddingService(
  */
 private fun InterestNode.toEmbeddingText(): String {
     // 임베딩 텍스트 생성 (컨텍스트 포함)
-    return when {
-        parentName != null -> "$parentName - $name"
-        else -> name
-    }
+    return fullPath.joinToString(" > ")
 }

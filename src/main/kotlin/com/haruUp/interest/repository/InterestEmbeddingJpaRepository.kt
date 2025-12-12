@@ -141,13 +141,13 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
      * 임베딩 데이터 삽입 (Native Query)
      *
      * pgvector 타입으로 변환하여 삽입
+     * fullPath는 PostgreSQL 배열 형식 (예: "{외국어 공부,일본어,단어 학습}")
      */
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true)
     @Query(
         value = """
-            INSERT INTO interest_embeddings (name, level, parent_id, parent_name, full_path, embedding, usage_count, created_source, is_activated, created_at)
-            VALUES (:name, :level, :parentId, :parentName, :fullPath, CAST(:embedding AS vector), :usageCount, :createdSource, :isActivated, :createdAt)
+            INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at)
+            VALUES (:name, :level, :parentId, CAST(:fullPath AS TEXT[]), CAST(:embedding AS vector), :usageCount, :createdSource, :isActivated, :createdAt)
         """,
         nativeQuery = true
     )
@@ -155,8 +155,7 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
         @Param("name") name: String,
         @Param("level") level: String,
         @Param("parentId") parentId: String?,
-        @Param("parentName") parentName: String?,
-        @Param("fullPath") fullPath: String,
+        @Param("fullPath") fullPath: String,  // PostgreSQL 배열 형식: "{value1,value2,...}"
         @Param("embedding") embedding: String?,
         @Param("usageCount") usageCount: Int,
         @Param("createdSource") createdSource: String,
@@ -168,21 +167,20 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
      * full_path로 검색하여 usage_count 증가
      *
      * 대분류, 중분류, 소분류가 정확히 일치하는 row의 usage_count만 증가
-     * 해당하는 row가 없으면 무시 (에러 발생 안함)
+     * fullPath는 PostgreSQL 배열 형식 (예: "{외국어 공부,일본어,단어 학습}")
      */
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true)
     @Query(
         value = """
             UPDATE interest_embeddings
             SET usage_count = usage_count + 1,
                 updated_at = :updatedAt
-            WHERE full_path = :fullPath
+            WHERE full_path = CAST(:fullPath AS TEXT[])
         """,
         nativeQuery = true
     )
     fun incrementUsageCountByFullPath(
-        @Param("fullPath") fullPath: String,
+        @Param("fullPath") fullPath: String,  // PostgreSQL 배열 형식: "{value1,value2,...}"
         @Param("updatedAt") updatedAt: java.time.LocalDateTime
     ): Int  // 업데이트된 행 개수 반환
 
@@ -203,10 +201,73 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
     ): List<InterestEmbeddingEntity>
 
     /**
-     * full_path로 관심사 조회
+     * full_path로 관심사 조회 (PostgreSQL 배열 비교)
      *
-     * @param fullPath 관심사 경로 (예: "운동 > 헬스 > 근력 키우기")
+     * @param fullPath 관심사 경로 배열 형식 (예: "{운동,헬스,근력 키우기}")
      * @return 해당 경로의 관심사 엔티티 (없으면 null)
      */
-    fun findByFullPath(fullPath: String): InterestEmbeddingEntity?
+    @Query(
+        value = """
+            SELECT * FROM interest_embeddings
+            WHERE full_path = CAST(:fullPath AS TEXT[])
+            LIMIT 1
+        """,
+        nativeQuery = true
+    )
+    fun findByFullPath(@Param("fullPath") fullPath: String): InterestEmbeddingEntity?
+
+    /**
+     * created_source와 isActivated로 필터링하여 조회
+     */
+    fun findByCreatedSourceAndIsActivated(
+        createdSource: String,
+        isActivated: Boolean
+    ): List<InterestEmbeddingEntity>
+
+    /**
+     * 레벨과 활성화 여부로 조회
+     */
+    fun findByLevelAndIsActivated(level: InterestLevel, isActivated: Boolean): List<InterestEmbeddingEntity>
+
+    /**
+     * 이름과 레벨로 조회 (활성화된 것만)
+     */
+    fun findByNameAndLevelAndIsActivated(name: String, level: InterestLevel, isActivated: Boolean): InterestEmbeddingEntity?
+
+    /**
+     * 인기도 순으로 조회 (usage_count 내림차순)
+     */
+    @Query(
+        value = """
+            SELECT * FROM interest_embeddings
+            WHERE level = :level
+              AND is_activated = true
+            ORDER BY usage_count DESC
+            LIMIT :limit
+        """,
+        nativeQuery = true
+    )
+    fun findPopularByLevel(
+        @Param("level") level: String,
+        @Param("limit") limit: Int
+    ): List<InterestEmbeddingEntity>
+
+    /**
+     * createdSource, parentId로 필터링하여 조회 (활성화된 것만)
+     * parentId가 특정 값인 경우 사용
+     */
+    fun findByCreatedSourceAndParentIdAndIsActivated(
+        createdSource: String,
+        parentId: String,
+        isActivated: Boolean
+    ): List<InterestEmbeddingEntity>
+
+    /**
+     * createdSource로 필터링하고 parentId가 NULL인 것만 조회 (활성화된 것만)
+     * 대분류(MAIN) 조회 시 사용
+     */
+    fun findByCreatedSourceAndParentIdIsNullAndIsActivated(
+        createdSource: String,
+        isActivated: Boolean
+    ): List<InterestEmbeddingEntity>
 }

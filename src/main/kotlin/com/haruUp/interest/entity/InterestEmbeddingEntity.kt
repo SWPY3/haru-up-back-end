@@ -2,6 +2,7 @@ package com.haruUp.interest.entity
 
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.model.InterestNode
+import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
 import org.hibernate.annotations.Type
 import java.time.LocalDateTime
@@ -31,11 +32,13 @@ class InterestEmbeddingEntity(
     @Column(nullable = false, length = 20)
     val level: InterestLevel,
 
-    @Column(name = "parent_name")
-    val parentName: String? = null,
-
-    @Column(name = "full_path", nullable = false, length = 500)
-    val fullPath: String,
+    /**
+     * 전체 경로 배열 (PostgreSQL TEXT[])
+     * 예: ["외국어 공부", "일본어", "단어 학습"]
+     */
+    @Type(ListArrayType::class)
+    @Column(name = "full_path", nullable = false, columnDefinition = "text[]")
+    val fullPath: List<String>,
 
     @Column(name = "parent_id")
     val parentId: String? = null,
@@ -83,15 +86,13 @@ class InterestEmbeddingEntity(
             name = name,
             level = level,
             parentId = parentId,
+            fullPath = fullPath,
             isEmbedded = embedding != null,  // embedding이 있으면 true
             isUserGenerated = createdSource == "USER",
             usageCount = usageCount,
             createdBy = null,
             createdAt = createdAt
-        ).apply {
-            // parentName 설정 (fullPath 계산에 필요)
-            this.parentName = this@InterestEmbeddingEntity.parentName
-        }
+        )
     }
 
     companion object {

@@ -1,11 +1,12 @@
 package com.haruUp.domain.mission.service
 
 import com.haruUp.interest.entity.InterestEmbeddingEntity
+import com.haruUp.interest.entity.MemberInterestEntity
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
-import com.haruUp.domain.mission.dto.CategoryInfo
 import com.haruUp.domain.mission.dto.MissionSelectionRequest
 import com.haruUp.domain.mission.dto.MissionSelectionResponse
+import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.infrastructure.MemberMissionRepository
 import kotlinx.coroutines.runBlocking
@@ -20,7 +21,7 @@ import java.time.LocalDateTime
  * 사용자가 선택한 미션을 mission_embeddings 테이블에 임베딩하여 저장하고,
  * member_mission 테이블에 사용자-미션 연결 저장
  * interest_embeddings 테이블의 usage_count 증가
- * member_interest 테이블에 사용자-관심사 연결 저장
+ * member_interest 테이블에 사용자-관심사 연결 저장 (directFullPath 포함)
  */
 @Service
 class MissionSelectionService(
@@ -45,19 +46,28 @@ class MissionSelectionService(
 
         request.missions.forEach { dto ->
             try {
+                // directFullPath에서 카테고리 추출
+                val mainCategory = dto.directFullPath.getOrNull(0)
+                val middleCategory = dto.directFullPath.getOrNull(1)
+                val subCategory = dto.directFullPath.getOrNull(2)
+
+                if (mainCategory == null) {
+                    logger.error("directFullPath가 비어있습니다: ${dto.directFullPath}")
+                    return@forEach
+                }
+
                 // 1. 관심사 저장/업데이트 (계층 구조 전체 처리)
                 saveOrUpdateInterestHierarchy(
-                    mainCategory = dto.mainCategory,
-                    middleCategory = dto.middleCategory,
-                    subCategory = dto.subCategory
+                    parentId = dto.parentId,
+                    directFullPath = dto.directFullPath
                 )
 
                 // 2. 미션 임베딩 저장 (중복이면 기존 미션 반환)
                 val missionEmbedding = runBlocking {
                     missionEmbeddingService.embedAndSaveMission(
-                        mainCategory = dto.mainCategory.text,
-                        middleCategory = dto.middleCategory?.text,
-                        subCategory = dto.subCategory?.text,
+                        mainCategory = mainCategory,
+                        middleCategory = middleCategory,
+                        subCategory = subCategory,
                         difficulty = dto.difficulty,
                         missionContent = dto.mission
                     )
@@ -76,12 +86,11 @@ class MissionSelectionService(
                 saved.id?.let { savedMemberMissionIds.add(it) }
                 logger.info("사용자-미션 연결 저장 완료: 사용자=${request.userId}, 미션=${dto.mission}")
 
-                // 4. member_interest 테이블에 사용자-관심사 연결 저장
+                // 4. member_interest 테이블에 사용자-관심사 연결 저장 (directFullPath 포함)
                 saveMemberInterest(
                     userId = request.userId,
-                    mainCategory = dto.mainCategory.text,
-                    middleCategory = dto.middleCategory?.text,
-                    subCategory = dto.subCategory?.text
+                    parentId = dto.parentId,
+                    directFullPath = dto.directFullPath
                 )
             } catch (e: Exception) {
                 logger.error("미션 저장 실패: ${dto.mission}, 에러: ${e.message}", e)
@@ -97,74 +106,56 @@ class MissionSelectionService(
     }
 
     /**
-     * 대분류, 중분류, 소분류로 fullPath 구성
-     *
-     * 예시:
-     * - 대분류만: "운동"
-     * - 대분류 + 중분류: "운동 > 헬스"
-     * - 대분류 + 중분류 + 소분류: "운동 > 헬스 > 근력 키우기"
-     */
-    private fun buildFullPath(
-        mainCategory: String,
-        middleCategory: String?,
-        subCategory: String?
-    ): String {
-        val parts = mutableListOf(mainCategory)
-        middleCategory?.let { parts.add(it) }
-        subCategory?.let { parts.add(it) }
-        return parts.joinToString(" > ")
-    }
-
-    /**
      * 관심사 계층 구조 저장/업데이트
      *
-     * 대분류, 중분류, 소분류를 순차적으로 처리
+     * directFullPath를 기반으로 대분류, 중분류, 소분류를 순차적으로 처리
      * - 기존에 있으면 usage_count만 증가
-     * - 없으면 새로 생성 (embedding NULL, is_activated false, created_source 사용)
+     * - 없으면 새로 생성 (embedding NULL, is_activated false, created_source = USER)
      */
     private fun saveOrUpdateInterestHierarchy(
-        mainCategory: CategoryInfo,
-        middleCategory: CategoryInfo?,
-        subCategory: CategoryInfo?
+        parentId: Long,
+        directFullPath: List<String>
     ) {
         val now = LocalDateTime.now()
 
+        // directFullPath 길이에 따라 처리
+        val mainCategory = directFullPath.getOrNull(0) ?: return
+        val middleCategory = directFullPath.getOrNull(1)
+        val subCategory = directFullPath.getOrNull(2)
+
         // 1. 대분류 처리
-        val mainFullPath = mainCategory.text
+        val mainFullPathList = listOf(mainCategory)
         val mainInterest = saveOrUpdateInterest(
-            fullPath = mainFullPath,
-            name = mainCategory.text,
+            fullPathList = mainFullPathList,
+            name = mainCategory,
             level = InterestLevel.MAIN,
             parentId = null,
-            parentName = null,
-            createdSource = mainCategory.createdSource,
+            createdSource = "USER",  // 직접입력은 USER로 처리
             now = now
         )
 
         // 2. 중분류 처리 (있는 경우)
         val middleInterest = middleCategory?.let { middle ->
-            val middleFullPath = "${mainCategory.text} > ${middle.text}"
+            val middleFullPathList = listOf(mainCategory, middle)
             saveOrUpdateInterest(
-                fullPath = middleFullPath,
-                name = middle.text,
+                fullPathList = middleFullPathList,
+                name = middle,
                 level = InterestLevel.MIDDLE,
                 parentId = mainInterest?.id?.toString(),
-                parentName = mainCategory.text,
-                createdSource = middle.createdSource,
+                createdSource = "USER",
                 now = now
             )
         }
 
         // 3. 소분류 처리 (있는 경우)
         if (middleCategory != null && subCategory != null && middleInterest != null) {
-            val subFullPath = "${mainCategory.text} > ${middleCategory.text} > ${subCategory.text}"
+            val subFullPathList = listOf(mainCategory, middleCategory, subCategory)
             saveOrUpdateInterest(
-                fullPath = subFullPath,
-                name = subCategory.text,
+                fullPathList = subFullPathList,
+                name = subCategory,
                 level = InterestLevel.SUB,
                 parentId = middleInterest.id?.toString(),
-                parentName = "${mainCategory.text} > ${middleCategory.text}",
-                createdSource = subCategory.createdSource,
+                createdSource = "USER",
                 now = now
             )
         }
@@ -176,24 +167,25 @@ class MissionSelectionService(
      * @return 저장/업데이트된 InterestEmbeddingEntity (없으면 null)
      */
     private fun saveOrUpdateInterest(
-        fullPath: String,
+        fullPathList: List<String>,
         name: String,
         level: InterestLevel,
         parentId: String?,
-        parentName: String?,
         createdSource: String,
         now: LocalDateTime
     ): InterestEmbeddingEntity? {
-        // 기존 관심사 조회
-        val existing = interestEmbeddingJpaRepository.findByFullPath(fullPath)
+        val fullPathPostgresArray = listToPostgresArray(fullPathList)
+
+        // 기존 관심사 조회 (PostgreSQL 배열 형식으로 조회)
+        val existing = interestEmbeddingJpaRepository.findByFullPath(fullPathPostgresArray)
 
         return if (existing != null) {
             // 기존에 있으면 usage_count만 증가
             interestEmbeddingJpaRepository.incrementUsageCountByFullPath(
-                fullPath = fullPath,
+                fullPath = fullPathPostgresArray,
                 updatedAt = now
             )
-            logger.info("관심사 usage_count 증가: fullPath=$fullPath")
+            logger.info("관심사 usage_count 증가: fullPath=$fullPathList")
             existing
         } else {
             // 없으면 새로 생성 (embedding NULL, is_activated false)
@@ -202,57 +194,41 @@ class MissionSelectionService(
                 name = name,
                 level = level.name,
                 parentId = parentId,
-                parentName = parentName,
-                fullPath = fullPath,
+                fullPath = fullPathPostgresArray,
                 embedding = null,  // 임베딩 NULL (Native Query에서 CAST 처리)
                 usageCount = 1,
                 createdSource = createdSource,  // 입력받은 created_source 사용
                 isActivated = false,  // 비활성 상태
                 createdAt = now
             )
-            logger.info("새 관심사 생성: fullPath=$fullPath, createdSource=$createdSource, isActivated=false")
+            logger.info("새 관심사 생성: fullPath=$fullPathList, createdSource=$createdSource, isActivated=false")
 
             // 생성된 엔티티 조회하여 반환
-            interestEmbeddingJpaRepository.findByFullPath(fullPath)
+            interestEmbeddingJpaRepository.findByFullPath(fullPathPostgresArray)
         }
     }
 
     /**
      * 사용자-관심사 연결 저장
      *
-     * interest_embeddings 테이블에서 관심사를 조회만 하고,
-     * 존재하는 관심사만 member_interest 테이블에 저장
+     * parentId를 사용하여 member_interest에 저장
+     * directFullPath도 함께 저장
      */
     private fun saveMemberInterest(
         userId: Long,
-        mainCategory: String,
-        middleCategory: String?,
-        subCategory: String?
+        parentId: Long,
+        directFullPath: List<String>
     ) {
-        logger.info("사용자-관심사 저장 시작: userId=$userId, main=$mainCategory, middle=$middleCategory, sub=$subCategory")
-
-        // 가장 하위 레벨의 fullPath 구성
-        val fullPath = buildFullPath(mainCategory, middleCategory, subCategory)
-
-        // interest_embeddings에서 조회 (없으면 생성하지 않음)
-        val interest = interestEmbeddingJpaRepository.findByFullPath(fullPath)
-
-        if (interest == null) {
-            logger.warn("관심사를 찾을 수 없어 member_interest 저장 건너뜀: fullPath=$fullPath")
-            return
-        }
-
-        val interestId = interest.id ?: run {
-            logger.error("관심사 ID가 null: fullPath=$fullPath")
-            return
-        }
+        logger.info("사용자-관심사 저장 시작: userId=$userId, parentId=$parentId, directFullPath=$directFullPath")
 
         // 새로운 연결 저장 (중복 체크 없이 항상 새로운 row 생성)
-        val memberInterest = com.haruUp.interest.entity.MemberInterestEntity(
+        // directFullPath도 함께 저장
+        val memberInterest = MemberInterestEntity(
             memberId = userId,
-            interestId = interestId
+            interestId = parentId,
+            directFullPath = directFullPath
         )
         memberInterestRepository.save(memberInterest)
-        logger.info("사용자-관심사 연결 저장 완료: userId=$userId, interestId=$interestId, fullPath=$fullPath")
+        logger.info("사용자-관심사 연결 저장 완료: userId=$userId, interestId=$parentId, directFullPath=$directFullPath")
     }
 }

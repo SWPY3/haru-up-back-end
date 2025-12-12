@@ -32,10 +32,10 @@ data class InterestRecommendationRequest(
             - seqNo: 프론트엔드 추적용 순번 (선택)
 
             예시:
-            - MIDDLE 추천: [{"seqNo": 1, "mainCategory": "운동"}, {"seqNo": 2, "mainCategory": "공부"}]
-            - SUB 추천: [{"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스"}, {"seqNo": 2, "mainCategory": "공부", "middleCategory": "영어"}]
+            - MIDDLE 추천: [{"seqNo": 1, "mainCategory": "체력관리 및 운동"}, {"seqNo": 2, "mainCategory": "외국어 공부"}]
+            - SUB 추천: [{"seqNo": 1, "mainCategory": "체력관리 및 운동", "middleCategory": "헬스"}, {"seqNo": 2, "mainCategory": "외국어 공부", "middleCategory": "영어"}]
         """,
-        example = """[{"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스"}, {"seqNo": 2, "mainCategory": "공부", "middleCategory": "영어"}]""",
+        example = """[{"seqNo": 1, "mainCategory": "체력관리 및 운동", "middleCategory": "헬스"}, {"seqNo": 2, "mainCategory": "외국어 공부", "middleCategory": "영어"}]""",
         required = false
     )
     val category: List<InterestPathDto> = emptyList(),
@@ -109,7 +109,7 @@ data class InterestPathDto(
 
     @Schema(
         description = "대분류 (필수)",
-        example = "운동",
+        example = "체력관리 및 운동",
         required = true
     )
     val mainCategory: String,
@@ -123,7 +123,7 @@ data class InterestPathDto(
 
     @Schema(
         description = "소분류 (선택)",
-        example = "가슴운동",
+        example = "근력 키우기",
         required = false
     )
     val subCategory: String? = null,
@@ -172,11 +172,8 @@ data class InterestNodeDto(
     @Schema(description = "사용 횟수 (인기도)", example = "15")
     val usageCount: Int,
 
-    @Schema(description = "부모 관심사 이름", example = "운동")
-    val parentName: String? = null,
-
-    @Schema(description = "전체 경로", example = "운동 > 헬스")
-    val fullPath: String,
+    @Schema(description = "전체 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\"]")
+    val fullPath: List<String>,
 
     @Schema(description = "순번 (요청한 category의 seqNo)", example = "1")
     val seqNo: Int? = null
@@ -190,7 +187,6 @@ data class InterestNodeDto(
                 parentId = node.parentId,
                 isEmbedded = node.isEmbedded,
                 usageCount = node.usageCount,
-                parentName = node.parentName,
                 fullPath = node.fullPath,
                 seqNo = seqNo
             )
@@ -297,11 +293,8 @@ data class MemberInterestDto(
     @Schema(description = "부모 관심사 ID", example = "1")
     val parentId: String? = null,
 
-    @Schema(description = "부모 관심사 이름", example = "운동")
-    val parentName: String? = null,
-
-    @Schema(description = "전체 경로", example = "운동 > 헬스")
-    val fullPath: String,
+    @Schema(description = "전체 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\"]")
+    val fullPath: List<String>,
 
     @Schema(description = "사용 횟수", example = "15")
     val usageCount: Int,
@@ -333,8 +326,8 @@ data class MemberMissionDto(
     @Schema(description = "mission_embedding ID", example = "45")
     val missionId: Long,
 
-    @Schema(description = "관심사 카테고리 (경로)", example = "운동 > 헬스 > 가슴운동")
-    val categoryPath: String,
+    @Schema(description = "관심사 카테고리 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val categoryPath: List<String>,
 
     @Schema(description = "난이도", example = "3")
     val difficulty: Int?,
@@ -364,5 +357,44 @@ data class MemberMissionsResponse(
     val missions: List<MemberMissionDto>,
 
     @Schema(description = "총 개수", example = "8")
+    val totalCount: Int
+)
+
+/**
+ * ================================
+ * 시스템 관심사 조회 DTO
+ * ================================
+ */
+
+/**
+ * 관심사 데이터 정보
+ */
+@Schema(description = "관심사 데이터 정보")
+data class InterestDataDto(
+    @Schema(description = "관심사 ID", example = "1")
+    val id: Long,
+
+    @Schema(description = "부모 관심사 ID", example = "5")
+    val parentId: Long?,
+
+    @Schema(description = "관심사 레벨", allowableValues = ["MAIN", "MIDDLE", "SUB"], example = "MAIN")
+    val level: String,
+
+    @Schema(description = "관심사 이름", example = "체력관리 및 운동")
+    val name: String,
+
+    @Schema(description = "사용 횟수", example = "15")
+    val usageCount: Int
+)
+
+/**
+ * 시스템 관심사 조회 응답
+ */
+@Schema(description = "관심사 데이터 조회 응답")
+data class InterestsDataResponse(
+    @Schema(description = "관심사 데이터 목록")
+    val interests: List<InterestDataDto>,
+
+    @Schema(description = "총 개수", example = "50")
     val totalCount: Int
 )

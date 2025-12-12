@@ -11,7 +11,7 @@ class MemberMissionDto (
 
     val id: Long? = null,
 
-    val memberId: Long,
+    var memberId: Long,
 
     val missionId: Long,
 

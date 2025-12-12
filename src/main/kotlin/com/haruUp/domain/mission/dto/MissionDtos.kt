@@ -24,8 +24,8 @@ data class MissionRecommendationRequest(
     @Schema(
         description = "사용자가 선택한 관심사 목록 (대분류 > 중분류 > 소분류, 난이도 포함)",
         example = """[
-            {"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스", "subCategory": "근력 키우기", "difficulty": 1},
-            {"seqNo": 2, "mainCategory": "공부", "middleCategory": "영어", "subCategory": "영어 단어 외우기", "difficulty": 2}
+            {"seqNo": 1, "mainCategory": "체력관리 및 운동", "middleCategory": "헬스", "subCategory": "근력 키우기", "difficulty": 1},
+            {"seqNo": 2, "mainCategory": "외국어 공부", "middleCategory": "영어", "subCategory": "단어 학습", "difficulty": 2}
         ]""",
         required = true
     )
@@ -55,7 +55,7 @@ data class MissionDto(
     @Schema(description = "미션 내용", example = "주 3회 가슴 운동 루틴 완수하기")
     val content: String,
 
-    @Schema(description = "관련 관심사 경로", example = "운동 > 헬스 > 근력 키우기")
+    @Schema(description = "관련 관심사 경로", example = "체력관리 및 운동 > 헬스 > 근력 키우기")
     val relatedInterest: String,
 
     @Schema(description = "난이도 (1~5, null이면 난이도 미설정)", example = "3")
@@ -69,51 +69,23 @@ data class MissionDto(
  */
 
 /**
- * 카테고리 정보 (텍스트 + 생성 출처)
- */
-@Schema(description = "카테고리 정보")
-data class CategoryInfo(
-    @Schema(
-        description = "카테고리 텍스트",
-        example = "운동",
-        required = true
-    )
-    val text: String,
-
-    @Schema(
-        description = "생성 출처 (SYSTEM, USER, AI)",
-        allowableValues = ["SYSTEM", "USER", "AI"],
-        example = "SYSTEM",
-        required = true
-    )
-    val createdSource: String
-)
-
-/**
  * 미션 선택 아이템
  */
 @Schema(description = "선택한 미션 정보")
 data class SelectedMissionDto(
     @Schema(
-        description = "대분류 (필수)",
-        example = """{"text": "운동", "createdSource": "SYSTEM"}""",
+        description = "부모 관심사 ID (interest_embeddings 테이블의 ID)",
+        example = "97",
         required = true
     )
-    val mainCategory: CategoryInfo,
+    val parentId: Long,
 
     @Schema(
-        description = "중분류 (선택)",
-        example = """{"text": "헬스", "createdSource": "USER"}""",
-        required = false
+        description = "전체 경로 배열 [대분류, 중분류, 소분류]",
+        example = """["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"]""",
+        required = true
     )
-    val middleCategory: CategoryInfo? = null,
-
-    @Schema(
-        description = "소분류 (선택)",
-        example = """{"text": "근력 키우기", "createdSource": "AI"}""",
-        required = false
-    )
-    val subCategory: CategoryInfo? = null,
+    val directFullPath: List<String>,
 
     @Schema(
         description = "난이도 (1~5, 선택)",
@@ -125,7 +97,7 @@ data class SelectedMissionDto(
 
     @Schema(
         description = "미션 내용",
-        example = "하루 푸쉬업 10개씩 3세트 하기",
+        example = "보고서 작성법 관련 책 1권 읽고 요약 정리하기",
         required = true
     )
     val mission: String
@@ -147,18 +119,10 @@ data class MissionSelectionRequest(
         description = "선택한 미션 목록",
         example = """[
             {
-                "mainCategory": {"text": "운동", "createdSource": "SYSTEM"},
-                "middleCategory": {"text": "사격", "createdSource": "USER"},
-                "subCategory": {"text": "AR 연습하기", "createdSource": "AI"},
+                "parentId": 97,
+                "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
                 "difficulty": 1,
-                "mission": "하루 푸쉬업 10개씩 3세트 하기"
-            },
-            {
-                "mainCategory": {"text": "공부", "createdSource": "SYSTEM"},
-                "middleCategory": {"text": "영어", "createdSource": "SYSTEM"},
-                "subCategory": {"text": "영어 단어 외우기", "createdSource": "USER"},
-                "difficulty": 2,
-                "mission": "하루 20개 영단어와 예문 함께 외우기"
+                "mission": "보고서 작성법 관련 책 1권 읽고 요약 정리하기"
             }
         ]""",
         required = true
