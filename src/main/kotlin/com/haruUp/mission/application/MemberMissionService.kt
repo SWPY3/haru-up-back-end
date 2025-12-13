@@ -1,10 +1,13 @@
 package com.haruUp.mission.application
 
+import com.haruUp.member.domain.type.MemberStatus
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -15,16 +18,6 @@ class MemberMissionService(
     // 전체 미션 조회
     fun getAllMissions(memberId: Long): List<MemberMissionDto> {
         return memberMissionRepository.findByMemberId(memberId)
-            .map { mission -> mission.toDto() }
-            .toList()
-    }
-
-    // 오늘의 미션 조회
-    fun getTodayMissions(memberId: Long, today: LocalDateTime): List<MemberMissionDto> {
-        val startOfDay = today.toLocalDate().atStartOfDay()
-        val endOfDay = startOfDay.plusDays(1).minusNanos(1)
-
-        return memberMissionRepository.findByMemberIdAndCreatedAtBetween(memberId, startOfDay, endOfDay)
             .map { mission -> mission.toDto() }
             .toList()
     }
@@ -71,8 +64,9 @@ class MemberMissionService(
         return memberMissionRepository.findByIdOrNull(id)
     }
 
-
-
+    fun getTodayMissionsByMemberId(memberId: Long): List<MemberMission> {
+       return memberMissionRepository.getTodayMissionsByMemberId(memberId)
+    }
 
 
 

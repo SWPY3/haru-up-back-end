@@ -2,6 +2,8 @@ package com.haruUp.mission.domain
 
 import com.haruUp.global.common.BaseEntity
 import jakarta.persistence.Column
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -9,15 +11,17 @@ import java.time.LocalDate
 
 class MemberMissionDto (
 
-    val id: Long? = null,
+    var id: Long? = null,
 
-    val memberId: Long,
+    var memberId: Long,
 
-    val missionId: Long,
+    var missionId: Long,
 
     var isCompleted: Boolean = false,
 
     var missionStatus : MissionStatus = MissionStatus.ACTIVE,
+
+    var missionLevel : Int = 0,
 
     var expEarned : Int,
 
@@ -32,6 +36,7 @@ class MemberMissionDto (
         isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate
+        targetDate = this.targetDate,
+        missionLevel = this.missionLevel
     )
 }

@@ -87,3 +87,15 @@ jwt-token: {{refreshToken}}
 {
     "id" : 2
 }
+
+### 미션 추천
+POST {{baseUrl}}/api/missions/recommend
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{
+  "userId": 1,
+  "interests": [
+    {"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스", "subCategory": "근력 키우기", "difficulty": 1}
+  ]
+}

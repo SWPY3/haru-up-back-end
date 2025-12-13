@@ -3,6 +3,8 @@ package com.haruUp.mission.domain
 import com.haruUp.global.common.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -35,7 +37,10 @@ class MemberMission (
     @Column(name = "is_completed", nullable = false)
     var isCompleted: Boolean = false,
 
-    var missionStatus : MissionStatus = MissionStatus.ACTIVE,
+    @Enumerated(EnumType.STRING)
+    var missionStatus : MissionStatus = MissionStatus.READY,
+
+    var missionLevel : Int = 0,
 
     var expEarned : Int,
 
@@ -50,7 +55,8 @@ class MemberMission (
         isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate
+        targetDate = this.targetDate,
+        missionLevel = this.missionLevel
     )
 
 }
