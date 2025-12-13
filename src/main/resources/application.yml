@@ -22,11 +22,11 @@ spring:
     #password: ${MY_SQL_DB_PASSWORD}
 
   jpa:
-    show-sql: true
+    show-sql: false  # p6spy가 SQL 출력 담당
     database-platform: org.hibernate.dialect.PostgreSQLDialect  # 또는 이 줄도 빼도 됨(드라이버로 자동 추론)
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false  # p6spy MultiLineFormat 사용
         use_sql_comments: false
         default_batch_fetch_size: 1000
         jdbc.time_zone: Asia/Seoul
