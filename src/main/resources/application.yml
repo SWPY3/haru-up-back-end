@@ -9,9 +9,9 @@ spring:
     import: classpath:env.properties
 
   datasource:
-    # PostgreSQL (Local Docker)
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    # PostgreSQL (Local Docker) with p6spy
+    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
+    url: jdbc:p6spy:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 
@@ -22,17 +22,17 @@ spring:
     #password: ${MY_SQL_DB_PASSWORD}
 
   jpa:
-    show-sql: true
+    show-sql: false  # p6spy가 SQL 출력 담당
     database-platform: org.hibernate.dialect.PostgreSQLDialect  # 또는 이 줄도 빼도 됨(드라이버로 자동 추론)
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false  # p6spy MultiLineFormat 사용
         use_sql_comments: false
         default_batch_fetch_size: 1000
         jdbc.time_zone: Asia/Seoul
         hbm2ddl.halt_on_error: false
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
     open-in-view: true
 
   data:

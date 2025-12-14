@@ -45,7 +45,6 @@ class MemberAuthUseCaseTest {
     @Mock lateinit var memberValidator: MemberValidator
     @Mock lateinit var refreshTokenService: RefreshTokenService
     @Mock lateinit var stringRedisTemplate: StringRedisTemplate
-    @Mock lateinit var characterUseCase: CharacterUseCase
 
     // Redis valueOps 는 필드만 잡아두고
     private lateinit var valueOps: ValueOperations<String, String>
@@ -66,7 +65,6 @@ class MemberAuthUseCaseTest {
             passwordEncoder = passwordEncoder,
             memberValidator = memberValidator,
             refreshTokenService = refreshTokenService,
-            characterUseCase = characterUseCase,
             stringRedisTemplate = stringRedisTemplate
         )
     }

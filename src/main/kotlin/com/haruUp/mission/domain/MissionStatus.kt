@@ -1,7 +1,7 @@
 package com.haruUp.mission.domain
 
 enum class MissionStatus {
-
+    READY,        // 미션 시작 전 상태
     ACTIVE,       // 정상적으로 수행 중
     POSTPONED,    // 사용자가 내일로 미룸
     COMPLETED,    // 완료

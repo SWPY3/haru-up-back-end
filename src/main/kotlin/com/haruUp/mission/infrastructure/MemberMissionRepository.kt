@@ -1,17 +1,56 @@
 package com.haruUp.mission.infrastructure
 
 import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MissionStatus
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
 
-    /** * 사용자와 미션으로 조회 */
-    fun findByMemberIdAndMissionId(memberId: Long, missionId: Long): MemberMission?
-
     /** * 사용자의 모든 미션 조회 */
     fun findByMemberId(memberId: Long): List<MemberMission>
 
-    /** * 오늘 생성된 미션 조회 */
-    fun findByMemberIdAndCreatedAtBetween(memberId: Long, startOfDay: LocalDateTime, endOfDay: LocalDateTime) : List<MemberMission>
+    /* 오늘의 추천 미션 조회*/
+    @Query(
+        value = """
+            SELECT *
+            FROM member_mission
+            WHERE id IN (
+                SELECT id FROM (
+                    SELECT 
+                        m.id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY m.mission_level
+                            ORDER BY 
+                                CASE WHEN m.mission_status = 'POSTPONED' THEN 0 ELSE 1 END
+                        ) AS rn
+                    FROM member_mission m
+                    WHERE m.member_id = :memberId
+                      AND m.is_completed = false
+                      AND (
+                            (m.mission_status = 'POSTPONED' AND m.target_date = CURRENT_DATE - INTERVAL '1 day')
+                            OR
+                            (m.mission_status = 'READY' AND m.target_date = CURRENT_DATE)
+                          )
+                ) sub
+                WHERE sub.rn = 1
+            )
+            ORDER BY mission_level
+        """,
+        nativeQuery = true
+    )
+    fun getTodayMissionsByMemberId(memberId: Long): List<MemberMission>
+
+    @Query("""
+    SELECT m.missionId
+    FROM MemberMission m
+    WHERE m.memberId = :memberId
+      AND m.targetDate = :targetDate
+    """)
+    fun findMissionIdsByMemberIdAndDate(
+        memberId: Long,
+        targetDate: LocalDate
+    ): List<Long>
 }

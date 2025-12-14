@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
-class BaseEntity (
+abstract class BaseEntity(
 
     @CreatedDate
     @Column(updatable = false)
@@ -22,8 +22,10 @@ class BaseEntity (
     @Column
     var deletedAt: LocalDateTime? = null,
 
-    var deleted: Boolean = false,
-) {
+    @Column(nullable = false)
+    var deleted: Boolean = false
+)
+ {
     fun softDelete() {
         this.deleted = true
         this.deletedAt = LocalDateTime.now()
