@@ -7,7 +7,9 @@ import org.springframework.web.client.RestClient
 import java.util.UUID
 
 @Configuration
-class ClovaApiConfig {
+class ClovaApiConfig(
+    private val restClientBuilder: RestClient.Builder
+) {
 
     @Value("\${clova.api.url}")
     private lateinit var clovaApiUrl: String
@@ -20,7 +22,7 @@ class ClovaApiConfig {
 
     @Bean
     fun clovaRestClient(): RestClient {
-        val builder = RestClient.builder()
+        val builder = restClientBuilder
             .baseUrl(clovaApiUrl)
             .defaultHeader("Authorization", "Bearer $clovaApiKey")
             .defaultHeader("Content-Type", "application/json")
