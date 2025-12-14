@@ -171,27 +171,26 @@ class MissionController(
               "userId": 1,
               "missions": [
                 {
-                  "mainCategory": {"text": "운동", "createdSource": "SYSTEM"},
-                  "middleCategory": {"text": "사격", "createdSource": "USER"},
-                  "subCategory": {"text": "AR 연습하기", "createdSource": "AI"},
+                  "parentId": 97,
+                  "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
                   "difficulty": 1,
-                  "mission": "하루 푸쉬업 10개씩 3세트 하기"
+                  "mission": "보고서 작성법 관련 책 1권 읽고 요약 정리하기"
                 },
                 {
-                  "mainCategory": {"text": "공부", "createdSource": "SYSTEM"},
-                  "middleCategory": {"text": "영어", "createdSource": "SYSTEM"},
-                  "subCategory": {"text": "영어 단어 외우기", "createdSource": "USER"},
+                  "parentId": 14,
+                  "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"],
                   "difficulty": 2,
-                  "mission": "하루 20개 영단어와 예문 함께 외우기"
+                  "mission": "주 3회 벤치프레스 10회 3세트 하기"
                 }
               ]
             }
             ```
 
-            **createdSource 값:**
-            - SYSTEM: 시스템에서 제공한 기본 카테고리
-            - USER: 사용자가 직접 입력한 카테고리
-            - AI: AI가 생성한 카테고리
+            **필드 설명:**
+            - parentId: interest_embeddings 테이블의 부모 관심사 ID
+            - directFullPath: 관심사 경로 배열 [대분류, 중분류, 소분류]
+            - difficulty: 난이도 (1~5, 선택)
+            - mission: 미션 내용
         """
     )
     @ApiResponses(
@@ -367,7 +366,7 @@ class MissionController(
                     MemberMissionDto(
                         memberMissionId = memberMission.id ?: 0L,
                         missionId = it.id ?: 0L,
-                        categoryPath = it.getInterestPath(),
+                        categoryPath = it.getInterestPathList(),
                         difficulty = it.difficulty,
                         missionContent = it.missionContent,
                         usageCount = it.usageCount,

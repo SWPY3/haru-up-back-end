@@ -1,10 +1,10 @@
 package com.haruUp.interest.service
 
 import com.haruUp.interest.model.*
-import com.haruUp.interest.repository.InterestRepository
+import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.VectorInterestRepository
-import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.UserProfile
+import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -22,7 +22,7 @@ import java.util.*
 @Service
 class HybridInterestRecommendationService(
     private val vectorRepository: VectorInterestRepository,
-    private val interestRepository: InterestRepository,
+    private val embeddingRepository: InterestEmbeddingJpaRepository,
     private val aiRecommender: AIInterestRecommender,
     private val embeddingService: EmbeddingService
 ) {
@@ -108,7 +108,8 @@ class HybridInterestRecommendationService(
         return try {
             if (selectedInterests.isEmpty()) {
                 // 선택된 게 없으면 인기 있는 항목 반환
-                interestRepository.findPopularByLevel(level, topK)
+                embeddingRepository.findPopularByLevel(level.name, topK)
+                    .map { it.toInterestNode() }
             } else {
                 // 여러 관심사 기반 검색
                 if (useHybridScoring) {
@@ -173,30 +174,42 @@ class HybridInterestRecommendationService(
         logger.info("직접 입력 처리: '$userInput' (레벨: $level)")
 
         // 1. 기존에 있는지 확인 (대소문자 무시)
-        val existing = interestRepository.findByNameAndLevel(
+        val existingEntity = embeddingRepository.findByNameAndLevelAndIsActivated(
             name = userInput.trim(),
-            level = level
+            level = level,
+            isActivated = true
         )
 
-        if (existing != null) {
-            logger.info("기존 관심사 발견: ${existing.name}")
-            // 사용 횟수 증가
-            existing.usageCount++
-            interestRepository.save(existing)
+        if (existingEntity != null) {
+            logger.info("기존 관심사 발견: ${existingEntity.name}")
+            // 사용 횟수 증가는 interest_embeddings 테이블의 usage_count 업데이트로 처리
+            embeddingRepository.incrementUsageCountByFullPath(
+                fullPath = listToPostgresArray(existingEntity.fullPath),
+                updatedAt = LocalDateTime.now()
+            )
 
             return DirectInputResult(
-                interest = existing,
+                interest = existingEntity.toInterestNode(),
                 isNew = false,
                 similarInterests = emptyList()
             )
         }
 
         // 2. 새로운 관심사 생성 (미임베딩 상태)
+        // fullPath 계산: 부모가 있으면 부모의 fullPath + name, 없으면 name만
+        val parentEntity = parentId?.toLongOrNull()?.let { embeddingRepository.findById(it).orElse(null) }
+        val fullPath: List<String> = if (parentEntity != null) {
+            parentEntity.fullPath + userInput.trim()
+        } else {
+            listOf(userInput.trim())
+        }
+
         val newInterest = InterestNode(
             id = UUID.randomUUID().toString(),
             name = userInput.trim(),
             level = level,
             parentId = parentId,
+            fullPath = fullPath,
             isEmbedded = false,
             isUserGenerated = true,
             usageCount = 1,
@@ -204,7 +217,18 @@ class HybridInterestRecommendationService(
             createdAt = LocalDateTime.now()
         )
 
-        interestRepository.save(newInterest)
+        // interest_embeddings 테이블에 저장
+        embeddingRepository.insertEmbedding(
+            name = newInterest.name,
+            level = level.name,
+            parentId = parentId,
+            fullPath = listToPostgresArray(newInterest.fullPath),
+            embedding = null,
+            usageCount = 1,
+            createdSource = "USER",
+            isActivated = true,
+            createdAt = LocalDateTime.now()
+        )
         logger.info("새로운 관심사 생성: ${newInterest.name}")
 
         // 3. 유사 관심사 검색 (사용자에게 제안)
@@ -233,13 +257,17 @@ class HybridInterestRecommendationService(
      * 미션 완료 시 호출 - 사용 횟수 추적
      */
     fun onMissionCompleted(interestPath: InterestPath) {
-        val interest = interestRepository.findByPath(interestPath)
-        interest?.let {
-            it.usageCount++
-            interestRepository.save(it)
+        val fullPathList = interestPath.toPathList()
+        val fullPathPostgresArray = listToPostgresArray(fullPathList)
+        val entity = embeddingRepository.findByFullPath(fullPathPostgresArray)
+        entity?.let {
+            embeddingRepository.incrementUsageCountByFullPath(
+                fullPath = fullPathPostgresArray,
+                updatedAt = LocalDateTime.now()
+            )
 
             // 임베딩 후보 체크
-            checkEmbeddingCandidate(it)
+            checkEmbeddingCandidate(it.toInterestNode())
         }
     }
 

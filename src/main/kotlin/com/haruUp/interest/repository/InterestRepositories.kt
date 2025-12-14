@@ -5,19 +5,6 @@ import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.model.InterestPath
 
 /**
- * 관심사 Repository
- */
-interface InterestRepository {
-    fun save(interest: InterestNode): InterestNode
-    fun findById(id: String): InterestNode?
-    fun findByNameAndLevel(name: String, level: InterestLevel): InterestNode?
-    fun findByPath(path: InterestPath): InterestNode?
-    fun findByLevel(level: InterestLevel): List<InterestNode>
-    fun findPopularByLevel(level: InterestLevel, limit: Int): List<InterestNode>
-    fun findByParentId(parentId: String): List<InterestNode>
-}
-
-/**
  * Vector DB Repository
  *
  * pgvector (PostgreSQL extension)를 사용한 벡터 검색
@@ -30,8 +17,7 @@ interface VectorInterestRepository {
         interestId: String,
         name: String,
         level: InterestLevel,
-        parentName: String?,
-        fullPath: String,
+        fullPath: List<String>,
         embedding: List<Float>,
         metadata: Map<String, Any>
     )

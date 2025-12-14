@@ -1,6 +1,8 @@
 package com.haruUp.interest.entity
 
+import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
+import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
 /**
@@ -27,6 +29,14 @@ class MemberInterestEntity(
 
     @Column(name = "interest_id", nullable = false)
     val interestId: Long,
+
+    /**
+     * 직접 저장된 전체 경로 배열 (PostgreSQL TEXT[])
+     * 예: ["외국어 공부", "일본어", "단어 학습"]
+     */
+    @Type(ListArrayType::class)
+    @Column(name = "direct_full_path", columnDefinition = "text[]")
+    val directFullPath: List<String>? = null,
 
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()

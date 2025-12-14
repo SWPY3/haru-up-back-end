@@ -4,6 +4,7 @@ import com.haruUp.interest.entity.InterestEmbeddingEntity
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.model.InterestNode
 import com.haruUp.global.clova.ClovaEmbeddingClient
+import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -32,8 +33,7 @@ class PgVectorInterestRepository(
         interestId: String,
         name: String,
         level: InterestLevel,
-        parentName: String?,
-        fullPath: String,
+        fullPath: List<String>,
         embedding: List<Float>,
         metadata: Map<String, Any>
     ) {
@@ -44,8 +44,7 @@ class PgVectorInterestRepository(
                     name = name,
                     level = level.name,
                     parentId = metadata["parentId"] as? String,
-                    parentName = parentName,
-                    fullPath = fullPath,
+                    fullPath = listToPostgresArray(fullPath),
                     embedding = InterestEmbeddingEntity.vectorToString(embedding),
                     usageCount = metadata["usageCount"] as? Int ?: 0,
                     createdSource = metadata["createdSource"] as? String ?: "SYSTEM",
@@ -269,7 +268,6 @@ class PgVectorInterestRepository(
                             interestId = interestId,
                             name = existingEntity.name,
                             level = existingEntity.level,
-                            parentName = existingEntity.parentName,
                             fullPath = existingEntity.fullPath,
                             embedding = embedding,
                             metadata = metadata

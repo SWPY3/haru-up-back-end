@@ -1,27 +1,23 @@
 package com.haruUp.interest.service
 
 import com.haruUp.interest.model.InterestLevel
-import com.haruUp.interest.repository.InterestRepository
+import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.VectorInterestRepository
 import com.haruUp.global.clova.ClovaEmbeddingClient
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
  * 관심사 임베딩 초기화 서비스
  *
- * 기존 interest 테이블 데이터를 읽어서 임베딩을 생성하고
- * interest_embeddings 테이블에 저장합니다.
+ * interest_embeddings 테이블의 임베딩 벡터를 생성/업데이트합니다.
  */
 @Service
 class InterestEmbeddingInitializer(
-    private val interestRepository: InterestRepository,
     private val vectorRepository: VectorInterestRepository,
     private val clovaEmbeddingClient: ClovaEmbeddingClient,
-    private val embeddingJpaRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
+    private val embeddingJpaRepository: InterestEmbeddingJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -45,112 +41,58 @@ class InterestEmbeddingInitializer(
         var failCount = 0
         var skipCount = 0
 
-        // source가 지정되면 interest_embeddings 테이블에서 조회하여 재임베딩
-        if (source != null) {
-            logger.info("특정 source($source)의 임베딩 재생성 모드")
-
-            val embeddingEntities = embeddingJpaRepository.findByCreatedSource(source)
-            logger.info("$source source 임베딩: ${embeddingEntities.size}개")
-
-            for (entity in embeddingEntities) {
-                try {
-                    // 임베딩 재생성
-                    val embeddingText = buildEmbeddingText(entity.name, entity.fullPath)
-                    logger.info("임베딩 재생성: ${entity.name} (${entity.fullPath})")
-                    logger.debug("임베딩 텍스트: $embeddingText")
-
-                    val embedding = clovaEmbeddingClient.createEmbedding(embeddingText)
-
-                    if (embedding.isEmpty()) {
-                        logger.error("임베딩 생성 실패 (빈 벡터): ${entity.name}")
-                        failCount++
-                        continue
-                    }
-
-                    // 기존 임베딩 업데이트
-                    vectorRepository.update(
-                        interestId = entity.id.toString(),
-                        embedding = embedding,
-                        metadata = mapOf(
-                            "usageCount" to entity.usageCount,
-                            "isUserGenerated" to (entity.createdSource == "USER")
-                        )
-                    )
-
-                    successCount++
-                    logger.info("✓ 임베딩 재생성 완료: ${entity.name}")
-
-                    delay(100)
-
-                } catch (e: Exception) {
-                    logger.error("임베딩 재생성 실패: ${entity.name} - ${e.message}", e)
-                    failCount++
-                }
-            }
+        // interest_embeddings 테이블에서 조회하여 임베딩 생성/재생성
+        val embeddingEntities = if (source != null) {
+            logger.info("특정 source($source)의 임베딩 모드")
+            embeddingJpaRepository.findByCreatedSource(source)
         } else {
-            // 기존 로직: interest 테이블에서 조회
-            // 레벨별로 처리
-            val levels = listOf(InterestLevel.MAIN, InterestLevel.MIDDLE, InterestLevel.SUB)
+            logger.info("전체 임베딩 모드")
+            embeddingJpaRepository.findAll()
+        }
 
-            for (level in levels) {
-                logger.info("처리 중: $level 레벨")
+        logger.info("대상 임베딩: ${embeddingEntities.size}개")
 
-                val interests = interestRepository.findByLevel(level)
-                logger.info("$level 레벨 관심사: ${interests.size}개")
-
-            for (interest in interests) {
-                try {
-                    // 이미 임베딩된 경우 스킵 (forceUpdate=false인 경우)
-                    if (!forceUpdate && interest.isEmbedded) {
-                        logger.debug("이미 임베딩됨, 스킵: ${interest.name}")
-                        skipCount++
-                        continue
-                    }
-
-                    // 임베딩 생성을 위한 텍스트 구성
-                    val embeddingText = buildEmbeddingText(interest.name, interest.fullPath)
-
-                    logger.info("임베딩 생성: ${interest.name} (${interest.fullPath})")
-                    logger.debug("임베딩 텍스트: $embeddingText")
-
-                    // Clova API로 임베딩 생성
-                    val embedding = clovaEmbeddingClient.createEmbedding(embeddingText)
-
-                    if (embedding.isEmpty()) {
-                        logger.error("임베딩 생성 실패 (빈 벡터): ${interest.name}")
-                        failCount++
-                        continue
-                    }
-
-                    // Vector DB에 저장
-                    vectorRepository.insert(
-                        interestId = interest.id,
-                        name = interest.name,
-                        level = interest.level,
-                        parentName = interest.parentName,
-                        fullPath = interest.fullPath,
-                        embedding = embedding,
-                        metadata = mapOf(
-                            "usageCount" to interest.usageCount,
-                            "isUserGenerated" to interest.isUserGenerated
-                        )
-                    )
-
-                    // Interest 엔티티의 isEmbedded 플래그 업데이트
-                    interest.isEmbedded = true
-                    interestRepository.save(interest)
-
-                    successCount++
-                    logger.info("✓ 임베딩 저장 완료: ${interest.name}")
-
-                    // API Rate Limit 방지 (100ms 대기)
-                    delay(100)
-
-                } catch (e: Exception) {
-                    logger.error("임베딩 생성 실패: ${interest.name} - ${e.message}", e)
-                    failCount++
+        for (entity in embeddingEntities) {
+            try {
+                // 이미 임베딩된 경우 스킵 (forceUpdate=false인 경우)
+                if (!forceUpdate && entity.embedding != null) {
+                    logger.debug("이미 임베딩됨, 스킵: ${entity.name}")
+                    skipCount++
+                    continue
                 }
-            }
+
+                // 임베딩 생성
+                val embeddingText = buildEmbeddingText(entity.name, entity.fullPath)
+                logger.info("임베딩 생성: ${entity.name} (${entity.fullPath})")
+                logger.debug("임베딩 텍스트: $embeddingText")
+
+                val embedding = clovaEmbeddingClient.createEmbedding(embeddingText)
+
+                if (embedding.isEmpty()) {
+                    logger.error("임베딩 생성 실패 (빈 벡터): ${entity.name}")
+                    failCount++
+                    continue
+                }
+
+                // 임베딩 업데이트
+                vectorRepository.update(
+                    interestId = entity.id.toString(),
+                    embedding = embedding,
+                    metadata = mapOf(
+                        "usageCount" to entity.usageCount,
+                        "isUserGenerated" to (entity.createdSource == "USER")
+                    )
+                )
+
+                successCount++
+                logger.info("✓ 임베딩 완료: ${entity.name}")
+
+                // API Rate Limit 방지 (100ms 대기)
+                delay(100)
+
+            } catch (e: Exception) {
+                logger.error("임베딩 생성 실패: ${entity.name} - ${e.message}", e)
+                failCount++
             }
         }
 
@@ -186,83 +128,46 @@ class InterestEmbeddingInitializer(
         var failCount = 0
         var skipCount = 0
 
-        // source가 지정되면 interest_embeddings 테이블에서 조회하여 재임베딩
-        if (source != null) {
-            logger.info("특정 source($source)의 임베딩 재생성 모드")
-
-            val embeddingEntities = embeddingJpaRepository.findByCreatedSourceAndLevel(source, level)
-            logger.info("$source source, $level 레벨 임베딩: ${embeddingEntities.size}개")
-
-            for (entity in embeddingEntities) {
-                try {
-                    val embeddingText = buildEmbeddingText(entity.name, entity.fullPath)
-                    val embedding = clovaEmbeddingClient.createEmbedding(embeddingText)
-
-                    if (embedding.isEmpty()) {
-                        failCount++
-                        continue
-                    }
-
-                    vectorRepository.update(
-                        interestId = entity.id.toString(),
-                        embedding = embedding,
-                        metadata = mapOf(
-                            "usageCount" to entity.usageCount,
-                            "isUserGenerated" to (entity.createdSource == "USER")
-                        )
-                    )
-
-                    successCount++
-                    delay(100)
-
-                } catch (e: Exception) {
-                    logger.error("임베딩 재생성 실패: ${entity.name} - ${e.message}")
-                    failCount++
-                }
-            }
+        // interest_embeddings 테이블에서 조회
+        val embeddingEntities = if (source != null) {
+            embeddingJpaRepository.findByCreatedSourceAndLevel(source, level)
         } else {
-            // 기존 로직: interest 테이블에서 조회
-            val interests = interestRepository.findByLevel(level)
-            logger.info("$level 레벨 관심사: ${interests.size}개")
+            embeddingJpaRepository.findByLevelAndIsActivated(level, true)
+        }
 
-            for (interest in interests) {
-                try {
-                    if (!forceUpdate && interest.isEmbedded) {
-                        skipCount++
-                        continue
-                    }
+        logger.info("$level 레벨 임베딩: ${embeddingEntities.size}개")
 
-                    val embeddingText = buildEmbeddingText(interest.name, interest.fullPath)
-                    val embedding = clovaEmbeddingClient.createEmbedding(embeddingText)
-
-                    if (embedding.isEmpty()) {
-                        failCount++
-                        continue
-                    }
-
-                    vectorRepository.insert(
-                        interestId = interest.id,
-                        name = interest.name,
-                        level = interest.level,
-                        parentName = interest.parentName,
-                        fullPath = interest.fullPath,
-                        embedding = embedding,
-                        metadata = mapOf(
-                            "usageCount" to interest.usageCount,
-                            "isUserGenerated" to interest.isUserGenerated
-                        )
-                    )
-
-                    interest.isEmbedded = true
-                    interestRepository.save(interest)
-
-                    successCount++
-                    delay(100)
-
-                } catch (e: Exception) {
-                    logger.error("임베딩 생성 실패: ${interest.name} - ${e.message}")
-                    failCount++
+        for (entity in embeddingEntities) {
+            try {
+                // 이미 임베딩된 경우 스킵 (forceUpdate=false인 경우)
+                if (!forceUpdate && entity.embedding != null) {
+                    skipCount++
+                    continue
                 }
+
+                val embeddingText = buildEmbeddingText(entity.name, entity.fullPath)
+                val embedding = clovaEmbeddingClient.createEmbedding(embeddingText)
+
+                if (embedding.isEmpty()) {
+                    failCount++
+                    continue
+                }
+
+                vectorRepository.update(
+                    interestId = entity.id.toString(),
+                    embedding = embedding,
+                    metadata = mapOf(
+                        "usageCount" to entity.usageCount,
+                        "isUserGenerated" to (entity.createdSource == "USER")
+                    )
+                )
+
+                successCount++
+                delay(100)
+
+            } catch (e: Exception) {
+                logger.error("임베딩 생성 실패: ${entity.name} - ${e.message}")
+                failCount++
             }
         }
 
@@ -286,27 +191,25 @@ class InterestEmbeddingInitializer(
      * - MIDDLE: "관심사 분류: 운동 분야의 헬스. 체육관에서 근력 운동과 웨이트 트레이닝을 하는 활동입니다."
      * - SUB: "관심사 세부 분류: 운동 > 헬스 > 가슴운동. 벤치프레스, 덤벨 플라이 등 가슴 근육을 단련하는 운동입니다."
      */
-    private fun buildEmbeddingText(name: String, fullPath: String): String {
-        val pathParts = fullPath.split(" > ").filter { it.isNotBlank() }
-
-        return when (pathParts.size) {
+    private fun buildEmbeddingText(name: String, fullPath: List<String>): String {
+        return when (fullPath.size) {
             // MAIN 레벨 (대분류)
             1 -> {
                 "관심사 대분류: ${name}. ${getMainCategoryDescription(name)}"
             }
             // MIDDLE 레벨 (중분류)
             2 -> {
-                val main = pathParts[0]
+                val main = fullPath[0]
                 "관심사 중분류: ${main} 분야의 ${name}. ${getMiddleCategoryDescription(main, name)}"
             }
             // SUB 레벨 (소분류)
             3 -> {
-                val main = pathParts[0]
-                val middle = pathParts[1]
+                val main = fullPath[0]
+                val middle = fullPath[1]
                 "관심사 소분류: ${main} > ${middle} > ${name}. ${getSubCategoryDescription(main, middle, name)}"
             }
             // fallback
-            else -> "관심사: ${fullPath.ifBlank { name }}"
+            else -> "관심사: ${fullPath.joinToString(" > ").ifBlank { name }}"
         }
     }
 

@@ -8,6 +8,7 @@ import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.model.InterestPath
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.UserProfile
+import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -21,7 +22,6 @@ import java.util.*
 @Service
 class AIInterestRecommender(
     private val clovaApiClient: ClovaApiClient,
-    private val interestRepository: com.haruUp.interest.repository.InterestRepository,
     private val embeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -175,18 +175,10 @@ class AIInterestRecommender(
             val jsonResponse = objectMapper.readValue<AIRecommendationResponse>(response.trim())
 
             jsonResponse.interest.mapNotNull { name ->
-                val node = InterestNode(
-                    id = UUID.randomUUID().toString(),
-                    name = name,
-                    level = level,
-                    isEmbedded = false,
-                    isUserGenerated = false,
-                    usageCount = 0,
-                    createdAt = LocalDateTime.now()
-                )
-
-                var parentName: String? = null
                 var parentId: String? = null
+
+                // 부모 경로 리스트 생성
+                var parentPathList: List<String>? = null
 
                 // 부모 정보 설정
                 if (selectedInterests.isNotEmpty()) {
@@ -195,34 +187,49 @@ class AIInterestRecommender(
                     when (level) {
                         InterestLevel.MAIN -> {
                             // 대분류는 부모 없음
-                            parentName = null
+                            parentPathList = null
                         }
                         InterestLevel.MIDDLE -> {
                             // 중분류의 부모는 대분류
-                            parentName = firstPath.mainCategory
+                            parentPathList = listOf(firstPath.mainCategory)
                         }
                         InterestLevel.SUB -> {
-                            // 소분류의 부모는 "대분류 > 중분류" 전체 경로
-                            if (firstPath.middleCategory != null) {
-                                parentName = "${firstPath.mainCategory} > ${firstPath.middleCategory}"
+                            // 소분류의 부모는 [대분류, 중분류]
+                            parentPathList = if (firstPath.middleCategory != null) {
+                                listOf(firstPath.mainCategory, firstPath.middleCategory!!)
                             } else {
-                                parentName = firstPath.mainCategory
+                                listOf(firstPath.mainCategory)
                             }
                         }
                     }
 
-                    // parentName으로부터 parentId 조회
-                    parentName?.let { pName ->
-                        embeddingRepository.findByFullPath(pName)?.let {
+                    // parentPathList로부터 parentId 조회
+                    parentPathList?.let { pPathList ->
+                        embeddingRepository.findByFullPath(listToPostgresArray(pPathList))?.let {
                             parentId = it.id.toString()
                         }
                     }
                 }
 
-                node.parentName = parentName
+                // fullPath 계산 (List<String> 형태)
+                val fullPath: List<String> = if (parentPathList != null) {
+                    parentPathList + name
+                } else {
+                    listOf(name)
+                }
 
                 // DB에 저장하지 않고 메모리에서만 생성하여 반환
-                node
+                InterestNode(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    level = level,
+                    parentId = parentId,
+                    fullPath = fullPath,
+                    isEmbedded = false,
+                    isUserGenerated = false,
+                    usageCount = 0,
+                    createdAt = LocalDateTime.now()
+                )
             }
         } catch (e: Exception) {
             logger.error("AI 응답 파싱 실패: ${e.message}")

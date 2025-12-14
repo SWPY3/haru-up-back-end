@@ -81,9 +81,7 @@ class InterestController(
                                       "level": "MAIN",
                                       "parentId": null,
                                       "isEmbedded": false,
-                                      "isUserGenerated": false,
                                       "usageCount": 15,
-                                      "parentName": null,
                                       "fullPath": "운동"
                                     },
                                     {
@@ -92,9 +90,7 @@ class InterestController(
                                       "level": "MAIN",
                                       "parentId": null,
                                       "isEmbedded": false,
-                                      "isUserGenerated": false,
                                       "usageCount": 12,
-                                      "parentName": null,
                                       "fullPath": "공부"
                                     }
                                   ],
@@ -118,9 +114,7 @@ class InterestController(
                                       "level": "MIDDLE",
                                       "parentId": "1",
                                       "isEmbedded": false,
-                                      "isUserGenerated": false,
                                       "usageCount": 10,
-                                      "parentName": "운동",
                                       "fullPath": "운동 > 헬스"
                                     },
                                     {
@@ -129,9 +123,7 @@ class InterestController(
                                       "level": "MIDDLE",
                                       "parentId": "1",
                                       "isEmbedded": false,
-                                      "isUserGenerated": false,
                                       "usageCount": 8,
-                                      "parentName": "운동",
                                       "fullPath": "운동 > 요가"
                                     }
                                   ],
@@ -343,7 +335,6 @@ class InterestController(
                         name = it.name,
                         level = it.level.name,
                         parentId = it.parentId,
-                        parentName = it.parentName,
                         fullPath = it.fullPath,
                         usageCount = it.usageCount,
                         isActivated = it.isActivated
@@ -357,6 +348,86 @@ class InterestController(
 
         } catch (e: Exception) {
             logger.error("멤버 관심사 조회 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+    /**
+     * 시스템 관심사 조회 API
+     *
+     * created_source가 SYSTEM인 관심사 목록을 조회합니다
+     *
+     * @param parentId 부모 관심사 ID - 선택 (없으면 대분류 조회)
+     * @return 시스템 관심사 목록
+     */
+    @Operation(
+        summary = "관심사 조회",
+        description = """
+            관심사 목록을 조회합니다.
+
+            - parentId 없음: 대분류(MAIN) 조회 (parent_id가 NULL인 것)
+            - parentId 있음: 해당 부모 ID의 자식 관심사 조회
+
+            예시:
+            - 대분류 조회: /api/interests/data
+            - ID 5('직무 관련 역량 개발')의 중분류 조회: /api/interests/data?parentId=5
+        """
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "조회 성공"
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "서버 에러"
+            )
+        ]
+    )
+    @GetMapping("/data")
+    fun getInterestsData(
+        @Parameter(
+            description = "부모 관심사 ID (없으면 대분류 조회)",
+            required = false,
+            example = "5"
+        )
+        @RequestParam(required = false) parentId: Long?
+    ): ResponseEntity<InterestsDataResponse> {
+        logger.info("관심사 데이터 조회 - parentId: $parentId")
+
+        return try {
+            val entities = if (parentId == null) {
+                // parentId가 없으면 대분류(parent_id IS NULL) 조회
+                interestEmbeddingRepository.findByCreatedSourceAndParentIdIsNullAndIsActivated(
+                    createdSource = "SYSTEM",
+                    isActivated = true
+                )
+            } else {
+                // parentId가 있으면 해당 부모 ID의 자식 조회
+                interestEmbeddingRepository.findByCreatedSourceAndParentIdAndIsActivated(
+                    createdSource = "SYSTEM",
+                    parentId = parentId.toString(),
+                    isActivated = true
+                )
+            }
+
+            val interests = entities.map { interest ->
+                InterestDataDto(
+                    id = interest.id!!,
+                    parentId = interest.parentId?.toLongOrNull(),
+                    level = interest.level.name,
+                    name = interest.name,
+                    usageCount = interest.usageCount
+                )
+            }
+
+            logger.info("관심사 데이터 조회 완료 - count: ${interests.size}")
+
+            ResponseEntity.ok(InterestsDataResponse(interests, interests.size))
+
+        } catch (e: Exception) {
+            logger.error("관심사 데이터 조회 실패: ${e.message}", e)
             ResponseEntity.internalServerError().build()
         }
     }

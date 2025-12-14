@@ -71,6 +71,17 @@ class MissionEmbeddingEntity(
     }
 
     /**
+     * 관심사 경로 배열 반환
+     */
+    fun getInterestPathList(): List<String> {
+        return listOfNotNull(
+            mainCategory,
+            middleCategory?.takeIf { it.isNotBlank() },
+            subCategory?.takeIf { it.isNotBlank() }
+        )
+    }
+
+    /**
      * 임베딩 벡터를 Float 리스트로 변환
      */
     fun getEmbeddingVector(): List<Float>? {
