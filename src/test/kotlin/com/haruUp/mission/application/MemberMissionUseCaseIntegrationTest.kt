@@ -78,4 +78,33 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         assertEquals(250, mc.totalExp)
         assertEquals(50, mc.currentExp)
     }
+
+    @Test
+    fun `미션 완료 후 1단계 레벨업만 발생한다`() {
+
+        // Given
+        val mission = missionRepo.save(
+            MemberMission(
+                memberId = 10L,
+                missionId = 100L,
+                isCompleted = false,
+                expEarned = 120,   // 100 → 레벨업, 20 잔여
+                missionStatus = MissionStatus.COMPLETED
+            )
+        )
+
+        val dto = mission.toDto()
+
+        // When
+        val result = useCase.missionChangeStatus(dto)
+
+        // Then
+        assertEquals(2L, result.levelId)
+        assertEquals(120, result.totalExp)
+        assertEquals(20, result.currentExp)
+
+        val mc = memberCharacterRepo.findByMemberId(10L)!!
+        assertEquals(2L, mc.levelId)
+        assertEquals(20, mc.currentExp)
+    }
 }

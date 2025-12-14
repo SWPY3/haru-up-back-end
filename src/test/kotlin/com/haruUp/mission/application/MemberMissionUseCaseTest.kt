@@ -5,9 +5,14 @@ import com.haruUp.character.application.service.LevelService
 import com.haruUp.character.domain.Level
 import com.haruUp.character.domain.MemberCharacter
 import com.haruUp.character.domain.dto.MemberCharacterDto
+import com.haruUp.global.error.BusinessException
+import com.haruUp.global.error.ErrorCode
+import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
+import com.haruUp.mission.domain.MissionStatus
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
@@ -15,6 +20,7 @@ import org.mockito.Mockito.*
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.LocalDate
 
 @ExtendWith(MockitoExtension::class)
 class MemberMissionUseCaseUnitTest {
@@ -106,4 +112,111 @@ class MemberMissionUseCaseUnitTest {
         verify(levelService).getById(1L)
         verify(levelService, times(3)).getNextLevel(any())
     }
+
+    @Test
+    fun `오늘의 미션 조회 단위 테스트`() {
+
+        // given
+        val memberId = 10L
+
+        val mission1 = MemberMission(
+            id = 1L,
+            memberId = memberId,
+            missionId = 101L,
+            expEarned = 10,
+            missionStatus = MissionStatus.ACTIVE,
+            targetDate = LocalDate.now(),
+            missionLevel = 1
+        )
+
+        val mission2 = MemberMission(
+            id = 2L,
+            memberId = memberId,
+            missionId = 102L,
+            expEarned = 20,
+            missionStatus = MissionStatus.POSTPONED,
+            targetDate = LocalDate.now(),
+            missionLevel = 2
+        )
+
+        whenever(memberMissionService.getTodayMissionsByMemberId(memberId))
+            .thenReturn(listOf(mission1, mission2))
+
+        // when
+        val result = useCase.missionTodayList(memberId)
+
+        // then
+        assertEquals(2, result.size)
+        assertEquals(101L, result[0].missionId)
+        assertEquals(102L, result[1].missionId)
+
+        verify(memberMissionService).getTodayMissionsByMemberId(memberId)
+    }
+
+    @Test
+    fun `미션 ACTIVE 상태 처리 단위 테스트`() {
+
+        val dto = MemberMissionDto(
+            id = 1L,
+            memberId = 10L,
+            missionId = 99L,
+            missionStatus = MissionStatus.ACTIVE,
+            expEarned = 0
+        )
+
+        whenever(memberMissionService.activeMission(any()))
+            .thenReturn(dto.toEntity())
+
+        val exception = assertThrows<BusinessException> {
+            useCase.missionChangeStatus(dto)
+        }
+
+        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode)
+        verify(memberMissionService).activeMission(any())
+    }
+
+    @Test
+    fun `미션 POSTPONED 상태 처리 단위 테스트`() {
+
+        val dto = MemberMissionDto(
+            id = 1L,
+            memberId = 10L,
+            missionId = 99L,
+            missionStatus = MissionStatus.POSTPONED,
+            expEarned = 0
+        )
+
+        whenever(memberMissionService.postponeMission(any()))
+            .thenReturn(dto.toEntity())
+
+        val exception = assertThrows<BusinessException> {
+            useCase.missionChangeStatus(dto)
+        }
+
+        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode)
+        verify(memberMissionService).postponeMission(any())
+    }
+
+    @Test
+    fun `미션 INACTIVE 상태 처리 단위 테스트`() {
+
+        val dto = MemberMissionDto(
+            id = 1L,
+            memberId = 10L,
+            missionId = 99L,
+            missionStatus = MissionStatus.INACTIVE,
+            expEarned = 0
+        )
+
+        whenever(memberMissionService.failMission(any()))
+            .thenReturn(dto.toEntity())
+
+        val exception = assertThrows<BusinessException> {
+            useCase.missionChangeStatus(dto)
+        }
+
+        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode)
+        verify(memberMissionService).failMission(any())
+    }
+
 }

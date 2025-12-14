@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 class MemberMissionDto (
 
@@ -40,3 +41,24 @@ class MemberMissionDto (
         missionLevel = this.missionLevel
     )
 }
+
+data class AiMissionResult(
+    val missionId: Long,
+    val score: Double,
+    val reason: String
+)
+
+data class MissionCandidateDto(
+    val embeddingMissionId: Long,
+    val content: String,
+    val mainCategory: String,
+    val middleCategory: String?,
+    val subCategory: String?,
+    val difficulty: Int?,
+    val reason: String
+)
+
+data class MissionRecommendResult(
+    val generatedAt: LocalDateTime,
+    val missions: List<MissionCandidateDto>
+)

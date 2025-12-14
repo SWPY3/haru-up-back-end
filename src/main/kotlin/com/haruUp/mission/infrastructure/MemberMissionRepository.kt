@@ -4,6 +4,7 @@ import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MissionStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
@@ -42,4 +43,14 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
     )
     fun getTodayMissionsByMemberId(memberId: Long): List<MemberMission>
 
+    @Query("""
+    SELECT m.missionId
+    FROM MemberMission m
+    WHERE m.memberId = :memberId
+      AND m.targetDate = :targetDate
+    """)
+    fun findMissionIdsByMemberIdAndDate(
+        memberId: Long,
+        targetDate: LocalDate
+    ): List<Long>
 }
