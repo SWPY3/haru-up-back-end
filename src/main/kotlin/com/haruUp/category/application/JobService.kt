@@ -1,0 +1,18 @@
+package com.haruUp.category.application
+
+import com.haruUp.category.domain.dto.JobDto
+import com.haruUp.category.repository.JobRepository
+import org.springframework.stereotype.Service
+
+@Service
+class JobService (
+    private val jobRepository : JobRepository
+) {
+
+    // job 조회
+    fun getJobList(): List<JobDto>{
+        return jobRepository.findAll().stream()
+            .map { job -> job.toDto()  }
+            .toList()
+    }
+}

@@ -1,0 +1,148 @@
+### 환경 설정 (필요하면 포트/URL만 수정)
+@host = localhost
+@port = 8080
+@baseUrl = http://{{host}}:{{port}}
+
+### 1. SNS 로그인 - 신규 회원 (또는 기존 회원 재로그인)
+# @name snsLogin
+POST {{baseUrl}}/api/member/auth/sns-login
+Content-Type: application/json
+
+{
+  "loginType": "KAKAO",
+  "snsId": "SNS_E2E_002",
+  "email": "",
+  "name": ""
+}
+
+> {%
+    // response.body 는 이미 JSON 파싱된 객체임
+    console.log("SNS 로그인 response.body =", response.body);
+
+    const data = response.body.data;   // ✅ JSON.parse 필요 없음
+
+    if (!data) {
+        throw new Error("data 필드를 찾을 수 없습니다. ApiResponse 구조를 확인하세요.");
+    }
+
+    // ▶ 전역(Global) 변수로 저장
+    client.global.set("accessToken", data.accessToken);
+    client.global.set("refreshToken", data.refreshToken);
+    client.global.set("memberId", String(data.id));
+
+    console.log("=== SNS 로그인 성공 ===");
+    console.log("memberId =", data.id);
+    console.log("accessToken =", data.accessToken);
+    console.log("refreshToken =", data.refreshToken);
+%}
+
+
+### 2. 캐릭터 리스트 조회
+GET {{baseUrl}}/api/character/list
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+### 3. 캐릭터 선택
+POST {{baseUrl}}/api/character/selected
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "characterId" : 1 }
+
+### 4. 맴버 프로필 닉네임 설정
+POST {{baseUrl}}/api/member/profile/curation_profile_save
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{  "nickName" : "테스트" }
+
+### 4-1. 맴버 프로필 닉네임 중복 체크
+POST {{baseUrl}}/api/member/profile/nickName_duplicate_check
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "nickName" : "테스트3" }
+
+### 5. job 조회
+POST {{baseUrl}}/api/job/getJobList
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+
+### 5-1 job 선택후 memberProfile update
+POST {{baseUrl}}/api/member/profile/member_job_update
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "jobId" : 1 }
+
+### 6 job detail 조회
+POST {{baseUrl}}/api/job/getJobList
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "jobId" : 1 }
+
+### 6-1 job detail 선택후 member Profile update
+POST {{baseUrl}}/api/member/profile/member_job_detaile_update
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "jobDetailId" : 1 }
+
+
+### 7 성별 선택 후 member Pforile update
+POST {{baseUrl}}/api/member/profile/curation_profile_save
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "gender" : "MALE" }
+
+
+### 8. 생일 입력후 member Profile update
+POST {{baseUrl}}/api/member/profile/curation_profile_save
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "birthDate": "1995-07-30" }
+
+
+
+### 9. 관심사 ( 대분류 ) 조회
+GET {{baseUrl}}/api/interests/data
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "parentId" : null }
+
+
+### 10. 관심사 ( 중분류 ) 조회
+GET {{baseUrl}}/api/interests/data
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "parentId" : null }
+
+
+### 11. 관심사 ( 소분류 ) 조회
+GET {{baseUrl}}/api/interests/data
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{ "parentId" : null }
+
+
+### 11-1. 직업입력 조회
+
+
+
+
+
+
+### 3. 맴버 프로필 설정 및 캐릭터 선택
+POST {{baseUrl}}/api/member/profile/add_profile
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+{
+    "id" : 2
+}

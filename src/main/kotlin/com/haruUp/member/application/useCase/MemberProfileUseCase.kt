@@ -21,9 +21,6 @@ class MemberProfileUseCase (
     private val characterUseCase : CharacterUseCase
 ) {
 
-
-
-
     @Transactional(readOnly = true)
     fun getMyProfile(memberId: Long): MemberProfileDto {
         // 회원 존재 여부 먼저 확인해도 좋음
@@ -50,6 +47,8 @@ class MemberProfileUseCase (
         return memberProfileService.updateProfile(memberId, dto)
     }
 
+
+    @Transactional
     fun createDefaulProfile(memberId: Long?, characterId: Long) {
 
         if(memberId  == null) throw BusinessException(ErrorCode.MEMBER_NOT_FOUND , "회원의 memberId 찾을수 없습니다.")
@@ -59,7 +58,21 @@ class MemberProfileUseCase (
 
     }
 
+    fun addProfile(memberId : Long, memberProfileDto: MemberProfileDto) : MemberProfileDto {
+        return memberProfileService.curationUpdateProfile(memberId, memberProfileDto)
+    }
 
+    fun nickNameDuplicationCheck(nickName : String) : Boolean {
+       return memberProfileService.nicknameDuplicationCheck(nickName )
+    }
 
+    fun memberJobUpdate(memberId: Long, jobId: Long) : MemberProfileDto {
+        return memberProfileService.memberJobUpdate(memberId, jobId)
+
+    }
+
+    fun memberJobDetailUpdate(memberId : Long , jobDetailId : Long) : MemberProfileDto{
+        return memberProfileService.memberJobDetailUpdate(memberId, jobDetailId)
+    }
 
 }
