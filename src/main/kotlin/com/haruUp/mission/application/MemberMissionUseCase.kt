@@ -18,8 +18,14 @@ class MemberMissionUseCase(
     private val levelService: LevelService
 ) {
 
+    // 오늘의 미션 조회
+    fun missionTodayList(memberId: Long): List<MemberMissionDto> {
+        val memberMissions: List<MemberMission> = memberMissionService.getTodayMissionsByMemberId(memberId)
+        return memberMissions.map { it.toDto() }
+    }
+
     /**
-     * 미션 상태 변경(완료 / 미루기 / 실패)
+     * 미션 상태 변경(선택 / 완료 / 미루기 / 실패)
      */
     fun missionChangeStatus(memberMissionDto: MemberMissionDto): MemberCharacterDto {
 
@@ -104,4 +110,6 @@ class MemberMissionUseCase(
 
         return updatedMc.toDto()
     }
+
+
 }
