@@ -5,6 +5,7 @@ import com.haruUp.global.security.MemberPrincipal
 import com.haruUp.mission.application.MemberMissionUseCase
 import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.MemberMissionDto
+import io.swagger.v3.oas.annotations.Operation
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping

@@ -8,4 +8,5 @@ interface MemberProfileRepository : JpaRepository<MemberProfile, Long> {
     fun findByMemberId(memberId : Long) : MemberProfile?
 
     fun deleteByMemberId(memberId :Long)
+    fun existsByNickname(nickname: String): Boolean
 }

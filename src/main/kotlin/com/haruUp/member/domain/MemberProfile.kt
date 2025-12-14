@@ -2,48 +2,50 @@ package com.haruUp.member.domain
 
 import com.haruUp.member.domain.dto.MemberProfileDto
 import com.haruUp.member.domain.type.MemberGender
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import org.hibernate.dialect.GroupBySummarizationRenderingStrategy
+import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
-class MemberProfile (
+@Table(name = "member_profile")
+class MemberProfile(
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 
     @Column(nullable = false, unique = true)
-    var memberId: Long,
+    var memberId: Long = 0L,
 
-    @Column(nullable = true, length = 50)
+    @Column(length = 50)
     var nickname: String? = null,
 
+    var birthDt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = true)
-    var birthDt : LocalDateTime ?= null,
+    var gender: MemberGender? = MemberGender.MALE,
 
-    var gender : MemberGender?= MemberGender.MALE,
-
-    @Column(nullable = true, length = 255)
+    @Column(length = 255)
     var imgId: Long? = null,
 
-    @Column(nullable = true, length = 500)
+    @Column(length = 500)
     var intro: String? = null,
+
+    var jobId: Long? = null,
+
+    var jobDetailId: Long? = null
 ) {
 
-    protected constructor() : this(null, 0, null, null, null, null, null)
-
-    fun toDto() : MemberProfileDto =
+    fun toDto(): MemberProfileDto =
         MemberProfileDto(
-            id = this.id,
-            memberId = this.memberId,
-            nickname = this.nickname,
-            imgId = this.imgId,
-            intro = this.intro,
-            birthDt = this.birthDt,
-            gender = this.gender
+            id = id,
+            memberId = memberId,
+            nickname = nickname,
+            imgId = imgId,
+            intro = intro,
+            birthDt = birthDt,
+            gender = gender,
+            jobId = jobId,
+            jobDetailId = jobDetailId
         )
 }
