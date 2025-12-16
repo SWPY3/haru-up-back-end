@@ -1,5 +1,8 @@
 package com.haruUp.global.clova
 
+import com.haruUp.interest.model.InterestPath
+import com.haruUp.interest.model.UserInterests
+
 object ImprovedMissionRecommendationPrompt {
 
     /**
@@ -134,13 +137,13 @@ object ImprovedMissionRecommendationPrompt {
      */
     fun createUserMessageForAllInterests(
         userInterests: UserInterests,
-        missionUserProfile: MissionUserProfile,
+        missionMemberProfile: MissionMemberProfile,
         focusInterest: InterestPath? = null
     ): String {
         val sb = StringBuilder()
 
         // 사용자 정보
-        sb.append("사용자 정보: ${formatMissionUserProfile(missionUserProfile)}\n")
+        sb.append("사용자 정보: ${formatMissionMemberProfile(missionMemberProfile)}\n")
 
         // 관심사 목록
         val pathStrings = userInterests.toPathStrings()
@@ -157,9 +160,9 @@ object ImprovedMissionRecommendationPrompt {
     }
 
     /**
-     * 미션 사용자 프로필을 읽기 쉬운 형식으로 변환
+     * 미션 멤버 프로필을 읽기 쉬운 형식으로 변환
      */
-    private fun formatMissionUserProfile(profile: MissionUserProfile): String {
+    private fun formatMissionMemberProfile(profile: MissionMemberProfile): String {
         val parts = mutableListOf<String>()
 
         profile.age?.let { parts.add("${it}세") }
@@ -170,12 +173,12 @@ object ImprovedMissionRecommendationPrompt {
 }
 
 /**
- * 미션 추천을 위한 사용자 프로필 정보
+ * 미션 추천을 위한 멤버 프로필 정보
  *
  * @property age 나이 (선택)
- * @property introduction 사용자 소개 (선택, 예: "직장인, 운동 초보", "대학생, 음악 좋아함")
+ * @property introduction 멤버 소개 (선택, 예: "직장인, 운동 초보", "대학생, 음악 좋아함")
  */
-data class MissionUserProfile(
+data class MissionMemberProfile(
     val age: Int? = null,
     val introduction: String? = null
 )

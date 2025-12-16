@@ -3,7 +3,6 @@ package com.haruUp.interest.dto
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.model.InterestPath
-import com.haruUp.global.clova.UserProfile
 import io.swagger.v3.oas.annotations.media.Schema
 
 /**
@@ -18,13 +17,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 @Schema(description = "관심사 추천 요청")
 data class InterestRecommendationRequest(
     @Schema(
-        description = "사용자 ID",
-        example = "1",
-        required = true
-    )
-    val userId: Long,
-
-    @Schema(
         description = """
             선택한 관심사 경로 목록
             - 빈 배열: 처음 시작 (인기 관심사 추천)
@@ -32,10 +24,10 @@ data class InterestRecommendationRequest(
             - seqNo: 프론트엔드 추적용 순번 (선택)
 
             예시:
-            - MIDDLE 추천: [{"seqNo": 1, "mainCategory": "체력관리 및 운동"}, {"seqNo": 2, "mainCategory": "외국어 공부"}]
-            - SUB 추천: [{"seqNo": 1, "mainCategory": "체력관리 및 운동", "middleCategory": "헬스"}, {"seqNo": 2, "mainCategory": "외국어 공부", "middleCategory": "영어"}]
+            - MIDDLE 추천: [{"seqNo": 1, "directFullPath": ["체력관리 및 운동"]}, {"seqNo": 2, "directFullPath": ["외국어 공부"]}]
+            - SUB 추천: [{"seqNo": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}, {"seqNo": 2, "directFullPath": ["외국어 공부", "영어"]}]
         """,
-        example = """[{"seqNo": 1, "mainCategory": "체력관리 및 운동", "middleCategory": "헬스"}, {"seqNo": 2, "mainCategory": "외국어 공부", "middleCategory": "영어"}]""",
+        example = """[{"seqNo": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}, {"seqNo": 2, "directFullPath": ["외국어 공부", "영어"]}]""",
         required = false
     )
     val category: List<InterestPathDto> = emptyList(),
@@ -108,25 +100,11 @@ data class InterestPathDto(
     val seqNo: Int? = null,
 
     @Schema(
-        description = "대분류 (필수)",
-        example = "체력관리 및 운동",
-        required = true
-    )
-    val mainCategory: String,
-
-    @Schema(
-        description = "중분류 (선택)",
-        example = "헬스",
+        description = "전체 경로 배열 [대분류, 중분류, 소분류] (directFullPath 사용 시 mainCategory, middleCategory, subCategory 무시)",
+        example = """["체력관리 및 운동", "헬스", "근력 키우기"]""",
         required = false
     )
-    val middleCategory: String? = null,
-
-    @Schema(
-        description = "소분류 (선택)",
-        example = "근력 키우기",
-        required = false
-    )
-    val subCategory: String? = null,
+    val directFullPath: List<String>,
 
     @Schema(
         description = "난이도 (1~5, 선택)",
@@ -136,13 +114,23 @@ data class InterestPathDto(
     )
     val difficulty: Int? = null
 ) {
+    /**
+     * directFullPath를 InterestPath 모델로 변환
+     */
     fun toModel(): InterestPath {
         return InterestPath(
-            mainCategory = mainCategory,
-            middleCategory = middleCategory,
-            subCategory = subCategory
+            mainCategory = directFullPath.getOrNull(0) ?: "",
+            middleCategory = directFullPath.getOrNull(1),
+            subCategory = directFullPath.getOrNull(2)
         )
     }
+
+    /**
+     * 카테고리 값 조회
+     */
+    fun resolveMainCategory(): String? = directFullPath.getOrNull(0)
+    fun resolveMiddleCategory(): String? = directFullPath.getOrNull(1)
+    fun resolveSubCategory(): String? = directFullPath.getOrNull(2)
 }
 
 /**
@@ -191,25 +179,6 @@ data class InterestNodeDto(
                 seqNo = seqNo
             )
         }
-    }
-}
-
-/**
- * 사용자 프로필 DTO
- */
-data class UserProfileDto(
-    val age: Int? = null,
-    val gender: String? = null,
-    val occupation: String? = null,
-    val existingInterests: List<String>? = null
-) {
-    fun toModel(): UserProfile {
-        return UserProfile(
-            age = age,
-            gender = gender,
-            occupation = occupation,
-            existingInterests = existingInterests
-        )
     }
 }
 
@@ -316,51 +285,6 @@ data class MemberInterestsResponse(
 )
 
 /**
- * 멤버가 선택한 미션 정보 (vector 제외)
- */
-@Schema(description = "멤버가 선택한 미션 정보")
-data class MemberMissionDto(
-    @Schema(description = "member_mission ID", example = "123")
-    val memberMissionId: Long,
-
-    @Schema(description = "mission_embedding ID", example = "45")
-    val missionId: Long,
-
-    @Schema(description = "관심사 카테고리 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
-    val categoryPath: List<String>,
-
-    @Schema(description = "난이도", example = "3")
-    val difficulty: Int?,
-
-    @Schema(description = "미션 내용", example = "오늘 헬스장에서 벤치프레스 10회 3세트 하기")
-    val missionContent: String,
-
-    @Schema(description = "사용 횟수", example = "10")
-    val usageCount: Int,
-
-    @Schema(description = "완료 여부", example = "true")
-    val isCompleted: Boolean,
-
-    @Schema(description = "활성화 여부", example = "true")
-    val isActivated: Boolean,
-
-    @Schema(description = "생성일시", example = "2025-12-07T10:00:00")
-    val createdAt: String
-)
-
-/**
- * 멤버 미션 조회 응답
- */
-@Schema(description = "멤버 미션 조회 응답")
-data class MemberMissionsResponse(
-    @Schema(description = "멤버가 선택한 미션 목록")
-    val missions: List<MemberMissionDto>,
-
-    @Schema(description = "총 개수", example = "8")
-    val totalCount: Int
-)
-
-/**
  * ================================
  * 시스템 관심사 조회 DTO
  * ================================
@@ -397,4 +321,23 @@ data class InterestsDataResponse(
 
     @Schema(description = "총 개수", example = "50")
     val totalCount: Int
+)
+
+
+/**
+ * 멤버 관심사 저장 요청
+ */
+@Schema(description = "멤버 관심사 저장 요청")
+data class MemberInterestSaveRequest(
+    @Schema(
+        description = """
+            멤버 관심사 저장 요청
+            예시:
+            - 소분류까지 저장: [{"parentId": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]
+            - 대분류만 저장: [{"parentId": 12, "directFullPath": ["체력관리 및 운동"]}]
+        """,
+        example = """[{"parentId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}]""",
+        required = false
+    )
+    val interests: List<InterestPathDto> = emptyList(),
 )

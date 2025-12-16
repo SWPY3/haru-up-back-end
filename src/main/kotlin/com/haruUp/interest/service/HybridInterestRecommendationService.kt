@@ -3,7 +3,7 @@ package com.haruUp.interest.service
 import com.haruUp.interest.model.*
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.VectorInterestRepository
-import com.haruUp.global.clova.UserProfile
+import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -39,7 +39,7 @@ class HybridInterestRecommendationService(
      * @param selectedInterests 사용자가 이미 선택한 관심사들
      * @param currentLevel 추천받을 레벨 (MAIN, MIDDLE, SUB)
      * @param targetCount 추천받을 개수 (기본 10개)
-     * @param userProfile 사용자 프로필
+     * @param memberProfile 멤버 프로필
      * @param useHybridScoring true: 유사도 + 인기도 결합 점수 사용, false: 유사도만 사용 (기본값)
      * @return 추천 결과
      */
@@ -47,7 +47,7 @@ class HybridInterestRecommendationService(
         selectedInterests: List<InterestPath>,
         currentLevel: InterestLevel,
         targetCount: Int = 10,
-        userProfile: UserProfile,
+        memberProfile: MemberProfile,
         useHybridScoring: Boolean = false
     ): RecommendationResult {
         val scoringMode = if (useHybridScoring) "하이브리드(유사도+인기도)" else "유사도만"
@@ -74,7 +74,7 @@ class HybridInterestRecommendationService(
                 currentLevel = currentLevel,
                 excludeNames = ragResults.map { it.name },
                 count = aiTargetCount,
-                userProfile = userProfile
+                memberProfile = memberProfile
             )
         } else {
             emptyList()
@@ -144,7 +144,7 @@ class HybridInterestRecommendationService(
         currentLevel: InterestLevel,
         excludeNames: List<String>,
         count: Int,
-        userProfile: UserProfile
+        memberProfile: MemberProfile
     ): List<InterestNode> {
         return try {
             aiRecommender.recommend(
@@ -152,7 +152,7 @@ class HybridInterestRecommendationService(
                 currentLevel = currentLevel,
                 excludeNames = excludeNames,
                 count = count,
-                userProfile = userProfile
+                memberProfile = memberProfile
             )
         } catch (e: Exception) {
             logger.error("AI 추천 실패: ${e.message}", e)
@@ -176,7 +176,7 @@ class HybridInterestRecommendationService(
         // 1. 기존에 있는지 확인 (대소문자 무시)
         val existingEntity = embeddingRepository.findByNameAndLevelAndIsActivated(
             name = userInput.trim(),
-            level = level,
+            level = level.name,
             isActivated = true
         )
 
@@ -259,15 +259,17 @@ class HybridInterestRecommendationService(
     fun onMissionCompleted(interestPath: InterestPath) {
         val fullPathList = interestPath.toPathList()
         val fullPathPostgresArray = listToPostgresArray(fullPathList)
-        val entity = embeddingRepository.findByFullPath(fullPathPostgresArray)
-        entity?.let {
+        val entityId = embeddingRepository.findIdByFullPath(fullPathPostgresArray)
+        entityId?.let { id ->
             embeddingRepository.incrementUsageCountByFullPath(
                 fullPath = fullPathPostgresArray,
                 updatedAt = LocalDateTime.now()
             )
 
             // 임베딩 후보 체크
-            checkEmbeddingCandidate(it.toInterestNode())
+            embeddingRepository.findById(id).ifPresent { entity ->
+                checkEmbeddingCandidate(entity.toInterestNode())
+            }
         }
     }
 

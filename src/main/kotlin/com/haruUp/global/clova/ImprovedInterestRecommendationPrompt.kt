@@ -1,5 +1,10 @@
 package com.haruUp.global.clova
 
+import com.haruUp.interest.model.InterestPath
+import com.haruUp.member.domain.MemberProfile
+import java.time.LocalDateTime
+import java.time.Period
+
 object ImprovedInterestRecommendationPrompt {
 
     /**
@@ -86,13 +91,13 @@ object ImprovedInterestRecommendationPrompt {
      */
     fun createUserMessage(
         currentPath: InterestPath,
-        userProfile: UserProfile,
+        memberProfile: MemberProfile,
         existingInterests: List<InterestPath> = emptyList()
     ): String {
         val sb = StringBuilder()
 
         // 사용자 정보
-        sb.append("사용자 정보: ${formatUserProfile(userProfile)}\n")
+        sb.append("사용자 정보: ${formatMemberProfile(memberProfile)}\n")
 
         // 현재 추천받고 싶은 관심사
         sb.append("현재 관심사: ${currentPath.toPathString()}\n")
@@ -111,12 +116,14 @@ object ImprovedInterestRecommendationPrompt {
     /**
      * 사용자 프로필을 읽기 쉬운 형식으로 변환
      */
-    private fun formatUserProfile(profile: UserProfile): String {
+    private fun formatMemberProfile(profile: MemberProfile): String {
         val parts = mutableListOf<String>()
 
-        profile.age?.let { parts.add("${it}세") }
-        profile.gender?.let { parts.add(it) }
-        profile.occupation?.let { parts.add(it) }
+        profile.birthDt?.let { birthDt ->
+            val age = Period.between(birthDt.toLocalDate(), LocalDateTime.now().toLocalDate()).years
+            parts.add("${age}세")
+        }
+        profile.gender?.let { parts.add(it.name) }
 
         return parts.joinToString(", ")
     }

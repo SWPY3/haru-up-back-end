@@ -38,7 +38,6 @@ class MemberProfileController(
         @AuthenticationPrincipal principal : MemberPrincipal,
         @RequestBody characterDto : CharacterDto
     ) : ApiResponse<String>{
-
         var characterId: Long? = characterDto.id
         if (characterId == null) {
             throw BusinessException(ErrorCode.NOT_FOUND, "캐릭터를 찾을 수 없습니다.")

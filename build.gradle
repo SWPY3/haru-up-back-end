@@ -62,7 +62,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     // Hypersistence Utils (PostgreSQL 배열, JSON 등 지원)
-    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.9.0'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.13.3'
 
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'

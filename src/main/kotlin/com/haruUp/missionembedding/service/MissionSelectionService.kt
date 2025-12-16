@@ -1,11 +1,11 @@
-package com.haruUp.domain.mission.service
+package com.haruUp.missionembedding.service
 
 import com.haruUp.interest.entity.InterestEmbeddingEntity
 import com.haruUp.interest.entity.MemberInterestEntity
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
-import com.haruUp.domain.mission.dto.MissionSelectionRequest
-import com.haruUp.domain.mission.dto.MissionSelectionResponse
+import com.haruUp.missionembedding.dto.MissionSelectionRequest
+import com.haruUp.missionembedding.dto.MissionSelectionResponse
 import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.infrastructure.MemberMissionRepository
@@ -33,27 +33,33 @@ class MissionSelectionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 사용자가 선택한 미션들을 임베딩하여 저장하고 사용자와 연결
+     * 사용자가 선택한 미션들의 임베딩을 생성하고 사용자와 연결
      *
+     * @param memberId 사용자 ID
      * @param request 미션 선택 요청
      * @return 저장된 미션 정보
      */
-    @Transactional
-    fun saveMissions(request: MissionSelectionRequest): MissionSelectionResponse {
-        logger.info("미션 저장 요청 - 사용자: ${request.userId}, 미션 개수: ${request.missions.size}")
+    fun saveMissions(memberId: Long, request: MissionSelectionRequest): MissionSelectionResponse {
+        logger.info("미션 선택 요청 - 사용자: $memberId, 미션 개수: ${request.missions.size}")
 
         val savedMemberMissionIds = mutableListOf<Long>()
 
         request.missions.forEach { dto ->
             try {
-                // directFullPath에서 카테고리 추출
-                val mainCategory = dto.directFullPath.getOrNull(0)
-                val middleCategory = dto.directFullPath.getOrNull(1)
-                val subCategory = dto.directFullPath.getOrNull(2)
-
-                if (mainCategory == null) {
+                if (dto.directFullPath.isEmpty()) {
                     logger.error("directFullPath가 비어있습니다: ${dto.directFullPath}")
                     return@forEach
+                }
+
+                // 0. parentId가 소분류(SUB)인지 validation
+                val parentInterest = interestEmbeddingJpaRepository.findById(dto.parentId).orElse(null)
+                if (parentInterest == null) {
+                    logger.error("parentId에 해당하는 관심사를 찾을 수 없습니다: parentId=${dto.parentId}")
+                    throw IllegalArgumentException("parentId에 해당하는 관심사를 찾을 수 없습니다: parentId=${dto.parentId}")
+                }
+                if (parentInterest.level != InterestLevel.SUB) {
+                    logger.error("parentId는 소분류(SUB)만 사용 가능합니다: parentId=${dto.parentId}, level=${parentInterest.level}")
+                    throw IllegalArgumentException("parentId는 소분류(SUB)만 사용 가능합니다. 현재 level: ${parentInterest.level}")
                 }
 
                 // 1. 관심사 저장/업데이트 (계층 구조 전체 처리)
@@ -62,42 +68,33 @@ class MissionSelectionService(
                     directFullPath = dto.directFullPath
                 )
 
-                // 2. 미션 임베딩 저장 (중복이면 기존 미션 반환)
-                val missionEmbedding = runBlocking {
-                    missionEmbeddingService.embedAndSaveMission(
-                        mainCategory = mainCategory,
-                        middleCategory = middleCategory,
-                        subCategory = subCategory,
-                        difficulty = dto.difficulty,
-                        missionContent = dto.mission
-                    )
+                // 2. 미션 임베딩 생성 및 업데이트 (Clova API로 벡터 계산)
+                runBlocking {
+                    missionEmbeddingService.generateAndUpdateEmbedding(dto.missionId)
                 }
-
-                val missionId = missionEmbedding.id
-                    ?: throw IllegalStateException("미션 임베딩 ID가 null입니다")
 
                 // 3. 사용자-미션 연결 저장 (중복 체크 없이 항상 새로운 row 생성)
                 val memberMission = MemberMission(
-                    memberId = request.userId,
-                    missionId = missionId,
+                    memberId = memberId,
+                    missionId = dto.missionId,
                     expEarned = 0
                 )
-                val saved = memberMissionRepository.save(memberMission)
+                val saved = memberMissionRepository.saveAndFlush(memberMission)
                 saved.id?.let { savedMemberMissionIds.add(it) }
-                logger.info("사용자-미션 연결 저장 완료: 사용자=${request.userId}, 미션=${dto.mission}")
+                logger.info("사용자-미션 연결 저장 완료: 사용자=$memberId, missionId=${dto.missionId}")
 
                 // 4. member_interest 테이블에 사용자-관심사 연결 저장 (directFullPath 포함)
                 saveMemberInterest(
-                    userId = request.userId,
+                    userId = memberId,
                     parentId = dto.parentId,
                     directFullPath = dto.directFullPath
                 )
             } catch (e: Exception) {
-                logger.error("미션 저장 실패: ${dto.mission}, 에러: ${e.message}", e)
+                logger.error("미션 선택 실패: missionId=${dto.missionId}, 에러: ${e.message}", e)
             }
         }
 
-        logger.info("미션 저장 완료 - 저장된 개수: ${savedMemberMissionIds.size}")
+        logger.info("미션 선택 완료 - 저장된 개수: ${savedMemberMissionIds.size}")
 
         return MissionSelectionResponse(
             savedCount = savedMemberMissionIds.size,
@@ -177,16 +174,16 @@ class MissionSelectionService(
         val fullPathPostgresArray = listToPostgresArray(fullPathList)
 
         // 기존 관심사 조회 (PostgreSQL 배열 형식으로 조회)
-        val existing = interestEmbeddingJpaRepository.findByFullPath(fullPathPostgresArray)
+        val existingId = interestEmbeddingJpaRepository.findIdByFullPath(fullPathPostgresArray)
 
-        return if (existing != null) {
+        return if (existingId != null) {
             // 기존에 있으면 usage_count만 증가
             interestEmbeddingJpaRepository.incrementUsageCountByFullPath(
                 fullPath = fullPathPostgresArray,
                 updatedAt = now
             )
             logger.info("관심사 usage_count 증가: fullPath=$fullPathList")
-            existing
+            interestEmbeddingJpaRepository.findById(existingId).orElse(null)
         } else {
             // 없으면 새로 생성 (embedding NULL, is_activated false)
             // Native Query를 사용하여 vector 타입 캐스팅
@@ -204,7 +201,8 @@ class MissionSelectionService(
             logger.info("새 관심사 생성: fullPath=$fullPathList, createdSource=$createdSource, isActivated=false")
 
             // 생성된 엔티티 조회하여 반환
-            interestEmbeddingJpaRepository.findByFullPath(fullPathPostgresArray)
+            val newId = interestEmbeddingJpaRepository.findIdByFullPath(fullPathPostgresArray)
+            newId?.let { interestEmbeddingJpaRepository.findById(it).orElse(null) }
         }
     }
 
