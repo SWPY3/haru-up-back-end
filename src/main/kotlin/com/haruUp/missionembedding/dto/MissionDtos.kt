@@ -127,15 +127,3 @@ data class MissionSelectionRequest(
     )
     val missions: List<SelectedMissionDto>
 )
-
-/**
- * 미션 선택 응답
- */
-@Schema(description = "미션 선택 응답")
-data class MissionSelectionResponse(
-    @Schema(description = "저장된 미션 개수", example = "2")
-    val savedCount: Int,
-
-    @Schema(description = "저장된 미션 ID 목록", example = "[1, 2]")
-    val missionIds: List<Long>
-)

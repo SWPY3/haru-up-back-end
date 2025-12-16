@@ -1,11 +1,11 @@
 package com.haruUp.missionembedding.controller
 
+import com.haruUp.global.common.ApiResponse as CommonApiResponse
 import com.haruUp.global.security.MemberPrincipal
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import com.haruUp.missionembedding.dto.MissionRecommendationRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import com.haruUp.missionembedding.dto.MissionSelectionRequest
-import com.haruUp.missionembedding.dto.MissionSelectionResponse
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.missionembedding.service.MissionRecommendationService
 import com.haruUp.missionembedding.service.MissionSelectionService
@@ -194,11 +194,7 @@ class MissionController(
         value = [
             ApiResponse(
                 responseCode = "200",
-                description = "저장 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = MissionSelectionResponse::class)
-                )]
+                description = "저장 성공"
             ),
             ApiResponse(
                 responseCode = "400",
@@ -219,16 +215,31 @@ class MissionController(
             schema = Schema(implementation = MissionSelectionRequest::class)
         )
         @RequestBody request: MissionSelectionRequest
-    ): ResponseEntity<MissionSelectionResponse> {
+    ): ResponseEntity<CommonApiResponse<List<Long>>> {
         logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.missions.size}")
 
         return try {
-            val response = missionSelectionService.saveMissions(principal.id, request)
-            logger.info("미션 선택 완료 - 저장된 개수: ${response.savedCount}")
-            ResponseEntity.ok(response)
+            val savedMissionIds = missionSelectionService.saveMissions(principal.id, request)
+            logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
+            ResponseEntity.ok(CommonApiResponse.success(savedMissionIds))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                CommonApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = e.message ?: "유효성 검증 실패"
+                )
+            )
         } catch (e: Exception) {
             logger.error("미션 선택 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().build()
+            ResponseEntity.internalServerError().body(
+                CommonApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = "서버 오류가 발생했습니다"
+                )
+            )
         }
     }
 
