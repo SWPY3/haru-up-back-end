@@ -20,8 +20,17 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
 
     /**
      * 레벨로 조회
+     *
+     * Note: 네이티브 쿼리 사용 (p6spy + hypersistence-utils 호환성 문제 해결)
      */
-    fun findByLevel(level: InterestLevel): List<InterestEmbeddingEntity>
+    @Query(
+        value = """
+            SELECT * FROM interest_embeddings
+            WHERE level = :level
+        """,
+        nativeQuery = true
+    )
+    fun findByLevel(@Param("level") level: String): List<InterestEmbeddingEntity>
 
     /**
      * 코사인 유사도 기반 검색 (특정 레벨)
@@ -190,49 +199,61 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
      * 특정 created_source 값을 가진 임베딩만 조회
      * (AI, SYSTEM, USER 등으로 필터링 가능)
      */
-    fun findByCreatedSource(createdSource: String): List<InterestEmbeddingEntity>
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.createdSource = :createdSource")
+    fun findByCreatedSource(@Param("createdSource") createdSource: String): List<InterestEmbeddingEntity>
 
     /**
      * created_source와 level로 필터링하여 조회
      */
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.createdSource = :createdSource AND CAST(e.level AS string) = :level")
     fun findByCreatedSourceAndLevel(
-        createdSource: String,
-        level: InterestLevel
+        @Param("createdSource") createdSource: String,
+        @Param("level") level: String
     ): List<InterestEmbeddingEntity>
 
     /**
-     * full_path로 관심사 조회 (PostgreSQL 배열 비교)
+     * full_path로 관심사 ID 조회 (PostgreSQL 배열 비교)
      *
      * @param fullPath 관심사 경로 배열 형식 (예: "{운동,헬스,근력 키우기}")
-     * @return 해당 경로의 관심사 엔티티 (없으면 null)
+     * @return 해당 경로의 관심사 ID (없으면 null)
      */
     @Query(
         value = """
-            SELECT * FROM interest_embeddings
-            WHERE full_path = CAST(:fullPath AS TEXT[])
+            SELECT id FROM interest_embeddings
+            WHERE full_path::text[] = CAST(:fullPath AS TEXT[])
             LIMIT 1
         """,
         nativeQuery = true
     )
-    fun findByFullPath(@Param("fullPath") fullPath: String): InterestEmbeddingEntity?
+    fun findIdByFullPath(@Param("fullPath") fullPath: String): Long?
 
     /**
      * created_source와 isActivated로 필터링하여 조회
      */
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.createdSource = :createdSource AND e.isActivated = :isActivated")
     fun findByCreatedSourceAndIsActivated(
-        createdSource: String,
-        isActivated: Boolean
+        @Param("createdSource") createdSource: String,
+        @Param("isActivated") isActivated: Boolean
     ): List<InterestEmbeddingEntity>
 
     /**
      * 레벨과 활성화 여부로 조회
      */
-    fun findByLevelAndIsActivated(level: InterestLevel, isActivated: Boolean): List<InterestEmbeddingEntity>
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE CAST(e.level AS string) = :level AND e.isActivated = :isActivated")
+    fun findByLevelAndIsActivated(
+        @Param("level") level: String,
+        @Param("isActivated") isActivated: Boolean
+    ): List<InterestEmbeddingEntity>
 
     /**
      * 이름과 레벨로 조회 (활성화된 것만)
      */
-    fun findByNameAndLevelAndIsActivated(name: String, level: InterestLevel, isActivated: Boolean): InterestEmbeddingEntity?
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.name = :name AND CAST(e.level AS string) = :level AND e.isActivated = :isActivated")
+    fun findByNameAndLevelAndIsActivated(
+        @Param("name") name: String,
+        @Param("level") level: String,
+        @Param("isActivated") isActivated: Boolean
+    ): InterestEmbeddingEntity?
 
     /**
      * 인기도 순으로 조회 (usage_count 내림차순)
@@ -256,18 +277,20 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
      * createdSource, parentId로 필터링하여 조회 (활성화된 것만)
      * parentId가 특정 값인 경우 사용
      */
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.createdSource = :createdSource AND e.parentId = :parentId AND e.isActivated = :isActivated")
     fun findByCreatedSourceAndParentIdAndIsActivated(
-        createdSource: String,
-        parentId: String,
-        isActivated: Boolean
+        @Param("createdSource") createdSource: String,
+        @Param("parentId") parentId: String,
+        @Param("isActivated") isActivated: Boolean
     ): List<InterestEmbeddingEntity>
 
     /**
      * createdSource로 필터링하고 parentId가 NULL인 것만 조회 (활성화된 것만)
      * 대분류(MAIN) 조회 시 사용
      */
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.createdSource = :createdSource AND e.parentId IS NULL AND e.isActivated = :isActivated")
     fun findByCreatedSourceAndParentIdIsNullAndIsActivated(
-        createdSource: String,
-        isActivated: Boolean
+        @Param("createdSource") createdSource: String,
+        @Param("isActivated") isActivated: Boolean
     ): List<InterestEmbeddingEntity>
 }

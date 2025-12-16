@@ -1,13 +1,14 @@
-package com.haruUp.domain.mission.service
+package com.haruUp.missionembedding.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.haruUp.interest.model.InterestPath
-import com.haruUp.domain.mission.dto.MissionDto
+import com.haruUp.interest.model.UserInterests
+import com.haruUp.missionembedding.dto.MissionDto
+import com.haruUp.missionembedding.dto.MissionGroupDto
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.ImprovedMissionRecommendationPrompt
-import com.haruUp.global.clova.MissionUserProfile
-import com.haruUp.global.clova.UserInterests
+import com.haruUp.global.clova.MissionMemberProfile
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -33,19 +34,19 @@ class MissionRecommendationService(
     }
 
     /**
-     * 관심사별로 미션 5개씩 추천
+     * 관심사별로 미션 5개씩 추천 (그룹화된 형태로 반환)
      *
      * @param interests 사용자가 선택한 관심사 목록 (seqNo, InterestPath, difficulty 포함)
-     * @param userProfile 사용자 프로필
-     * @return 추천된 미션 목록 (각 관심사당 5개)
+     * @param memberProfile 멤버 프로필
+     * @return 관심사별 그룹화된 미션 목록 (각 관심사당 5개)
      */
     suspend fun recommendMissions(
         interests: List<Triple<Int?, InterestPath, Int?>>,  // (seqNo, InterestPath, difficulty)
-        userProfile: MissionUserProfile
-    ): List<MissionDto> {
+        memberProfile: MissionMemberProfile
+    ): List<MissionGroupDto> {
         logger.info("미션 추천 시작 - 관심사 개수: ${interests.size}")
 
-        val allMissions = mutableListOf<MissionDto>()
+        val missionGroups = mutableListOf<MissionGroupDto>()
 
         // 각 관심사에 대해 개별적으로 미션 5개씩 추천
         for ((seqNo, interestPath, difficulty) in interests) {
@@ -54,31 +55,43 @@ class MissionRecommendationService(
             try {
                 val missions = recommendMissionsForSingleInterest(
                     interestPath = interestPath,
-                    userProfile = userProfile,
+                    memberProfile = memberProfile,
                     difficulty = difficulty
                 )
 
-                // seqNo와 difficulty를 포함해서 DTO 생성
-                val missionsWithSeqNo = missions.map { mission ->
+                // MissionDto 리스트 생성
+                val missionDtos = missions.map { mission ->
                     MissionDto(
-                        seqNo = seqNo,
+                        id = mission.id,
                         content = mission.content,
                         relatedInterest = mission.relatedInterest,
                         difficulty = difficulty
                     )
                 }
 
-                allMissions.addAll(missionsWithSeqNo)
+                // seqNo별 그룹으로 묶기
+                missionGroups.add(
+                    MissionGroupDto(
+                        seqNo = seqNo,
+                        data = missionDtos
+                    )
+                )
                 logger.info("seqNo=$seqNo 미션 추천 완료: ${missions.size}개")
 
             } catch (e: Exception) {
                 logger.error("seqNo=$seqNo 미션 추천 실패: ${e.message}", e)
-                // 실패한 경우 빈 리스트 추가하지 않고 continue
+                // 실패한 경우 빈 그룹 추가
+                missionGroups.add(
+                    MissionGroupDto(
+                        seqNo = seqNo,
+                        data = emptyList()
+                    )
+                )
             }
         }
 
-        logger.info("전체 미션 추천 완료: ${allMissions.size}개")
-        return allMissions
+        logger.info("전체 미션 추천 완료: ${missionGroups.sumOf { it.data.size }}개")
+        return missionGroups
     }
 
     /**
@@ -86,7 +99,7 @@ class MissionRecommendationService(
      */
     private suspend fun recommendMissionsForSingleInterest(
         interestPath: InterestPath,
-        userProfile: MissionUserProfile,
+        memberProfile: MissionMemberProfile,
         difficulty: Int?
     ): List<Mission> {
         val interestPathString = interestPath.toPathString()
@@ -95,18 +108,17 @@ class MissionRecommendationService(
         // 1. RAG: 임베딩된 미션에서 유사한 미션 검색
         logger.info("RAG 검색 시작: $interestPathString, difficulty=$difficulty")
         val ragMissions = try {
-            val userProfileString = buildUserProfileString(userProfile)
+            val memberProfileString = buildMemberProfileString(memberProfile)
             val embeddedMissions = missionEmbeddingService.findSimilarMissions(
-                mainCategory = interestPath.mainCategory,
-                middleCategory = interestPath.middleCategory,
-                subCategory = interestPath.subCategory,
+                directFullPath = interestPath.toPathList(),
                 difficulty = difficulty,
-                userProfile = userProfileString,
+                memberProfile = memberProfileString,
                 limit = RAG_MISSION_COUNT
             )
 
             embeddedMissions.map { entity ->
                 Mission(
+                    id = entity.id,
                     content = entity.missionContent,
                     relatedInterest = entity.getInterestPath()
                 )
@@ -126,14 +138,37 @@ class MissionRecommendationService(
 
             val aiMissions = generateMissionsWithAI(
                 interestPath = interestPath,
-                userProfile = userProfile,
+                memberProfile = memberProfile,
                 difficulty = difficulty,
                 count = remainingCount
             )
 
-            // AI로 생성한 미션은 추천만 하고, 임베딩 저장은 미션 선택 API에서 처리
-            allMissions.addAll(aiMissions)
-            logger.info("AI로 ${aiMissions.size}개 미션 생성 완료")
+            // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
+            val aiMissionsWithId = aiMissions.mapNotNull { mission ->
+                try {
+                    val savedEntity = missionEmbeddingService.saveMissionWithoutEmbedding(
+                        directFullPath = interestPath.toPathList(),
+                        difficulty = difficulty,
+                        missionContent = mission.content
+                    )
+                    Mission(
+                        id = savedEntity?.id,
+                        content = mission.content,
+                        relatedInterest = mission.relatedInterest
+                    )
+                } catch (e: Exception) {
+                    logger.warn("미션 저장 실패: ${mission.content}, 에러: ${e.message}")
+                    // 저장 실패해도 id 없이 반환
+                    Mission(
+                        id = null,
+                        content = mission.content,
+                        relatedInterest = mission.relatedInterest
+                    )
+                }
+            }
+
+            allMissions.addAll(aiMissionsWithId)
+            logger.info("AI로 ${aiMissionsWithId.size}개 미션 생성 및 저장 완료")
         }
 
         return allMissions.take(TARGET_MISSION_COUNT)
@@ -144,24 +179,17 @@ class MissionRecommendationService(
      */
     private suspend fun generateMissionsWithAI(
         interestPath: InterestPath,
-        userProfile: MissionUserProfile,
+        memberProfile: MissionMemberProfile,
         difficulty: Int?,
         count: Int
     ): List<Mission> {
-        // domain.interest.model.InterestPath -> global.clova.InterestPath 변환
-        val clovaInterestPath = com.haruUp.global.clova.InterestPath(
-            mainCategory = interestPath.mainCategory,
-            middleCategory = interestPath.middleCategory,
-            subCategory = interestPath.subCategory
-        )
-
         // 단일 관심사를 UserInterests로 변환
-        val userInterests = UserInterests(listOf(clovaInterestPath))
+        val userInterests = UserInterests(listOf(interestPath))
 
         // 프롬프트 생성 (난이도에 따라 다르게)
         val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
             userInterests = userInterests,
-            missionUserProfile = userProfile,
+            missionMemberProfile = memberProfile,
             focusInterest = null
         )
 
@@ -227,12 +255,12 @@ $difficultyDescription
     }
 
     /**
-     * 사용자 프로필을 문자열로 변환
+     * 멤버 프로필을 문자열로 변환
      */
-    private fun buildUserProfileString(userProfile: MissionUserProfile): String {
+    private fun buildMemberProfileString(memberProfile: MissionMemberProfile): String {
         val parts = mutableListOf<String>()
-        userProfile.age?.let { parts.add("${it}세") }
-        userProfile.introduction?.let { parts.add(it) }
+        memberProfile.age?.let { parts.add("${it}세") }
+        memberProfile.introduction?.let { parts.add(it) }
         return parts.joinToString(", ").ifEmpty { "프로필 정보 없음" }
     }
 
@@ -299,6 +327,7 @@ $difficultyDescription
      * 미션 (내부 사용)
      */
     private data class Mission(
+        val id: Long? = null,
         val content: String,
         val relatedInterest: String
     )

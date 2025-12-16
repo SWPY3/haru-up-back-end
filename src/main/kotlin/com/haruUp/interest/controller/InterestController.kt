@@ -1,9 +1,11 @@
 package com.haruUp.interest.controller
 
 import com.haruUp.interest.dto.*
+
+import java.security.Principal
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.service.HybridInterestRecommendationService
-import com.haruUp.global.clova.UserProfile
+import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import io.swagger.v3.oas.annotations.Operation
@@ -17,9 +19,9 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
-import java.time.LocalDateTime
-import java.time.Period
+import com.haruUp.global.security.MemberPrincipal
 
 /**
  * 관심사 API Controller
@@ -53,7 +55,6 @@ class InterestController(
             **호출 예시:**
             ```json
             {
-              "userId": 1,
               "category": [{"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스"}],
               "currentLevel": "SUB",
               "targetCount": 10
@@ -141,7 +142,7 @@ class InterestController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "잘못된 요청 (유효하지 않은 userId, currentLevel 등)"
+                description = "잘못된 요청 (유효하지 않은 memberId, currentLevel 등)"
             ),
             ApiResponse(
                 responseCode = "500",
@@ -152,6 +153,7 @@ class InterestController(
     @RateLimit(key = "api:interests:recommend", limit = 50)
     @PostMapping("/recommend")
     fun recommendInterests(
+        @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
             description = "관심사 추천 요청 정보",
             required = true,
@@ -165,24 +167,16 @@ class InterestController(
         @RequestParam(defaultValue = "false") useHybridScoring: Boolean
     ): ResponseEntity<InterestRecommendationResponse> = runBlocking {
         val scoringMode = if (useHybridScoring) "하이브리드(유사도+인기도)" else "유사도만"
-        logger.info("관심사 추천 요청 - 사용자: ${request.userId}, 레벨: ${request.currentLevel}, 목표: ${request.targetCount}개, 스코어링: $scoringMode")
+        logger.info("관심사 추천 요청 - 사용자: ${principal.id}, 레벨: ${request.currentLevel}, 목표: ${request.targetCount}개, 스코어링: $scoringMode")
 
         try {
             // DB에서 사용자 프로필 조회
-            val memberProfile = memberProfileRepository.findByMemberId(request.userId)
+            val memberProfile = memberProfileRepository.findByMemberId(principal.id)
                 ?: return@runBlocking ResponseEntity.badRequest().build<InterestRecommendationResponse>().also {
-                    logger.error("사용자 프로필을 찾을 수 없음: ${request.userId}")
+                    logger.error("사용자 프로필을 찾을 수 없음: ${principal.id}")
                 }
 
-            // MemberProfile → UserProfile 변환
-            val userProfile = UserProfile(
-                age = memberProfile.birthDt?.let { calculateAge(it) },
-                gender = memberProfile.gender?.name,
-                occupation = null, // MemberProfile에 occupation 필드 없음
-                existingInterests = null // 별도 조회 필요시 추가
-            )
-
-            logger.info("사용자 프로필 조회 완료 - 나이: ${userProfile.age}, 성별: ${userProfile.gender}")
+            logger.info("사용자 프로필 조회 완료 - 생년월일: ${memberProfile.birthDt}, 성별: ${memberProfile.gender}")
 
             val currentLevel = InterestLevel.valueOf(request.currentLevel)
 
@@ -196,7 +190,7 @@ class InterestController(
                     selectedInterests = selectedInterests,
                     currentLevel = currentLevel,
                     targetCount = request.targetCount,
-                    userProfile = userProfile,
+                    memberProfile = memberProfile,
                     useHybridScoring = useHybridScoring
                 )
 
@@ -232,7 +226,7 @@ class InterestController(
                     selectedInterests = listOf(selectedInterest),
                     currentLevel = currentLevel,
                     targetCount = targetCountPerCategory,
-                    userProfile = userProfile,
+                    memberProfile = memberProfile,
                     useHybridScoring = useHybridScoring
                 )
 
@@ -270,20 +264,10 @@ class InterestController(
     }
 
     /**
-     * 생년월일로부터 나이 계산
-     */
-    private fun calculateAge(birthDt: LocalDateTime): Int {
-        val birthDate = birthDt.toLocalDate()
-        val now = LocalDateTime.now().toLocalDate()
-        return Period.between(birthDate, now).years
-    }
-
-    /**
      * 멤버 관심사 조회 API
      *
      * 사용자가 선택한 관심사 목록을 조회합니다 (vector 데이터 제외)
      *
-     * @param userId 사용자 ID
      * @return 사용자가 선택한 관심사 목록
      */
     @Operation(
@@ -306,23 +290,18 @@ class InterestController(
             )
         ]
     )
-    @GetMapping("/member/{userId}")
+    @GetMapping("/member")
     fun getMemberInterests(
-        @Parameter(
-            description = "사용자 ID",
-            required = true,
-            example = "1"
-        )
-        @PathVariable userId: Long
+        @AuthenticationPrincipal principal: MemberPrincipal
     ): ResponseEntity<MemberInterestsResponse> {
-        logger.info("멤버 관심사 조회 - userId: $userId")
+        logger.info("멤버 관심사 조회 - memberId: ${principal.id}")
 
         return try {
             // member_interest 테이블에서 사용자가 선택한 관심사 조회
-            val memberInterests = memberInterestRepository.findByMemberId(userId)
+            val memberInterests = memberInterestRepository.findByMemberId(principal.id)
 
             if (memberInterests.isEmpty()) {
-                logger.info("멤버 관심사 조회 완료 - userId: $userId, 관심사 없음")
+                logger.info("멤버 관심사 조회 완료 - memberId: ${principal.id}, 관심사 없음")
                 return ResponseEntity.ok(MemberInterestsResponse(emptyList(), 0))
             }
 
@@ -342,7 +321,7 @@ class InterestController(
                 }
             }
 
-            logger.info("멤버 관심사 조회 완료 - userId: $userId, count: ${interests.size}")
+            logger.info("멤버 관심사 조회 완료 - memberId: ${principal.id}, count: ${interests.size}")
 
             ResponseEntity.ok(MemberInterestsResponse(interests, interests.size))
 
@@ -432,4 +411,73 @@ class InterestController(
         }
     }
 
+    /**
+     * 멤버 관심사 저장 API
+     *
+     * @param principal 인증된 사용자 정보
+     * @param request 관심사 저장 요청
+     * @return 저장 결과
+     */
+    @Operation(
+        summary = "멤버 관심사 저장",
+        description = "사용자가 선택한 관심사를 저장합니다."
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "저장 성공"
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "잘못된 요청"
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "서버 에러"
+            )
+        ]
+    )
+    @PostMapping("/member")
+    fun saveMemberInterests(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @RequestBody request: MemberInterestSaveRequest
+    ): ResponseEntity<com.haruUp.global.common.ApiResponse<String>> {
+        val memberId = principal.id
+
+        try {
+            var savedCount = 0
+
+            for (interestPath in request.interests) {
+                val fullPathStr = "{${interestPath.directFullPath.joinToString(",")}}"
+                val interestId = interestEmbeddingRepository.findIdByFullPath(fullPathStr)
+
+                if (interestId != null) {
+                    // 이미 등록된 관심사인지 확인
+                    val exists = memberInterestRepository.existsByMemberIdAndInterestId(memberId, interestId)
+                    if (!exists) {
+                        val memberInterest = com.haruUp.interest.entity.MemberInterestEntity(
+                            memberId = memberId,
+                            interestId = interestId,
+                            directFullPath = interestPath.directFullPath
+                        )
+                        memberInterestRepository.save(memberInterest)
+                        savedCount++
+                    }
+                } else {
+                    logger.warn("관심사를 찾을 수 없습니다: ${interestPath.directFullPath}")
+                }
+            }
+
+            logger.info("멤버 관심사 저장 완료 - memberId: $memberId, savedCount: $savedCount")
+            return ResponseEntity.ok(
+                com.haruUp.global.common.ApiResponse.success("${savedCount}건 저장 성공")
+            )
+        } catch (e: Exception) {
+            logger.error("멤버 관심사 저장 실패: ${e.message}", e)
+            return ResponseEntity.internalServerError().body(
+                com.haruUp.global.common.ApiResponse.failure("저장 실패: ${e.message}")
+            )
+        }
+    }
 }

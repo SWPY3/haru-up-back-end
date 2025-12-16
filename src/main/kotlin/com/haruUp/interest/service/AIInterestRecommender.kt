@@ -7,8 +7,9 @@ import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.model.InterestPath
 import com.haruUp.global.clova.ClovaApiClient
-import com.haruUp.global.clova.UserProfile
+import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
+import java.time.Period
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -35,7 +36,7 @@ class AIInterestRecommender(
         currentLevel: InterestLevel,
         excludeNames: List<String>,
         count: Int,
-        userProfile: UserProfile
+        memberProfile: MemberProfile
     ): List<InterestNode> {
         logger.info("AI 추천 시작 - 레벨: $currentLevel, 개수: $count")
 
@@ -44,7 +45,7 @@ class AIInterestRecommender(
             currentLevel = currentLevel,
             excludeNames = excludeNames,
             count = count,
-            userProfile = userProfile
+            memberProfile = memberProfile
         )
 
         try {
@@ -76,12 +77,12 @@ class AIInterestRecommender(
         currentLevel: InterestLevel,
         excludeNames: List<String>,
         count: Int,
-        userProfile: UserProfile
+        memberProfile: MemberProfile
     ): String {
         val sb = StringBuilder()
 
         // 사용자 정보
-        sb.appendLine("사용자 정보: ${formatUserProfile(userProfile)}")
+        sb.appendLine("사용자 정보: ${formatMemberProfile(memberProfile)}")
 
         // 계층 구조 설명 및 컨텍스트
         if (selectedInterests.isNotEmpty()) {
@@ -205,8 +206,8 @@ class AIInterestRecommender(
 
                     // parentPathList로부터 parentId 조회
                     parentPathList?.let { pPathList ->
-                        embeddingRepository.findByFullPath(listToPostgresArray(pPathList))?.let {
-                            parentId = it.id.toString()
+                        embeddingRepository.findIdByFullPath(listToPostgresArray(pPathList))?.let { id ->
+                            parentId = id.toString()
                         }
                     }
                 }
@@ -237,11 +238,13 @@ class AIInterestRecommender(
         }
     }
 
-    private fun formatUserProfile(profile: UserProfile): String {
+    private fun formatMemberProfile(profile: MemberProfile): String {
         val parts = mutableListOf<String>()
-        profile.age?.let { parts.add("${it}세") }
-        profile.gender?.let { parts.add(it) }
-        profile.occupation?.let { parts.add(it) }
+        profile.birthDt?.let { birthDt ->
+            val age = Period.between(birthDt.toLocalDate(), LocalDateTime.now().toLocalDate()).years
+            parts.add("${age}세")
+        }
+        profile.gender?.let { parts.add(it.name) }
         return parts.joinToString(", ")
     }
 

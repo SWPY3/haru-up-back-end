@@ -130,9 +130,9 @@ class InterestEmbeddingInitializer(
 
         // interest_embeddings 테이블에서 조회
         val embeddingEntities = if (source != null) {
-            embeddingJpaRepository.findByCreatedSourceAndLevel(source, level)
+            embeddingJpaRepository.findByCreatedSourceAndLevel(source, level.name)
         } else {
-            embeddingJpaRepository.findByLevelAndIsActivated(level, true)
+            embeddingJpaRepository.findByLevelAndIsActivated(level.name, true)
         }
 
         logger.info("$level 레벨 임베딩: ${embeddingEntities.size}개")

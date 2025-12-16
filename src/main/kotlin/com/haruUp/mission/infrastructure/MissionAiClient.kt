@@ -1,6 +1,6 @@
 package com.haruUp.mission.infrastructure
 
-import com.haruUp.domain.mission.entity.MissionEmbeddingEntity
+import com.haruUp.missionembedding.entity.MissionEmbeddingEntity
 import com.haruUp.mission.domain.AiMissionResult
 import org.springframework.aot.hint.TypeReference.listOf
 import org.springframework.stereotype.Component
@@ -13,8 +13,8 @@ class MissionAiClient {
      * 유저 상태를 대표하는 임베딩 생성
      */
     fun createUserEmbedding(memberId: Long): String {
-        // 1️⃣ 유저 요약 텍스트 생성 (임시)
-        val userProfileText = """
+        // 1️⃣ 멤버 요약 텍스트 생성 (임시)
+        val memberProfileText = """
             User prefers simple daily missions.
             Interested in self-improvement and healthy habits.
             Often completes missions consistently.

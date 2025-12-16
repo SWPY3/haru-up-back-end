@@ -51,12 +51,16 @@ data class AiMissionResult(
 data class MissionCandidateDto(
     val embeddingMissionId: Long,
     val content: String,
-    val mainCategory: String,
-    val middleCategory: String?,
-    val subCategory: String?,
+    val directFullPath: List<String>,  // 전체 경로 배열 ["대분류", "중분류", "소분류"]
     val difficulty: Int?,
     val reason: String
-)
+) {
+    /**
+     * 경로를 문자열로 표현 (예: "운동 > 헬스 > 가슴 운동")
+     */
+    val pathString: String
+        get() = directFullPath.joinToString(" > ")
+}
 
 data class MissionRecommendResult(
     val generatedAt: LocalDateTime,

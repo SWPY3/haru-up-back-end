@@ -1,5 +1,5 @@
 -- interest_embeddings 테이블에 초기 데이터 INSERT
--- 실행 방법: cat insert_interest.sql | docker exec -i -e PGPASSWORD={PASSWORD} postgres psql -U haruup_user -d haruup
+-- 실행 방법: cat scripts/insert_interest.sql | docker exec -i -e PGPASSWORD={PASSWORD} postgres psql -U haruup_user -d haruup
 
 -- 기존 데이터 삭제 (필요시)
 -- TRUNCATE interest_embeddings RESTART IDENTITY CASCADE;

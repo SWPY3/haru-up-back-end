@@ -1,6 +1,8 @@
-package com.haruUp.domain.mission.entity
+package com.haruUp.missionembedding.entity
 
+import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
+import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
 /**
@@ -8,6 +10,10 @@ import java.time.LocalDateTime
  *
  * 사용자가 선택한 미션이나 AI가 생성한 미션을 임베딩하여 저장
  * 향후 유사한 미션 추천에 활용
+ *
+ * 추가 인덱스 (schema.sql에서 생성):
+ * - idx_mission_direct_full_path_gin: GIN 인덱스 (direct_full_path 배열 검색 최적화)
+ * - idx_mission_content_path: 복합 인덱스 (mission_content + direct_full_path)
  */
 @Entity
 @Table(
@@ -15,9 +21,8 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "idx_mission_is_activated", columnList = "is_activated"),
         Index(name = "idx_mission_created_at", columnList = "created_at"),
-        Index(name = "idx_mission_main_category", columnList = "main_category"),
-        Index(name = "idx_mission_middle_category", columnList = "middle_category"),
-        Index(name = "idx_mission_sub_category", columnList = "sub_category")
+        Index(name = "idx_mission_direct_full_path", columnList = "direct_full_path"),
+        Index(name = "idx_mission_difficulty", columnList = "difficulty")
     ]
 )
 class MissionEmbeddingEntity(
@@ -25,14 +30,13 @@ class MissionEmbeddingEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
-    @Column(name = "main_category", nullable = false)
-    val mainCategory: String,
-
-    @Column(name = "middle_category")
-    val middleCategory: String? = null,
-
-    @Column(name = "sub_category")
-    val subCategory: String? = null,
+    /**
+     * 관심사 전체 경로 배열 (예: ["외국어 공부", "영어", "단어 학습"])
+     * PostgreSQL TEXT[] 타입 - hypersistence-utils로 List<String> 직접 매핑
+     */
+    @Type(ListArrayType::class)
+    @Column(name = "direct_full_path", columnDefinition = "TEXT[]")
+    val directFullPath: List<String> = emptyList(),
 
     @Column(name = "difficulty")
     val difficulty: Int? = null,
@@ -63,22 +67,7 @@ class MissionEmbeddingEntity(
      * 관심사 경로 문자열 반환 (표시용)
      */
     fun getInterestPath(): String {
-        return listOfNotNull(
-            mainCategory,
-            middleCategory?.takeIf { it.isNotBlank() },
-            subCategory?.takeIf { it.isNotBlank() }
-        ).joinToString(" > ")
-    }
-
-    /**
-     * 관심사 경로 배열 반환
-     */
-    fun getInterestPathList(): List<String> {
-        return listOfNotNull(
-            mainCategory,
-            middleCategory?.takeIf { it.isNotBlank() },
-            subCategory?.takeIf { it.isNotBlank() }
-        )
+        return directFullPath.joinToString(" > ")
     }
 
     /**
@@ -109,18 +98,11 @@ class MissionEmbeddingEntity(
         }
 
         /**
-         * 카테고리로 관심사 경로 문자열 생성
+         * 카테고리 경로 리스트를 표시용 문자열로 변환
+         * ["대분류", "중분류", "소분류"] → "대분류 > 중분류 > 소분류"
          */
-        fun getCategoryPath(
-            mainCategory: String,
-            middleCategory: String?,
-            subCategory: String?
-        ): String {
-            return listOfNotNull(
-                mainCategory,
-                middleCategory?.takeIf { it.isNotBlank() },
-                subCategory?.takeIf { it.isNotBlank() }
-            ).joinToString(" > ")
+        fun categoryPathToString(categoryPath: List<String>): String {
+            return categoryPath.filter { it.isNotBlank() }.joinToString(" > ")
         }
     }
 }

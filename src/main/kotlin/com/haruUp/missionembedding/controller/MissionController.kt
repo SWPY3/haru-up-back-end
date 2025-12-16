@@ -1,15 +1,15 @@
-package com.haruUp.domain.mission.controller
+package com.haruUp.missionembedding.controller
 
-import com.haruUp.interest.dto.MemberMissionDto
-import com.haruUp.interest.dto.MemberMissionsResponse
-import com.haruUp.domain.mission.dto.MissionRecommendationRequest
-import com.haruUp.domain.mission.dto.MissionRecommendationResponse
-import com.haruUp.domain.mission.dto.MissionSelectionRequest
-import com.haruUp.domain.mission.dto.MissionSelectionResponse
-import com.haruUp.domain.mission.repository.MissionEmbeddingRepository
-import com.haruUp.domain.mission.service.MissionRecommendationService
-import com.haruUp.domain.mission.service.MissionSelectionService
-import com.haruUp.global.clova.MissionUserProfile
+import com.haruUp.global.common.ApiResponse as CommonApiResponse
+import com.haruUp.global.security.MemberPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import com.haruUp.missionembedding.dto.MissionRecommendationRequest
+import com.haruUp.missionembedding.dto.MissionRecommendationResponse
+import com.haruUp.missionembedding.dto.MissionSelectionRequest
+import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
+import com.haruUp.missionembedding.service.MissionRecommendationService
+import com.haruUp.missionembedding.service.MissionSelectionService
+import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import com.haruUp.mission.infrastructure.MemberMissionRepository
@@ -59,7 +59,6 @@ class MissionController(
             **호출 예시:**
             ```json
             {
-              "userId": 1,
               "interests": [
                 {"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스", "subCategory": "근력 키우기", "difficulty": 1},
                 {"seqNo": 2, "mainCategory": "공부", "middleCategory": "영어", "subCategory": "영어 단어 외우기", "difficulty": 2}
@@ -99,6 +98,7 @@ class MissionController(
     @RateLimit(key = "api:missions:recommend", limit = 50)
     @PostMapping("/recommend")
     fun recommendMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
             description = "미션 추천 요청 정보",
             required = true,
@@ -106,22 +106,22 @@ class MissionController(
         )
         @RequestBody request: MissionRecommendationRequest
     ): ResponseEntity<MissionRecommendationResponse> = runBlocking {
-        logger.info("미션 추천 요청 - 사용자: ${request.userId}, 관심사 개수: ${request.interests.size}")
+        logger.info("미션 추천 요청 - 사용자: ${principal.id}, 관심사 개수: ${request.interests.size}")
 
         try {
             // DB에서 사용자 프로필 조회
-            val memberProfile = memberProfileRepository.findByMemberId(request.userId)
+            val memberProfileEntity = memberProfileRepository.findByMemberId(principal.id)
                 ?: return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>().also {
-                    logger.error("사용자 프로필을 찾을 수 없음: ${request.userId}")
+                    logger.error("사용자 프로필을 찾을 수 없음: ${principal.id}")
                 }
 
-            // MemberProfile → MissionUserProfile 변환
-            val missionUserProfile = MissionUserProfile(
-                age = memberProfile.birthDt?.let { calculateAge(it) },
-                introduction = memberProfile.intro  // intro를 introduction으로 사용
+            // MemberProfileEntity → MissionMemberProfile 변환
+            val missionMemberProfile = MissionMemberProfile(
+                age = memberProfileEntity.birthDt?.let { calculateAge(it) },
+                introduction = memberProfileEntity.intro
             )
 
-            logger.info("사용자 프로필 조회 완료 - 나이: ${missionUserProfile.age}")
+            logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}")
 
             // interests를 (seqNo, InterestPath, difficulty) 튜플로 변환
             val interestsWithDetails = request.interests.map { dto ->
@@ -131,7 +131,7 @@ class MissionController(
             // 미션 추천
             val missions = missionRecommendationService.recommendMissions(
                 interests = interestsWithDetails,
-                userProfile = missionUserProfile
+                memberProfile = missionMemberProfile
             )
 
             val response = MissionRecommendationResponse(
@@ -168,26 +168,23 @@ class MissionController(
             **호출 예시:**
             ```json
             {
-              "userId": 1,
               "missions": [
                 {
                   "parentId": 97,
-                  "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
+                  "directFullPath": [
+                    "직무 관련 역량 개발",
+                    "업무 능력 향상",
+                    "문서·기획·정리 스킬 향상(PPT·보고서)"
+                  ],
                   "difficulty": 1,
                   "mission": "보고서 작성법 관련 책 1권 읽고 요약 정리하기"
-                },
-                {
-                  "parentId": 14,
-                  "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"],
-                  "difficulty": 2,
-                  "mission": "주 3회 벤치프레스 10회 3세트 하기"
                 }
               ]
             }
             ```
 
             **필드 설명:**
-            - parentId: interest_embeddings 테이블의 부모 관심사 ID
+            - parentId: 소분류 부모 관심사 ID (반드시 소분류 관심사 parentId로 입력해주세요.)
             - directFullPath: 관심사 경로 배열 [대분류, 중분류, 소분류]
             - difficulty: 난이도 (1~5, 선택)
             - mission: 미션 내용
@@ -197,11 +194,7 @@ class MissionController(
         value = [
             ApiResponse(
                 responseCode = "200",
-                description = "저장 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = MissionSelectionResponse::class)
-                )]
+                description = "저장 성공"
             ),
             ApiResponse(
                 responseCode = "400",
@@ -215,22 +208,38 @@ class MissionController(
     )
     @PostMapping("/select")
     fun selectMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
             description = "미션 선택 요청 정보",
             required = true,
             schema = Schema(implementation = MissionSelectionRequest::class)
         )
         @RequestBody request: MissionSelectionRequest
-    ): ResponseEntity<MissionSelectionResponse> {
-        logger.info("미션 선택 요청 - 사용자: ${request.userId}, 미션 개수: ${request.missions.size}")
+    ): ResponseEntity<CommonApiResponse<List<Long>>> {
+        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.missions.size}")
 
         return try {
-            val response = missionSelectionService.saveMissions(request)
-            logger.info("미션 선택 완료 - 저장된 개수: ${response.savedCount}")
-            ResponseEntity.ok(response)
+            val savedMissionIds = missionSelectionService.saveMissions(principal.id, request)
+            logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
+            ResponseEntity.ok(CommonApiResponse.success(savedMissionIds))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                CommonApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = e.message ?: "유효성 검증 실패"
+                )
+            )
         } catch (e: Exception) {
             logger.error("미션 선택 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().build()
+            ResponseEntity.internalServerError().body(
+                CommonApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = "서버 오류가 발생했습니다"
+                )
+            )
         }
     }
 
@@ -307,82 +316,6 @@ class MissionController(
 
         } catch (e: Exception) {
             logger.error("미션 상태 업데이트 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().build()
-        }
-    }
-
-    /**
-     * 멤버 미션 조회 API
-     *
-     * 사용자가 선택한 미션 목록을 조회합니다 (vector 데이터 제외)
-     *
-     * @param userId 사용자 ID
-     * @return 사용자가 선택한 미션 목록
-     */
-    @Operation(
-        summary = "멤버 미션 조회",
-        description = "사용자가 선택한 미션 목록을 조회합니다 (임베딩 벡터 데이터는 제외)"
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "조회 성공"
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "사용자를 찾을 수 없음"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
-    )
-    @GetMapping("/member/{userId}")
-    fun getMemberMissions(
-        @Parameter(
-            description = "사용자 ID",
-            required = true,
-            example = "1"
-        )
-        @PathVariable userId: Long
-    ): ResponseEntity<MemberMissionsResponse> {
-        logger.info("멤버 미션 조회 - userId: $userId")
-
-        return try {
-            // member_mission 테이블에서 사용자 미션 조회
-            val memberMissions = memberMissionRepository.findByMemberId(userId)
-
-            if (memberMissions.isEmpty()) {
-                logger.info("멤버 미션 조회 완료 - userId: $userId, 미션 없음")
-                return ResponseEntity.ok(MemberMissionsResponse(emptyList(), 0))
-            }
-
-            // 각 member_mission에 대해 mission_embeddings 정보 조회 및 결합
-            val missions = memberMissions.mapNotNull { memberMission ->
-                val missionEmbedding = missionEmbeddingRepository.findById(memberMission.missionId).orElse(null)
-                missionEmbedding?.let {
-                    MemberMissionDto(
-                        memberMissionId = memberMission.id ?: 0L,
-                        missionId = it.id ?: 0L,
-                        categoryPath = it.getInterestPathList(),
-                        difficulty = it.difficulty,
-                        missionContent = it.missionContent,
-                        usageCount = it.usageCount,
-                        isCompleted = memberMission.isCompleted ?: false,
-                        isActivated = it.isActivated,
-                        createdAt = memberMission.createdAt.toString()
-                    )
-                }
-            }
-
-            logger.info("멤버 미션 조회 완료 - userId: $userId, count: ${missions.size}")
-
-            ResponseEntity.ok(MemberMissionsResponse(missions, missions.size))
-
-        } catch (e: Exception) {
-            logger.error("멤버 미션 조회 실패: ${e.message}", e)
             ResponseEntity.internalServerError().build()
         }
     }

@@ -9,9 +9,9 @@ spring:
     import: classpath:env.properties
 
   datasource:
-    # PostgreSQL (Local Docker) with p6spy
-    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
-    url: jdbc:p6spy:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    # PostgreSQL (Local Docker) - p6spy 비활성화 (hypersistence-utils 호환성 문제)
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 
@@ -22,11 +22,11 @@ spring:
     #password: ${MY_SQL_DB_PASSWORD}
 
   jpa:
-    show-sql: false  # p6spy가 SQL 출력 담당
+    show-sql: true  # SQL 로깅 활성화 (p6spy 대신)
     database-platform: org.hibernate.dialect.PostgreSQLDialect  # 또는 이 줄도 빼도 됨(드라이버로 자동 추론)
     properties:
       hibernate:
-        format_sql: false  # p6spy MultiLineFormat 사용
+        format_sql: true  # SQL 포맷팅
         use_sql_comments: false
         default_batch_fetch_size: 1000
         jdbc.time_zone: Asia/Seoul
@@ -34,7 +34,6 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: true
-
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -44,7 +43,8 @@ spring:
 
 logging:
   level:
-    p6spy: info
+    org.hibernate.SQL: DEBUG  # SQL 로깅
+    org.hibernate.type.descriptor.sql: TRACE  # 바인딩 파라미터 로깅 (필요시 활성화)
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}
@@ -71,6 +71,11 @@ interest:
 
 server:
   port: 8080
+
+# Swagger UI 설정
+springdoc:
+  swagger-ui:
+    persist-authorization: true  # 새로고침해도 토큰 유지
 
 
 management:

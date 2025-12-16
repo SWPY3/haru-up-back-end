@@ -1,6 +1,6 @@
-package com.haruUp.domain.mission.repository
+package com.haruUp.missionembedding.repository
 
-import com.haruUp.domain.mission.entity.MissionEmbeddingEntity
+import com.haruUp.missionembedding.entity.MissionEmbeddingEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -19,27 +19,21 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
         value = """
             SELECT * FROM mission_embeddings
             WHERE mission_content = :missionContent
-            AND main_category = :mainCategory
-            AND (:middleCategory IS NULL OR middle_category = :middleCategory)
-            AND (:subCategory IS NULL OR sub_category = :subCategory)
+            AND direct_full_path = CAST(:directFullPath AS TEXT[])
             LIMIT 1
         """,
         nativeQuery = true
     )
     fun findByMissionContentAndCategory(
         @Param("missionContent") missionContent: String,
-        @Param("mainCategory") mainCategory: String,
-        @Param("middleCategory") middleCategory: String?,
-        @Param("subCategory") subCategory: String?
+        @Param("directFullPath") directFullPath: String  // PostgreSQL 배열 형식: "{대분류,중분류,소분류}"
     ): MissionEmbeddingEntity?
 
     /**
      * 벡터 유사도 검색 (코사인 유사도)
      *
      * @param embedding 검색할 임베딩 벡터
-     * @param mainCategory 대분류
-     * @param middleCategory 중분류
-     * @param subCategory 소분류
+     * @param directFullPath 전체 경로 배열 (PostgreSQL 형식)
      * @param difficulty 난이도 (null이면 모든 난이도)
      * @param limit 반환할 결과 개수
      */
@@ -47,9 +41,7 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
         value = """
             SELECT * FROM mission_embeddings
             WHERE is_activated = true
-            AND main_category = :mainCategory
-            AND (:middleCategory IS NULL OR middle_category = :middleCategory)
-            AND (:subCategory IS NULL OR sub_category = :subCategory)
+            AND direct_full_path = CAST(:directFullPath AS TEXT[])
             AND (:difficulty IS NULL OR difficulty = :difficulty OR difficulty IS NULL)
             AND embedding IS NOT NULL
             ORDER BY embedding <=> CAST(:embedding AS vector)
@@ -59,9 +51,7 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
     )
     fun findByVectorSimilarity(
         @Param("embedding") embedding: String,
-        @Param("mainCategory") mainCategory: String,
-        @Param("middleCategory") middleCategory: String?,
-        @Param("subCategory") subCategory: String?,
+        @Param("directFullPath") directFullPath: String,  // PostgreSQL 배열 형식: "{대분류,중분류,소분류}"
         @Param("difficulty") difficulty: Int?,
         @Param("limit") limit: Int
     ): List<MissionEmbeddingEntity>
@@ -73,9 +63,7 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
         value = """
             SELECT * FROM mission_embeddings
             WHERE is_activated = true
-            AND main_category = :mainCategory
-            AND (:middleCategory IS NULL OR middle_category = :middleCategory)
-            AND (:subCategory IS NULL OR sub_category = :subCategory)
+            AND direct_full_path = CAST(:directFullPath AS TEXT[])
             AND (:difficulty IS NULL OR difficulty = :difficulty OR difficulty IS NULL)
             ORDER BY usage_count DESC
             LIMIT :limit
@@ -83,38 +71,32 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
         nativeQuery = true
     )
     fun findPopularMissions(
-        @Param("mainCategory") mainCategory: String,
-        @Param("middleCategory") middleCategory: String?,
-        @Param("subCategory") subCategory: String?,
+        @Param("directFullPath") directFullPath: String,  // PostgreSQL 배열 형식: "{대분류,중분류,소분류}"
         @Param("difficulty") difficulty: Int?,
         @Param("limit") limit: Int
     ): List<MissionEmbeddingEntity>
 
     /**
      * 미션 임베딩 저장 (vector 타입 캐스팅 포함)
-     *
-     * Note: RETURNING을 사용하기 위해 @Query만 사용 (@Modifying 제거)
      */
+    @Modifying
     @Query(
         value = """
             INSERT INTO mission_embeddings
-            (main_category, middle_category, sub_category, difficulty, mission_content, embedding, usage_count, is_activated, created_at)
-            VALUES (:mainCategory, :middleCategory, :subCategory, :difficulty, :missionContent, CAST(:embedding AS vector), :usageCount, :isActivated, :createdAt)
-            RETURNING id
+            (direct_full_path, difficulty, mission_content, embedding, usage_count, is_activated, created_at)
+            VALUES (CAST(:directFullPath AS TEXT[]), :difficulty, :missionContent, CAST(:embedding AS vector), :usageCount, :isActivated, :createdAt)
         """,
         nativeQuery = true
     )
     fun insertMissionEmbedding(
-        @Param("mainCategory") mainCategory: String,
-        @Param("middleCategory") middleCategory: String?,
-        @Param("subCategory") subCategory: String?,
+        @Param("directFullPath") directFullPath: String,  // PostgreSQL 배열 형식: "{대분류,중분류,소분류}"
         @Param("difficulty") difficulty: Int?,
         @Param("missionContent") missionContent: String,
         @Param("embedding") embedding: String?,
         @Param("usageCount") usageCount: Int,
         @Param("isActivated") isActivated: Boolean,
         @Param("createdAt") createdAt: java.time.LocalDateTime
-    ): Long
+    )
 
     /**
      * 사용 횟수 증가 (UPDATE without touching embedding field)
@@ -131,6 +113,26 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
     )
     fun incrementUsageCount(
         @Param("id") id: Long,
+        @Param("updatedAt") updatedAt: java.time.LocalDateTime
+    )
+
+    /**
+     * 임베딩 벡터 업데이트 (미션 선택 시 호출)
+     */
+    @Modifying
+    @Query(
+        value = """
+            UPDATE mission_embeddings
+            SET embedding = CAST(:embedding AS vector),
+                usage_count = usage_count + 1,
+                updated_at = :updatedAt
+            WHERE id = :id
+        """,
+        nativeQuery = true
+    )
+    fun updateEmbedding(
+        @Param("id") id: Long,
+        @Param("embedding") embedding: String,
         @Param("updatedAt") updatedAt: java.time.LocalDateTime
     )
 }

@@ -1,7 +1,7 @@
 package com.haruUp.mission.application
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.haruUp.domain.mission.repository.MissionEmbeddingRepository
+import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.mission.domain.MissionCandidateDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.infrastructure.MemberMissionRepository
@@ -75,12 +75,12 @@ class MissionRecommendService(
             )
 
 // 3️⃣ 벡터 유사도 기반 추천
+        // TODO: 사용자의 실제 관심사 경로로 변경 필요
+        val defaultDirectFullPath = "{LIFE}"  // PostgreSQL 배열 형식
         val candidates =
             missionEmbeddingRepository.findByVectorSimilarity(
                 embedding = userEmbedding,
-                mainCategory = "LIFE",
-                middleCategory = null,
-                subCategory = null,
+                directFullPath = defaultDirectFullPath,
                 difficulty = null,
                 limit = RECOMMEND_LIMIT * 2
             )
@@ -93,9 +93,7 @@ class MissionRecommendService(
                 MissionCandidateDto(
                     embeddingMissionId = it.id!!,
                     content = it.missionContent,
-                    mainCategory = it.mainCategory,
-                    middleCategory = it.middleCategory,
-                    subCategory = it.subCategory,
+                    directFullPath = it.directFullPath,
                     difficulty = it.difficulty,
                     reason = "최근 관심사와 유사한 미션이에요"
                 )
