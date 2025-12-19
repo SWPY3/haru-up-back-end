@@ -21,6 +21,7 @@ class ClovaApiClient(
      * @param repeatPenalty 반복 패널티 (기본값: 1.0)
      * @param stopBefore 중단 전 시퀀스 리스트
      * @param includeAiFilters AI 필터 포함 여부 (기본값: true)
+     * @param seed 시드 값 (null이면 랜덤 시드 사용)
      * @return Clova API 응답
      */
     fun chatCompletion(
@@ -31,8 +32,10 @@ class ClovaApiClient(
         topP: Double = 0.8,
         repeatPenalty: Double = 1.0,
         stopBefore: List<String> = emptyList(),
-        includeAiFilters: Boolean = true
+        includeAiFilters: Boolean = true,
+        seed: Int? = null
     ): ClovaApiResponse {
+        val actualSeed = seed ?: (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
         val request = ClovaApiRequest(
             messages = messages,
             topP = topP,
@@ -41,11 +44,12 @@ class ClovaApiClient(
             temperature = temperature,
             repetitionPenalty = repeatPenalty,
             stop = stopBefore,
-            includeAiFilters = includeAiFilters
+            includeAiFilters = includeAiFilters,
+            seed = actualSeed
         )
 
         return clovaRestClient.post()
-            .uri("/v3/chat-completions/HCX-DASH-002")
+            .uri("/v1/chat-completions/HCX-003")
             .header("X-NCP-CLOVASTUDIO-REQUEST-ID", generateRequestId())
             .body(request)
             .retrieve()
@@ -58,11 +62,15 @@ class ClovaApiClient(
      *
      * @param userMessage 사용자 메시지
      * @param systemMessage 시스템 메시지 (선택)
+     * @param temperature 온도 파라미터 (높을수록 다양한 출력, 기본값: 0.5)
+     * @param seed 시드 값 (null이면 랜덤, 기본값: null)
      * @return 생성된 텍스트
      */
     fun generateText(
         userMessage: String,
-        systemMessage: String? = null
+        systemMessage: String? = null,
+        temperature: Double = 0.5,
+        seed: Int? = null
     ): String {
         val messages = mutableListOf<ChatMessage>()
 
@@ -72,7 +80,11 @@ class ClovaApiClient(
 
         messages.add(ChatMessage(role = "user", content = userMessage))
 
-        val response = chatCompletion(messages)
+        val response = chatCompletion(
+            messages = messages,
+            temperature = temperature,
+            seed = seed
+        )
         return response.result?.message?.content ?: throw RuntimeException("Clova API 응답에 content가 없습니다.")
     }
 }

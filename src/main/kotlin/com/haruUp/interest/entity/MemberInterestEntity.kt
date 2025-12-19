@@ -2,6 +2,7 @@ package com.haruUp.interest.entity
 
 import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
+import org.hibernate.annotations.ColumnDefault
 import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
@@ -38,6 +39,18 @@ class MemberInterestEntity(
     @Column(name = "direct_full_path", columnDefinition = "text[]")
     val directFullPath: List<String>? = null,
 
+    /**
+     * 오늘의 미션 재추천 횟수
+     * today-recommend API 호출 시마다 1씩 증가
+     */
+    @ColumnDefault("0")
+    @Column(name = "reset_mission_count", nullable = false)
+    var resetMissionCount: Int = 0,
+
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun incrementResetMissionCount() {
+        this.resetMissionCount++
+    }
+}

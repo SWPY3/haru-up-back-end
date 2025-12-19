@@ -30,9 +30,9 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
                     WHERE m.member_id = :memberId
                       AND m.is_completed = false
                       AND (
-                            (m.mission_status = 'POSTPONED' AND m.target_date = CURRENT_DATE - INTERVAL '1 day')
+                            (m.mission_status = 'POSTPONED' AND m.create_at = CURRENT_DATE - INTERVAL '1 day')
                             OR
-                            (m.mission_status = 'READY' AND m.target_date = CURRENT_DATE)
+                            (m.mission_status = 'READY' AND m.create_at = CURRENT_DATE)
                           )
                 ) sub
                 WHERE sub.rn = 1
@@ -52,5 +52,20 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
     fun findMissionIdsByMemberIdAndDate(
         memberId: Long,
         targetDate: LocalDate
+    ): List<Long>
+
+    /**
+     * 사용자의 ACTIVE 상태 미션 ID 목록 조회
+     * 오늘의 미션 추천 시 제외할 미션 조회에 사용
+     */
+    @Query("""
+    SELECT m.missionId
+    FROM MemberMission m
+    WHERE m.memberId = :memberId
+      AND m.missionStatus = :status
+    """)
+    fun findMissionIdsByMemberIdAndStatus(
+        memberId: Long,
+        status: MissionStatus
     ): List<Long>
 }

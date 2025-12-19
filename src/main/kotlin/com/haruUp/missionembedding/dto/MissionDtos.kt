@@ -89,11 +89,11 @@ data class MissionDto(
 @Schema(description = "선택한 미션 정보")
 data class SelectedMissionDto(
     @Schema(
-        description = "부모 관심사 ID (interest_embeddings 테이블의 ID)",
+        description = "관심사 ID (interest_embeddings 테이블의 ID)",
         example = "97",
         required = true
     )
-    val parentId: Long,
+    val interestId: Long,
 
     @Schema(
         description = "전체 경로 배열 [대분류, 중분류, 소분류]",
@@ -121,31 +121,18 @@ data class SelectedMissionDto(
 /**
  * 오늘의 미션 추천 요청
  *
- * 관심사 ID를 받아서 해당 유저가 저장한 관심사 정보와 프로필을 기반으로 미션 추천
+ * member_interest 테이블의 ID를 받아서 해당 유저가 저장한 관심사 정보와 프로필을 기반으로 미션 추천
+ * - ACTIVE 상태인 기존 미션은 자동으로 제외
+ * - Redis에 저장된 이전 추천 미션도 자동으로 제외
  */
 @Schema(description = "오늘의 미션 추천 요청")
 data class TodayMissionRecommendationRequest(
     @Schema(
-        description = "관심사 ID (member_interest 테이블의 interest_id)",
+        description = "멤버 관심사 ID (member_interest 테이블의 id)",
         example = "1",
         required = true
     )
-    val interestId: Long,
-
-    @Schema(
-        description = "난이도 (1~5, 선택)",
-        allowableValues = ["1", "2", "3", "4", "5"],
-        example = "1",
-        required = false
-    )
-    val difficulty: Int? = null,
-
-    @Schema(
-        description = "제외할 미션 ID 목록 (이미 추천받은 미션들)",
-        example = "[1, 2, 3, 4, 5]",
-        required = false
-    )
-    val excludeMissionIds: List<Long> = emptyList()
+    val memberInterestId: Long
 )
 
 /**
@@ -157,7 +144,7 @@ data class MissionSelectionRequest(
         description = "선택한 미션 목록",
         example = """[
             {
-                "parentId": 97,
+                "interestId": 97,
                 "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
                 "difficulty": 1,
                 "missionId": 123

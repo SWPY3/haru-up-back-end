@@ -5,6 +5,7 @@ import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.missionembedding.dto.MissionSelectionRequest
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -38,6 +39,9 @@ class MissionSelectionService(
     fun saveMissions(memberId: Long, request: MissionSelectionRequest): List<Long> {
         logger.info("미션 선택 요청 - 사용자: $memberId, 미션 개수: ${request.missions.size}")
 
+        // interestId -> memberInterestId 매핑을 저장할 Map
+        val interestToMemberInterestMap = mutableMapOf<Long, Long>()
+
         // 1. 먼저 모든 미션에 대해 validation 수행
         request.missions.forEach { dto ->
             if (dto.directFullPath.isEmpty()) {
@@ -49,18 +53,20 @@ class MissionSelectionService(
                 throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=${dto.missionId}")
             }
 
-            // parentId가 interest_embeddings에 존재하고 SUB 레벨인지 확인
-            val parentInterest = interestEmbeddingJpaRepository.findById(dto.parentId).orElse(null)
-                ?: throw IllegalArgumentException("parentId에 해당하는 관심사를 찾을 수 없습니다: parentId=${dto.parentId}")
+            // interestId가 interest_embeddings에 존재하고 SUB 레벨인지 확인
+            val interest = interestEmbeddingJpaRepository.findById(dto.interestId).orElse(null)
+                ?: throw IllegalArgumentException("interestId에 해당하는 관심사를 찾을 수 없습니다: interestId=${dto.interestId}")
 
-            if (parentInterest.level != InterestLevel.SUB) {
-                throw IllegalArgumentException("parentId는 소분류(SUB)만 사용 가능합니다: parentId=${dto.parentId}, level=${parentInterest.level}")
+            if (interest.level != InterestLevel.SUB) {
+                throw IllegalArgumentException("interestId는 소분류(SUB)만 사용 가능합니다: interestId=${dto.interestId}, level=${interest.level}")
             }
 
             // 사용자가 해당 관심사를 이미 등록했는지 확인 (member_interest 테이블)
-            if (!memberInterestRepository.existsByMemberIdAndInterestId(memberId, dto.parentId)) {
-                throw IllegalArgumentException("사용자가 해당 관심사를 등록하지 않았습니다: memberId=$memberId, interestId=${dto.parentId}")
-            }
+            val memberInterest = memberInterestRepository.findFirstByMemberIdAndInterestIdOrderByCreatedAtDesc(memberId, dto.interestId)
+                ?: throw IllegalArgumentException("사용자가 해당 관심사를 등록하지 않았습니다: memberId=$memberId, interestId=${dto.interestId}")
+
+            // memberInterestId를 Map에 저장
+            interestToMemberInterestMap[dto.interestId] = memberInterest.id!!
         }
 
         // 2. validation 통과 후 저장 시작
@@ -74,14 +80,17 @@ class MissionSelectionService(
                 }
 
                 // 2. 사용자-미션 연결 저장
+                val memberInterestId = interestToMemberInterestMap[dto.interestId]!!
                 val memberMission = MemberMission(
                     memberId = memberId,
                     missionId = dto.missionId,
+                    memberInterestId = memberInterestId,
+                    missionStatus = MissionStatus.ACTIVE,
                     expEarned = 0
                 )
                 val saved = memberMissionRepository.save(memberMission)
                 saved.id?.let { savedMemberMissionIds.add(it) }
-                logger.info("사용자-미션 연결 저장 완료: 사용자=$memberId, missionId=${dto.missionId}")
+                logger.info("사용자-미션 연결 저장 완료: 사용자=$memberId, missionId=${dto.missionId}, memberInterestId=$memberInterestId")
             } catch (e: Exception) {
                 logger.error("미션 선택 실패: missionId=${dto.missionId}, 에러: ${e.message}", e)
             }

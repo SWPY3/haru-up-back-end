@@ -10,6 +10,8 @@ import com.haruUp.missionembedding.dto.MissionSelectionRequest
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.missionembedding.service.MissionRecommendationService
 import com.haruUp.missionembedding.service.MissionSelectionService
+import com.haruUp.missionembedding.service.TodayMissionCacheService
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
@@ -41,6 +43,7 @@ import java.time.Period
 class MissionembeddingController(
     private val missionRecommendationService: MissionRecommendationService,
     private val missionSelectionService: MissionSelectionService,
+    private val todayMissionCacheService: TodayMissionCacheService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberMissionRepository: MemberMissionRepository,
     private val missionEmbeddingRepository: MissionEmbeddingRepository,
@@ -82,26 +85,6 @@ class MissionembeddingController(
             - difficulty 4: 직장인 수준 (하루 50개, 1시간)
             - difficulty 5: 전문가 수준 (하루 100개, 2시간)
         """
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "추천 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = MissionRecommendationResponse::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청 (유효하지 않은 userId 등)"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @RateLimit(key = "api:missions:recommend", limit = 50)
     @PostMapping("/recommend")
@@ -174,8 +157,13 @@ class MissionembeddingController(
      * 오늘의 미션 추천 API
      *
      * 사용자 프로필(직업, 직업상세, 성별, 나이)과 관심사 정보를 기반으로 미션 추천
+     * - ACTIVE 상태인 기존 미션 자동 제외
+     * - Redis에 저장된 이전 추천 미션 자동 제외
+     * - 추천된 미션은 mission_embeddings에 저장 (embedding=null)
+     * - 추천된 미션 ID는 Redis에 캐싱 (24시간)
+     * - reset_mission_count 카운트 증가
      *
-     * @param request 오늘의 미션 추천 요청 (관심사 ID + 난이도 + 제외할 미션 ID 목록)
+     * @param request 오늘의 미션 추천 요청 (memberInterestId)
      * @return 추천된 미션 목록
      */
     @Operation(
@@ -183,46 +171,17 @@ class MissionembeddingController(
         description = """
             사용자 프로필과 선택한 관심사를 기반으로 오늘의 미션을 추천합니다.
 
-            **사용자 정보 활용:**
-            - 직업 정보 (jobId → jobName)
-            - 직업 상세 정보 (jobDetailId → jobDetailName)
-            - 성별 (gender)
-            - 나이 (birthDt로 계산)
-            - 멤버 관심사 테이블에서 해당 관심사의 경로 조회
-
-            **사용 시나리오:**
-            1. 관심사 ID와 난이도를 전달하여 미션 5개 추천
-            2. 마음에 드는 미션이 없으면 excludeMissionIds에 기존 미션 ID를 담아 재호출
+            **자동 제외 기능:**
+            - ACTIVE 상태인 기존 미션 자동 제외
+            - Redis에 캐싱된 이전 추천 미션 자동 제외 (24시간)
 
             **호출 예시:**
             ```json
             {
-              "interestId": 1,
-              "difficulty": 1,
-              "excludeMissionIds": []
+              "memberInterestId": 1
             }
             ```
         """
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "추천 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = MissionRecommendationResponse::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청 (관심사를 찾을 수 없음 등)"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @RateLimit(key = "api:missions:today-recommend", limit = 50)
     @PostMapping("/today-recommend")
@@ -234,17 +193,23 @@ class MissionembeddingController(
             schema = Schema(implementation = TodayMissionRecommendationRequest::class)
         )
         @RequestBody request: TodayMissionRecommendationRequest
-    ): ResponseEntity<MissionRecommendationResponse> = runBlocking {
-        logger.info("오늘의 미션 추천 요청 - 사용자: ${principal.id}, 관심사 ID: ${request.interestId}, 난이도: ${request.difficulty}, 제외 ID 개수: ${request.excludeMissionIds.size}")
+    ): ResponseEntity<CommonApiResponse<MissionRecommendationResponse>> = runBlocking {
+        logger.info("오늘의 미션 추천 요청 - 사용자: ${principal.id}, memberInterestId: ${request.memberInterestId}")
 
         try {
-            // DB에서 사용자 프로필 조회
+            // 1. DB에서 사용자 프로필 조회
             val memberProfileEntity = memberProfileRepository.findByMemberId(principal.id)
-                ?: return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>().also {
+                ?: return@runBlocking ResponseEntity.badRequest().body(
+                    CommonApiResponse<MissionRecommendationResponse>(
+                        success = false,
+                        data = null,
+                        errorMessage = "사용자 프로필을 찾을 수 없습니다."
+                    )
+                ).also {
                     logger.error("사용자 프로필을 찾을 수 없음: ${principal.id}")
                 }
 
-            // 직업 정보 조회
+            // 2. 직업 정보 조회
             val jobName = memberProfileEntity.jobId?.let { jobId ->
                 jobRepository.findById(jobId).orElse(null)?.jobName
             }
@@ -252,7 +217,6 @@ class MissionembeddingController(
                 jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
             }
 
-            // MemberProfileEntity → MissionMemberProfile 변환 (직업, 성별 정보 포함)
             val missionMemberProfile = MissionMemberProfile(
                 age = memberProfileEntity.birthDt?.let { calculateAge(it) },
                 gender = memberProfileEntity.gender?.name,
@@ -260,36 +224,92 @@ class MissionembeddingController(
                 jobDetailName = jobDetailName
             )
 
-            logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}, 성별: ${missionMemberProfile.gender}, 직업: ${missionMemberProfile.jobName}, 직업상세: ${missionMemberProfile.jobDetailName}")
-
-            // 멤버 관심사 테이블에서 해당 유저가 선택한 관심사 조회
-            val memberInterest = memberInterestRepository.findByMemberIdAndInterestId(principal.id, request.interestId)
-                ?: return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>().also {
-                    logger.error("사용자 관심사를 찾을 수 없음 - memberId: ${principal.id}, interestId: ${request.interestId}")
+            // 3. 멤버 관심사 조회 (member_interest 테이블의 id로 조회)
+            val memberInterest = memberInterestRepository.findById(request.memberInterestId).orElse(null)
+                ?: return@runBlocking ResponseEntity.badRequest().body(
+                    CommonApiResponse<MissionRecommendationResponse>(
+                        success = false,
+                        data = null,
+                        errorMessage = "멤버 관심사를 찾을 수 없습니다. (memberInterestId: ${request.memberInterestId})"
+                    )
+                ).also {
+                    logger.error("멤버 관심사를 찾을 수 없음 - memberInterestId: ${request.memberInterestId}")
                 }
 
-            // 관심사 경로 가져오기
+            // 3-1. 해당 관심사가 현재 사용자의 것인지 확인
+            if (memberInterest.memberId != principal.id) {
+                return@runBlocking ResponseEntity.badRequest().body(
+                    CommonApiResponse<MissionRecommendationResponse>(
+                        success = false,
+                        data = null,
+                        errorMessage = "해당 관심사에 접근 권한이 없습니다."
+                    )
+                ).also {
+                    logger.error("관심사 접근 권한 없음 - memberInterestId: ${request.memberInterestId}, 요청자: ${principal.id}, 소유자: ${memberInterest.memberId}")
+                }
+            }
+
             val interestPath = memberInterest.directFullPath?.let { path ->
                 InterestPath(
                     mainCategory = path.getOrNull(0) ?: "",
                     middleCategory = path.getOrNull(1),
                     subCategory = path.getOrNull(2)
                 )
-            } ?: return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>().also {
-                logger.error("관심사 경로 정보가 없음 - interestId: ${request.interestId}")
+            } ?: return@runBlocking ResponseEntity.badRequest().body(
+                CommonApiResponse<MissionRecommendationResponse>(
+                    success = false,
+                    data = null,
+                    errorMessage = "관심사 경로 정보가 없습니다. (memberInterestId: ${request.memberInterestId})"
+                )
+            ).also {
+                logger.error("관심사 경로 정보가 없음 - memberInterestId: ${request.memberInterestId}")
             }
 
             logger.info("관심사 경로: ${interestPath.toPathString()}")
 
-            // 오늘의 미션 추천 (별도 함수 사용)
+            // 4. 제외할 미션 ID 수집
+            // 4-1. ACTIVE 상태인 기존 미션 조회
+            val activeMissionIds = memberMissionRepository.findMissionIdsByMemberIdAndStatus(
+                memberId = principal.id,
+                status = MissionStatus.ACTIVE
+            )
+            logger.info("ACTIVE 상태 미션 ID: $activeMissionIds")
+
+            // 4-2. Redis에서 이전 추천 미션 ID 조회 (interestId 기반)
+            val cachedMissionIds = todayMissionCacheService.getRecommendedMissionIds(
+                memberId = principal.id,
+                interestId = memberInterest.interestId
+            )
+            logger.info("Redis 캐시 미션 ID: $cachedMissionIds")
+
+            // 4-3. 합치기 (중복 제거)
+            val excludeIds = (activeMissionIds + cachedMissionIds).distinct()
+            logger.info("제외할 미션 ID 총합: ${excludeIds.size}개")
+
+            // 5. 미션 추천 (난이도 1~5 각각 1개씩)
             val missionDtos = missionRecommendationService.recommendTodayMissions(
                 interestPath = interestPath,
                 memberProfile = missionMemberProfile,
-                difficulty = request.difficulty,
-                excludeIds = request.excludeMissionIds
+                difficulty = null,  // 난이도 자동 할당 (1~5)
+                excludeIds = excludeIds
             )
 
-            // MissionGroupDto로 래핑 (seqNo = 1)
+            // 6. 추천된 미션 ID를 Redis에 저장
+            val recommendedMissionIds = missionDtos.mapNotNull { it.id }
+            if (recommendedMissionIds.isNotEmpty()) {
+                todayMissionCacheService.saveRecommendedMissionIds(
+                    memberId = principal.id,
+                    interestId = memberInterest.interestId,
+                    missionIds = recommendedMissionIds
+                )
+            }
+
+            // 7. reset_mission_count 증가
+            memberInterest.incrementResetMissionCount()
+            memberInterestRepository.save(memberInterest)
+            logger.info("reset_mission_count 증가: ${memberInterest.resetMissionCount}")
+
+            // 8. 응답 생성
             val missionGroup = com.haruUp.missionembedding.dto.MissionGroupDto(
                 seqNo = 1,
                 data = missionDtos
@@ -302,14 +322,26 @@ class MissionembeddingController(
 
             logger.info("오늘의 미션 추천 성공: ${missionDtos.size}개")
 
-            ResponseEntity.ok(response)
+            ResponseEntity.ok(CommonApiResponse.success(response))
 
         } catch (e: IllegalArgumentException) {
             logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().build()
+            ResponseEntity.badRequest().body(
+                CommonApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "잘못된 요청입니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("오늘의 미션 추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().build()
+            ResponseEntity.internalServerError().body(
+                CommonApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
         }
     }
 
@@ -331,7 +363,7 @@ class MissionembeddingController(
             {
               "missions": [
                 {
-                  "parentId": 97,
+                  "interestId": 97,
                   "directFullPath": [
                     "직무 관련 역량 개발",
                     "업무 능력 향상",
@@ -345,27 +377,11 @@ class MissionembeddingController(
             ```
 
             **필드 설명:**
-            - parentId: 소분류 부모 관심사 ID (반드시 소분류 관심사 parentId로 입력해주세요.)
+            - interestId: 소분류 관심사 ID (반드시 소분류 관심사 interestId로 입력해주세요.)
             - directFullPath: 관심사 경로 배열 [대분류, 중분류, 소분류]
             - difficulty: 난이도 (1~5, 선택)
             - mission: 미션 내용
         """
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "저장 성공"
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @PostMapping("/select")
     fun selectMissions(
@@ -431,22 +447,6 @@ class MissionembeddingController(
             - Body: {"isCompleted": true}  // 완료
             - Body: {"isCompleted": false} // 포기
         """
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "상태 업데이트 성공"
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "미션을 찾을 수 없음"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @PutMapping("/completed/{missionId}")
     fun updateMissionStatus(
