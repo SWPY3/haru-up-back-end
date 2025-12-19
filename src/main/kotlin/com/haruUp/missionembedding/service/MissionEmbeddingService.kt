@@ -168,6 +168,16 @@ class MissionEmbeddingService(
     }
 
     /**
+     * ID 목록으로 미션 조회
+     *
+     * @param ids 미션 ID 목록
+     * @return 미션 임베딩 엔티티 목록
+     */
+    fun findByIds(ids: List<Long>): List<MissionEmbeddingEntity> {
+        return missionEmbeddingRepository.findAllById(ids)
+    }
+
+    /**
      * 인기 미션 조회
      */
     fun findPopularMissions(
@@ -181,6 +191,35 @@ class MissionEmbeddingService(
             difficulty = difficulty,
             limit = limit
         )
+    }
+
+    /**
+     * 난이도별 미션 1개씩 조회 (대분류 필터 + 임베딩 유사도 + usage_count 우선)
+     *
+     * 1. 대분류(directFullPath[0])로 먼저 필터링
+     * 2. 관심사 경로로 쿼리 임베딩 생성
+     * 3. 유사한 미션 중 usage_count 높은 순으로 난이도별 1개씩 반환
+     *
+     * @param directFullPath 전체 경로 배열 (예: ["체력관리 및 운동", "헬스", "근력 키우기"])
+     * @return 난이도별 미션 목록 (최대 5개)
+     */
+    suspend fun findOnePerDifficulty(directFullPath: List<String>): List<MissionEmbeddingEntity> {
+        if (directFullPath.isEmpty()) {
+            logger.warn("RAG 조회 - directFullPath가 비어있음")
+            return emptyList()
+        }
+
+        val majorCategory = directFullPath[0]  // 대분류
+        val interestPath = MissionEmbeddingEntity.categoryPathToString(directFullPath)
+        logger.info("RAG 조회 - majorCategory: $majorCategory, interestPath: $interestPath")
+
+        // 쿼리 임베딩 생성
+        val queryEmbedding = clovaEmbeddingClient.createEmbedding(interestPath)
+        val embeddingString = MissionEmbeddingEntity.vectorToString(queryEmbedding)
+
+        val result = missionEmbeddingRepository.findOnePerDifficulty(embeddingString, majorCategory)
+        logger.info("RAG 조회 - 결과: ${result.size}개, IDs: ${result.map { it.id }}")
+        return result
     }
 
     /**

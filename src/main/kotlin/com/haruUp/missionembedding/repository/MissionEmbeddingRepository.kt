@@ -77,6 +77,38 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
     ): List<MissionEmbeddingEntity>
 
     /**
+     * 난이도별 미션 1개씩 조회 (대분류 필터 + 임베딩 유사도 + usage_count 우선)
+     *
+     * 대분류(direct_full_path[1])로 먼저 필터링 후,
+     * 임베딩 유사도로 관련 미션 검색, usage_count 높은 순 우선
+     * 코사인 거리 임계값: 0.8 (0=동일, 1=직교, 2=반대)
+     */
+    @Query(
+        value = """
+            SELECT * FROM (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY difficulty
+                           ORDER BY usage_count DESC, embedding <=> CAST(:embedding AS vector)
+                       ) as rn
+                FROM mission_embeddings
+                WHERE is_activated = true
+                AND difficulty IN (1, 2, 3, 4, 5)
+                AND embedding IS NOT NULL
+                AND direct_full_path[1] = :majorCategory
+                AND (embedding <=> CAST(:embedding AS vector)) < 0.8
+            ) sub
+            WHERE rn = 1
+            ORDER BY difficulty
+        """,
+        nativeQuery = true
+    )
+    fun findOnePerDifficulty(
+        @Param("embedding") embedding: String,
+        @Param("majorCategory") majorCategory: String
+    ): List<MissionEmbeddingEntity>
+
+    /**
      * 미션 임베딩 저장 (vector 타입 캐스팅 포함)
      */
     @Modifying

@@ -17,8 +17,8 @@ data class MissionRecommendationRequest(
     @Schema(
         description = "사용자가 선택한 관심사 목록 (대분류 > 중분류 > 소분류, 난이도 포함)",
         example = """[
-            {"seqNo": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"], "difficulty": 1},
-            {"seqNo": 2, "directFullPath": ["외국어 공부", "영어", "단어 학습"], "difficulty": 2}
+            {"seqNo": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]},
+            {"seqNo": 2, "directFullPath": ["외국어 공부", "영어", "단어 학습"]}
         ]""",
         required = true
     )
@@ -60,11 +60,21 @@ data class MissionDto(
     @Schema(description = "미션 내용", example = "주 3회 가슴 운동 루틴 완수하기")
     val content: String,
 
-    @Schema(description = "관련 관심사 경로", example = "체력관리 및 운동 > 헬스 > 근력 키우기")
-    val relatedInterest: String,
+    @Schema(
+        description = "관련 관심사 경로 [대분류, 중분류, 소분류]",
+        example = """["체력관리 및 운동", "헬스", "근력 키우기"]"""
+    )
+    val relatedInterest: List<String>,
 
     @Schema(description = "난이도 (1~5, null이면 난이도 미설정)", example = "3")
-    val difficulty: Int?
+    val difficulty: Int?,
+
+    @Schema(
+        description = "생성 타입 (EMBEDDING: RAG 조회, AI: LLM 생성)",
+        example = "EMBEDDING",
+        allowableValues = ["EMBEDDING", "AI"]
+    )
+    val createdType: String? = null
 )
 
 /**
@@ -106,6 +116,36 @@ data class SelectedMissionDto(
         required = true
     )
     val missionId: Long
+)
+
+/**
+ * 오늘의 미션 추천 요청
+ *
+ * 관심사 ID를 받아서 해당 유저가 저장한 관심사 정보와 프로필을 기반으로 미션 추천
+ */
+@Schema(description = "오늘의 미션 추천 요청")
+data class TodayMissionRecommendationRequest(
+    @Schema(
+        description = "관심사 ID (member_interest 테이블의 interest_id)",
+        example = "1",
+        required = true
+    )
+    val interestId: Long,
+
+    @Schema(
+        description = "난이도 (1~5, 선택)",
+        allowableValues = ["1", "2", "3", "4", "5"],
+        example = "1",
+        required = false
+    )
+    val difficulty: Int? = null,
+
+    @Schema(
+        description = "제외할 미션 ID 목록 (이미 추천받은 미션들)",
+        example = "[1, 2, 3, 4, 5]",
+        required = false
+    )
+    val excludeMissionIds: List<Long> = emptyList()
 )
 
 /**

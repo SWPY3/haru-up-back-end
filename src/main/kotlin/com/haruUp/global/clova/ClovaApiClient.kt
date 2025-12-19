@@ -39,13 +39,13 @@ class ClovaApiClient(
             topK = topK,
             maxTokens = maxTokens,
             temperature = temperature,
-            repeatPenalty = repeatPenalty,
-            stopBefore = stopBefore,
+            repetitionPenalty = repeatPenalty,
+            stop = stopBefore,
             includeAiFilters = includeAiFilters
         )
 
         return clovaRestClient.post()
-            .uri("/testapp/v1/chat-completions/HCX-003")
+            .uri("/v3/chat-completions/HCX-DASH-002")
             .header("X-NCP-CLOVASTUDIO-REQUEST-ID", generateRequestId())
             .body(request)
             .retrieve()
@@ -88,9 +88,10 @@ data class ClovaApiRequest(
     val topK: Int,
     val maxTokens: Int,
     val temperature: Double,
-    val repeatPenalty: Double,
-    val stopBefore: List<String>,
-    val includeAiFilters: Boolean
+    val repetitionPenalty: Double,
+    val stop: List<String>,
+    val includeAiFilters: Boolean,
+    val seed: Int = 0
 )
 
 data class ClovaApiResponse(
@@ -105,10 +106,10 @@ data class Status(
 
 data class Result(
     val message: Message,
-    val stopReason: String,
-    val inputLength: Int,
-    val outputLength: Int,
-    val aiFilter: List<AiFilter>?
+    val stopReason: String? = null,
+    val inputLength: Int? = null,
+    val outputLength: Int? = null,
+    val aiFilter: List<AiFilter>? = null
 )
 
 data class Message(

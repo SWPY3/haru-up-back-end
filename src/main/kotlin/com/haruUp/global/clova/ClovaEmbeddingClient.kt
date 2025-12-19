@@ -1,5 +1,6 @@
 package com.haruUp.global.clova
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
@@ -7,8 +8,8 @@ import org.springframework.web.client.body
 /**
  * Clova Embedding API Client
  *
- * - Clova Studio의 CLIR Embedding (Dolphin) 모델 사용
- * - 한국어 특화 임베딩 모델
+ * - Clova Studio의 Embedding v2 (bge-m3) 모델 사용
+ * - 다국어 지원, 8192 토큰까지 처리 가능
  * - 벡터 차원: 1024
  *
  * API 문서: https://api.ncloud-docs.com/docs/clovastudio-embedding
@@ -18,9 +19,10 @@ class ClovaEmbeddingClient(
     private val clovaRestClient: RestClient,
     private val generateRequestId: () -> String
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        private const val EMBEDDING_ENDPOINT = "/testapp/v1/api-tools/embedding/clir-emb-dolphin"
+        private const val EMBEDDING_ENDPOINT = "/v1/api-tools/embedding/v2"
         const val VECTOR_SIZE = 1024  // Clova Embedding 벡터 차원
     }
 
@@ -41,7 +43,11 @@ class ClovaEmbeddingClient(
             .body<ClovaEmbeddingResponse>()
             ?: throw RuntimeException("Clova Embedding API 응답이 null입니다.")
 
-        return@withContext response.result.embedding
+        // wrapper 구조(status + result) 또는 직접 응답 구조 모두 지원
+        val embedding = response.result?.embedding ?: response.embedding
+            ?: throw RuntimeException("Clova Embedding API 응답에 embedding이 없습니다.")
+
+        return@withContext embedding
     }
 
     /**
@@ -67,18 +73,24 @@ data class ClovaEmbeddingRequest(
 )
 
 /**
- * Clova Embedding API 응답
+ * Clova Embedding API v2 응답
+ * wrapper 구조(status + result)와 직접 응답 구조 모두 지원
  */
 data class ClovaEmbeddingResponse(
-    val status: EmbeddingStatus,
-    val result: EmbeddingResult
+    // 직접 응답 구조
+    val embedding: List<Float>? = null,
+    val inputTokens: Int? = null,
+    // wrapper 구조
+    val status: EmbeddingStatus? = null,
+    val result: EmbeddingResult? = null
 )
 
 data class EmbeddingStatus(
-    val code: String,
-    val message: String
+    val code: String? = null,
+    val message: String? = null
 )
 
 data class EmbeddingResult(
-    val embedding: List<Float>
+    val embedding: List<Float>? = null,
+    val inputTokens: Int? = null
 )
