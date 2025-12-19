@@ -36,7 +36,7 @@ object ImprovedMissionRecommendationPrompt {
 
 ## 응답 형식
 반드시 JSON 객체 형식으로만 응답하세요. 다른 설명이나 텍스트는 포함하지 마세요.
-형식: {"missions": [{"content": "미션내용", "relatedInterest": "관심사경로"}, ...]}
+형식: {"missions": [{"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"]}, ...]}
 
 ### 예시 1 - 여러 관심사를 균형있게 반영
 입력:
@@ -45,11 +45,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "가슴 운동 3세트 완수하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "아침 15분 요가 스트레칭 하기", "relatedInterest": "운동 > 요가"},
-    {"content": "영어 팟캐스트 10분 듣기", "relatedInterest": "공부 > 영어 > 영어회화"},
-    {"content": "영어 일기 3문장 작성하기", "relatedInterest": "공부 > 영어 > 영어회화"},
-    {"content": "요가 동작 3가지 연습하기", "relatedInterest": "운동 > 요가"}
+    {"content": "가슴 운동 3세트 완수하기", "relatedInterest": ["운동", "헬스", "가슴 운동"]},
+    {"content": "아침 15분 요가 스트레칭 하기", "relatedInterest": ["운동", "요가"]},
+    {"content": "영어 팟캐스트 10분 듣기", "relatedInterest": ["공부", "영어", "영어회화"]},
+    {"content": "영어 일기 3문장 작성하기", "relatedInterest": ["공부", "영어", "영어회화"]},
+    {"content": "요가 동작 3가지 연습하기", "relatedInterest": ["운동", "요가"]}
   ]
 }
 
@@ -62,11 +62,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 운동 > 헬스 > 가슴 운동
 응답: {
   "missions": [
-    {"content": "벤치프레스 5세트 완수하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "덤벨 플라이 정확한 자세로 3세트 하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "푸쉬업 20개 3세트 하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "가슴 운동 후 스트레칭 10분 하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"},
-    {"content": "오늘 운동 기록 일지에 작성하기", "relatedInterest": "운동 > 헬스 > 가슴 운동"}
+    {"content": "벤치프레스 5세트 완수하기", "relatedInterest": ["운동", "헬스", "가슴 운동"]},
+    {"content": "덤벨 플라이 정확한 자세로 3세트 하기", "relatedInterest": ["운동", "헬스", "가슴 운동"]},
+    {"content": "푸쉬업 20개 3세트 하기", "relatedInterest": ["운동", "헬스", "가슴 운동"]},
+    {"content": "가슴 운동 후 스트레칭 10분 하기", "relatedInterest": ["운동", "헬스", "가슴 운동"]},
+    {"content": "오늘 운동 기록 일지에 작성하기", "relatedInterest": ["운동", "헬스", "가슴 운동"]}
   ]
 }
 
@@ -79,11 +79,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "3km 러닝 완주하기", "relatedInterest": "운동 > 러닝"},
-    {"content": "새로운 인디 아티스트 1명 발견하기", "relatedInterest": "취미 > 음악 감상 > 인디음악"},
-    {"content": "15분 드로잉 연습하기", "relatedInterest": "예술 > 그림 > 드로잉"},
-    {"content": "일본어 히라가나 10개 암기하기", "relatedInterest": "공부 > 외국어 > 일본어"},
-    {"content": "인디 음악 앨범 1장 감상하기", "relatedInterest": "취미 > 음악 감상 > 인디음악"}
+    {"content": "3km 러닝 완주하기", "relatedInterest": ["운동", "러닝"]},
+    {"content": "새로운 인디 아티스트 1명 발견하기", "relatedInterest": ["취미", "음악 감상", "인디음악"]},
+    {"content": "15분 드로잉 연습하기", "relatedInterest": ["예술", "그림", "드로잉"]},
+    {"content": "일본어 히라가나 10개 암기하기", "relatedInterest": ["공부", "외국어", "일본어"]},
+    {"content": "인디 음악 앨범 1장 감상하기", "relatedInterest": ["취미", "음악 감상", "인디음악"]}
   ]
 }
 
@@ -96,11 +96,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "웨이트 트레이닝 1시간 하기", "relatedInterest": "운동 > 헬스 > 웨이트 트레이닝"},
-    {"content": "5km 러닝 완주하기", "relatedInterest": "운동 > 러닝 > 장거리 달리기"},
-    {"content": "수영장에서 30분 자유형 연습하기", "relatedInterest": "운동 > 수영"},
-    {"content": "러닝 전후 스트레칭 10분 하기", "relatedInterest": "운동 > 러닝 > 장거리 달리기"},
-    {"content": "스쿼트 5세트 완수하기", "relatedInterest": "운동 > 헬스 > 웨이트 트레이닝"}
+    {"content": "웨이트 트레이닝 1시간 하기", "relatedInterest": ["운동", "헬스", "웨이트 트레이닝"]},
+    {"content": "5km 러닝 완주하기", "relatedInterest": ["운동", "러닝", "장거리 달리기"]},
+    {"content": "수영장에서 30분 자유형 연습하기", "relatedInterest": ["운동", "수영"]},
+    {"content": "러닝 전후 스트레칭 10분 하기", "relatedInterest": ["운동", "러닝", "장거리 달리기"]},
+    {"content": "스쿼트 5세트 완수하기", "relatedInterest": ["운동", "헬스", "웨이트 트레이닝"]}
   ]
 }
 
@@ -113,11 +113,11 @@ object ImprovedMissionRecommendationPrompt {
 집중 관심사: 없음
 응답: {
   "missions": [
-    {"content": "케이크 레시피 1개 따라 만들기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "케이크 데코레이션 기법 1가지 연습하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "베이킹 유튜브 강의 1개 시청하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "오늘 베이킹 결과 일지에 기록하기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"},
-    {"content": "새로운 케이크 재료 1가지 사용해보기", "relatedInterest": "요리 > 베이킹 > 케이크 만들기"}
+    {"content": "케이크 레시피 1개 따라 만들기", "relatedInterest": ["요리", "베이킹", "케이크 만들기"]},
+    {"content": "케이크 데코레이션 기법 1가지 연습하기", "relatedInterest": ["요리", "베이킹", "케이크 만들기"]},
+    {"content": "베이킹 유튜브 강의 1개 시청하기", "relatedInterest": ["요리", "베이킹", "케이크 만들기"]},
+    {"content": "오늘 베이킹 결과 일지에 기록하기", "relatedInterest": ["요리", "베이킹", "케이크 만들기"]},
+    {"content": "새로운 케이크 재료 1가지 사용해보기", "relatedInterest": ["요리", "베이킹", "케이크 만들기"]}
   ]
 }
 
@@ -126,6 +126,7 @@ object ImprovedMissionRecommendationPrompt {
 중요:
 - 반드시 {"missions": [...]} 형식의 JSON 객체로만 응답하세요.
 - 각 미션은 content와 relatedInterest를 모두 포함해야 합니다.
+- relatedInterest는 반드시 ["대분류", "중분류", "소분류"] 형태의 배열이어야 합니다.
 - 사용자의 나이, 소개, 모든 관심사를 종합적으로 고려하여 가장 적합한 미션을 추천하세요.
 - 집중 관심사가 지정되면 해당 관심사에 집중된 미션을, 없으면 균형있게 구성하세요.
 - 모든 미션은 구체적이고 실행 가능해야 합니다.
@@ -137,8 +138,7 @@ object ImprovedMissionRecommendationPrompt {
      */
     fun createUserMessageForAllInterests(
         userInterests: UserInterests,
-        missionMemberProfile: MissionMemberProfile,
-        focusInterest: InterestPath? = null
+        missionMemberProfile: MissionMemberProfile
     ): String {
         val sb = StringBuilder()
 
@@ -148,13 +148,6 @@ object ImprovedMissionRecommendationPrompt {
         // 관심사 목록
         val pathStrings = userInterests.toPathStrings()
         sb.append("관심사: [${pathStrings.joinToString(", ")}]\n")
-
-        // 집중 관심사
-        if (focusInterest != null) {
-            sb.append("집중 관심사: ${focusInterest.toPathString()}")
-        } else {
-            sb.append("집중 관심사: 없음")
-        }
 
         return sb.toString()
     }
@@ -166,7 +159,16 @@ object ImprovedMissionRecommendationPrompt {
         val parts = mutableListOf<String>()
 
         profile.age?.let { parts.add("${it}세") }
-        profile.introduction?.let { parts.add("소개: $it") }
+        profile.gender?.let {
+            val genderKorean = when (it) {
+                "MALE" -> "남성"
+                "FEMALE" -> "여성"
+                else -> it
+            }
+            parts.add(genderKorean)
+        }
+        profile.jobName?.let { parts.add("직업: $it") }
+        profile.jobDetailName?.let { parts.add("직업상세: $it") }
 
         return parts.joinToString(", ")
     }
@@ -176,9 +178,13 @@ object ImprovedMissionRecommendationPrompt {
  * 미션 추천을 위한 멤버 프로필 정보
  *
  * @property age 나이 (선택)
- * @property introduction 멤버 소개 (선택, 예: "직장인, 운동 초보", "대학생, 음악 좋아함")
+ * @property gender 성별 (선택, 예: "MALE", "FEMALE")
+ * @property jobName 직업명 (선택, 예: "학생", "직장인")
+ * @property jobDetailName 직업 상세명 (선택, 예: "대학생", "IT 개발자")
  */
 data class MissionMemberProfile(
     val age: Int? = null,
-    val introduction: String? = null
+    val gender: String? = null,
+    val jobName: String? = null,
+    val jobDetailName: String? = null
 )

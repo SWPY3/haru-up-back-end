@@ -36,27 +36,31 @@ class MissionRecommendationService(
     /**
      * 관심사별로 미션 5개씩 추천 (그룹화된 형태로 반환)
      *
-     * @param interests 사용자가 선택한 관심사 목록 (seqNo, InterestPath, difficulty 포함)
+     * 각 관심사에 대해 난이도 1~5 각각 1개씩 미션을 추천
+     * - RAG: 난이도별로 검색 (DB 쿼리)
+     * - AI: 부족한 난이도만 모아서 LLM 1회 호출
+     *
+     * @param interests 사용자가 선택한 관심사 목록 (seqNo, InterestPath)
      * @param memberProfile 멤버 프로필
-     * @return 관심사별 그룹화된 미션 목록 (각 관심사당 5개)
+     * @return 관심사별 그룹화된 미션 목록 (각 관심사당 5개, 난이도 1~5)
      */
     suspend fun recommendMissions(
-        interests: List<Triple<Int?, InterestPath, Int?>>,  // (seqNo, InterestPath, difficulty)
+        interests: List<Pair<Int?, InterestPath>>,  // (seqNo, InterestPath)
         memberProfile: MissionMemberProfile
     ): List<MissionGroupDto> {
         logger.info("미션 추천 시작 - 관심사 개수: ${interests.size}")
 
         val missionGroups = mutableListOf<MissionGroupDto>()
 
-        // 각 관심사에 대해 개별적으로 미션 5개씩 추천
-        for ((seqNo, interestPath, difficulty) in interests) {
-            logger.info("처리 중: seqNo=$seqNo, path=${interestPath.toPathString()}, difficulty=$difficulty")
+        // 각 관심사에 대해 난이도 1~5 미션 추천
+        for ((seqNo, interestPath) in interests) {
+            logger.info("처리 중: seqNo=$seqNo, path=${interestPath.toPathString()}")
 
             try {
+                // RAG + AI 하이브리드로 난이도 1~5 미션 생성
                 val missions = recommendMissionsForSingleInterest(
                     interestPath = interestPath,
-                    memberProfile = memberProfile,
-                    difficulty = difficulty
+                    memberProfile = memberProfile
                 )
 
                 // MissionDto 리스트 생성
@@ -65,7 +69,8 @@ class MissionRecommendationService(
                         id = mission.id,
                         content = mission.content,
                         relatedInterest = mission.relatedInterest,
-                        difficulty = difficulty
+                        difficulty = mission.difficulty,
+                        createdType = mission.createdType
                     )
                 }
 
@@ -76,7 +81,7 @@ class MissionRecommendationService(
                         data = missionDtos
                     )
                 )
-                logger.info("seqNo=$seqNo 미션 추천 완료: ${missions.size}개")
+                logger.info("seqNo=$seqNo 미션 추천 완료: ${missionDtos.size}개 (난이도 1~5)")
 
             } catch (e: Exception) {
                 logger.error("seqNo=$seqNo 미션 추천 실패: ${e.message}", e)
@@ -95,111 +100,144 @@ class MissionRecommendationService(
     }
 
     /**
-     * 단일 관심사에 대해 미션 5개 추천 (RAG + AI 하이브리드)
+     * 오늘의 미션 추천 (단일 관심사 기반)
+     *
+     * 사용자 프로필(직업, 직업상세, 성별, 나이)과 단일 관심사를 기반으로 미션 추천
+     * 기존 recommendMissions와 분리하여 향후 로직 변경에 유연하게 대응
+     *
+     * @param interestPath 관심사 경로
+     * @param memberProfile 멤버 프로필 (직업, 직업상세, 성별, 나이 포함)
+     * @param difficulty 난이도 (1~5, 선택)
+     * @param excludeIds 제외할 미션 ID 목록
+     * @return 미션 목록 (MissionDto 리스트)
      */
-    private suspend fun recommendMissionsForSingleInterest(
-        interestPath: InterestPath,
-        memberProfile: MissionMemberProfile,
-        difficulty: Int?
-    ): List<Mission> {
-        val interestPathString = interestPath.toPathString()
-        val allMissions = mutableListOf<Mission>()
-
-        // 1. RAG: 임베딩된 미션에서 유사한 미션 검색
-        logger.info("RAG 검색 시작: $interestPathString, difficulty=$difficulty")
-        val ragMissions = try {
-            val memberProfileString = buildMemberProfileString(memberProfile)
-            val embeddedMissions = missionEmbeddingService.findSimilarMissions(
-                directFullPath = interestPath.toPathList(),
-                difficulty = difficulty,
-                memberProfile = memberProfileString,
-                limit = RAG_MISSION_COUNT
-            )
-
-            embeddedMissions.map { entity ->
-                Mission(
-                    id = entity.id,
-                    content = entity.missionContent,
-                    relatedInterest = entity.getInterestPath()
-                )
-            }
-        } catch (e: Exception) {
-            logger.warn("RAG 검색 실패: ${e.message}")
-            emptyList()
-        }
-
-        allMissions.addAll(ragMissions)
-        logger.info("RAG로 ${ragMissions.size}개 미션 가져옴")
-
-        // 2. AI: 부족한 경우 Clova API로 생성
-        val remainingCount = TARGET_MISSION_COUNT - allMissions.size
-        if (remainingCount > 0) {
-            logger.info("AI로 $remainingCount 개 미션 생성 필요")
-
-            val aiMissions = generateMissionsWithAI(
-                interestPath = interestPath,
-                memberProfile = memberProfile,
-                difficulty = difficulty,
-                count = remainingCount
-            )
-
-            // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
-            val aiMissionsWithId = aiMissions.mapNotNull { mission ->
-                try {
-                    val savedEntity = missionEmbeddingService.saveMissionWithoutEmbedding(
-                        directFullPath = interestPath.toPathList(),
-                        difficulty = difficulty,
-                        missionContent = mission.content
-                    )
-                    Mission(
-                        id = savedEntity?.id,
-                        content = mission.content,
-                        relatedInterest = mission.relatedInterest
-                    )
-                } catch (e: Exception) {
-                    logger.warn("미션 저장 실패: ${mission.content}, 에러: ${e.message}")
-                    // 저장 실패해도 id 없이 반환
-                    Mission(
-                        id = null,
-                        content = mission.content,
-                        relatedInterest = mission.relatedInterest
-                    )
-                }
-            }
-
-            allMissions.addAll(aiMissionsWithId)
-            logger.info("AI로 ${aiMissionsWithId.size}개 미션 생성 및 저장 완료")
-        }
-
-        return allMissions.take(TARGET_MISSION_COUNT)
-    }
-
-    /**
-     * AI로 미션 생성
-     */
-    private suspend fun generateMissionsWithAI(
+    suspend fun recommendTodayMissions(
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile,
         difficulty: Int?,
-        count: Int
-    ): List<Mission> {
-        // 단일 관심사를 UserInterests로 변환
-        val userInterests = UserInterests(listOf(interestPath))
+        excludeIds: List<Long> = emptyList()
+    ): List<MissionDto> {
+        logger.info("오늘의 미션 추천 시작 - 관심사: ${interestPath.toPathString()}, 난이도: $difficulty, 제외 ID 개수: ${excludeIds.size}")
 
-        // 프롬프트 생성 (난이도에 따라 다르게)
-        val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
-            userInterests = userInterests,
-            missionMemberProfile = memberProfile,
-            focusInterest = null
+        try {
+            val missions = recommendTodayMissionsInternal(
+                interestPath = interestPath,
+                memberProfile = memberProfile,
+                difficulty = difficulty,
+                excludeIds = excludeIds
+            )
+
+            val missionDtos = missions.map { mission ->
+                MissionDto(
+                    id = mission.id,
+                    content = mission.content,
+                    relatedInterest = mission.relatedInterest,
+                    difficulty = difficulty,
+                    createdType = mission.createdType
+                )
+            }
+
+            logger.info("오늘의 미션 추천 완료: ${missionDtos.size}개")
+            return missionDtos
+
+        } catch (e: Exception) {
+            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
+            return emptyList()
+        }
+    }
+
+    /**
+     * 오늘의 미션 추천 내부 로직 (LLM 전용)
+     *
+     * RAG 사용하지 않고 매번 LLM을 호출하여 미션 생성
+     */
+    private suspend fun recommendTodayMissionsInternal(
+        interestPath: InterestPath,
+        memberProfile: MissionMemberProfile,
+        difficulty: Int?,
+        excludeIds: List<Long> = emptyList()
+    ): List<Mission> {
+        val interestPathString = interestPath.toPathString()
+
+        logger.info("오늘의 미션 LLM 생성 시작: $interestPathString, difficulty=$difficulty, excludeIds=${excludeIds.size}개")
+
+        // LLM으로 미션 생성
+        val aiMissions = generateTodayMissionsWithAI(
+            interestPath = interestPath,
+            memberProfile = memberProfile,
+            difficulty = difficulty,
+            count = TARGET_MISSION_COUNT,
+            excludeIds = excludeIds
         )
 
+        // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
+        val missionsWithId = aiMissions.mapNotNull { mission ->
+            try {
+                val savedEntity = missionEmbeddingService.saveMissionWithoutEmbedding(
+                    directFullPath = interestPath.toPathList(),
+                    difficulty = difficulty,
+                    missionContent = mission.content
+                )
+                Mission(
+                    id = savedEntity?.id,
+                    content = mission.content,
+                    relatedInterest = mission.relatedInterest
+                )
+            } catch (e: Exception) {
+                logger.warn("오늘의 미션 저장 실패: ${mission.content}, 에러: ${e.message}")
+                Mission(
+                    id = null,
+                    content = mission.content,
+                    relatedInterest = mission.relatedInterest
+                )
+            }
+        }
+
+        logger.info("오늘의 미션 LLM 생성 완료: ${missionsWithId.size}개")
+        return missionsWithId.take(TARGET_MISSION_COUNT)
+    }
+
+    /**
+     * 오늘의 미션용 AI 미션 생성
+     *
+     * LLM을 호출하여 미션 생성, excludeIds가 있으면 해당 미션 제외
+     */
+    private suspend fun generateTodayMissionsWithAI(
+        interestPath: InterestPath,
+        memberProfile: MissionMemberProfile,
+        difficulty: Int?,
+        count: Int,
+        excludeIds: List<Long> = emptyList()
+    ): List<Mission> {
+        val userInterests = UserInterests(listOf(interestPath))
+
+        val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
+            userInterests = userInterests,
+            missionMemberProfile = memberProfile
+        )
+
+        // 제외할 미션 내용 조회
+        val excludeMissionsText = if (excludeIds.isNotEmpty()) {
+            val excludeMissions = missionEmbeddingService.findByIds(excludeIds)
+            if (excludeMissions.isNotEmpty()) {
+                val missionList = excludeMissions.mapIndexed { index, entity ->
+                    "${index + 1}. ${entity.missionContent}"
+                }.joinToString("\n")
+                """
+
+**제외할 미션 (이전에 추천받은 미션):**
+다음 미션들과 동일하거나 유사한 미션은 절대 추천하지 마세요:
+$missionList
+"""
+            } else ""
+        } else ""
+
         val userMessage = if (difficulty == null) {
-            // difficulty가 없으면 정량적 수치 없는 미션
             """
 $basePrompt
 
 **생성할 미션 개수: $count 개**
-
+$excludeMissionsText
 **중요: 미션 형식 요구사항**
 정량적 수치나 구체적인 횟수, 시간, 개수를 포함하지 마세요.
 일반적이고 자유로운 형태의 미션을 추천해주세요.
@@ -211,13 +249,12 @@ $basePrompt
 - "주 3회 30분 운동하기" (X - 수치 포함)
             """.trim()
         } else {
-            // difficulty가 있으면 수치 포함 미션
             val difficultyDescription = getDifficultyDescription(difficulty)
             """
 $basePrompt
 
 **생성할 미션 개수: $count 개**
-
+$excludeMissionsText
 **난이도 요구사항:**
 $difficultyDescription
 
@@ -240,28 +277,136 @@ $difficultyDescription
             """.trim()
         }
 
-        logger.debug("Clova API 호출: $userMessage")
+        logger.debug("오늘의 미션 Clova API 호출: $userMessage")
 
-        // Clova API 호출
         val response = clovaApiClient.generateText(
             userMessage = userMessage,
             systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT
         )
 
-        logger.debug("Clova API 응답: $response")
+        logger.debug("오늘의 미션 Clova API 응답: $response")
 
-        // JSON 파싱
         return parseMissionResponse(response).take(count)
     }
 
     /**
-     * 멤버 프로필을 문자열로 변환
+     * 오늘의 미션용 멤버 프로필을 문자열로 변환
+     *
+     * 직업, 직업상세, 성별 정보를 포함
      */
-    private fun buildMemberProfileString(memberProfile: MissionMemberProfile): String {
+    private fun buildMemberProfileStringForToday(memberProfile: MissionMemberProfile): String {
         val parts = mutableListOf<String>()
         memberProfile.age?.let { parts.add("${it}세") }
-        memberProfile.introduction?.let { parts.add(it) }
+        memberProfile.gender?.let {
+            val genderKorean = when (it) {
+                "MALE" -> "남성"
+                "FEMALE" -> "여성"
+                else -> it
+            }
+            parts.add(genderKorean)
+        }
+        memberProfile.jobName?.let { parts.add("직업: $it") }
+        memberProfile.jobDetailName?.let { parts.add("직업상세: $it") }
         return parts.joinToString(", ").ifEmpty { "프로필 정보 없음" }
+    }
+
+    /**
+     * 단일 관심사에 대해 난이도 1~5 미션 5개 추천
+     *
+     * - RAG에서 5개 모두 조회되면 RAG 결과 반환
+     * - 5개 미만이면 RAG 무시하고 LLM으로 5개 생성
+     */
+    private suspend fun recommendMissionsForSingleInterest(
+        interestPath: InterestPath,
+        memberProfile: MissionMemberProfile
+    ): List<Mission> {
+        // 1. RAG: 난이도 1~5 각각 1개씩 검색 (1회 쿼리, API 호출 없음)
+        val ragMissions = try {
+            missionEmbeddingService.findOnePerDifficulty(interestPath.toPathList())
+        } catch (e: Exception) {
+            logger.warn("RAG 검색 실패: ${e.message}")
+            emptyList()
+        }
+
+        logger.info("RAG DATA: ${ragMissions}")
+
+        // 2. RAG 5개 모두 조회되면 반환
+        if (ragMissions.size == 5) {
+            logger.info("RAG로 5개 미션 조회 완료: ${interestPath.toPathString()}")
+            return ragMissions.map { entity ->
+                Mission(
+                    id = entity.id,
+                    content = entity.missionContent,
+                    relatedInterest = entity.directFullPath,
+                    difficulty = entity.difficulty,
+                    createdType = "EMBEDDING"
+                )
+            }.sortedBy { it.difficulty }
+        }
+
+        // 3. 5개 미만이면 LLM으로 전체 생성
+        logger.info("RAG ${ragMissions.size}개 조회, LLM으로 5개 생성: ${interestPath.toPathString()}")
+        val aiMissions = generateMissionsAllDifficulties(interestPath, memberProfile)
+
+        // AI 미션 DB 저장 후 반환
+        return aiMissions.mapNotNull { mission ->
+            try {
+                val saved = missionEmbeddingService.saveMissionWithoutEmbedding(
+                    directFullPath = interestPath.toPathList(),
+                    difficulty = mission.difficulty,
+                    missionContent = mission.content
+                )
+                mission.copy(id = saved?.id)
+            } catch (e: Exception) {
+                logger.warn("미션 저장 실패: ${mission.content}")
+                mission
+            }
+        }.sortedBy { it.difficulty }
+    }
+
+    /**
+     * LLM으로 난이도 1~5 미션 5개 생성
+     */
+    private suspend fun generateMissionsAllDifficulties(
+        interestPath: InterestPath,
+        memberProfile: MissionMemberProfile
+    ): List<Mission> {
+        val userInterests = UserInterests(listOf(interestPath))
+        val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
+            userInterests = userInterests,
+            missionMemberProfile = memberProfile
+        )
+
+        val userMessage = """
+$basePrompt
+
+**생성할 미션: 난이도 1, 2, 3, 4, 5 각각 1개씩, 총 5개**
+
+각 난이도별 기준:
+- 난이도 1 (중학생 수준): 5-10분 소요, 작은 목표
+- 난이도 2 (고등학생 수준): 15-20분 소요, 중간 목표
+- 난이도 3 (대학생 수준): 30분-1시간 소요, 상당한 목표
+- 난이도 4 (직장인 수준): 1-2시간 소요, 높은 목표
+- 난이도 5 (전문가 수준): 2시간 이상 소요, 전문가 목표
+
+**중요:** 반드시 검증 가능한 정량적 수치를 포함해주세요.
+
+**응답 형식 (JSON):**
+```json
+{
+  "missions": [
+    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 난이도숫자}
+  ]
+}
+```
+        """.trim()
+
+        val response = clovaApiClient.generateText(
+            userMessage = userMessage,
+            systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT
+        )
+
+        return parseMissionResponseWithDifficulty(response)
     }
 
     /**
@@ -304,7 +449,7 @@ $difficultyDescription
     }
 
     /**
-     * Clova API 응답 파싱
+     * Clova API 응답 파싱 (difficulty 없는 버전)
      */
     private fun parseMissionResponse(response: String): List<Mission> {
         return try {
@@ -314,6 +459,45 @@ $difficultyDescription
             logger.error("미션 응답 파싱 실패: ${e.message}")
             emptyList()
         }
+    }
+
+    /**
+     * Clova API 응답 파싱 (difficulty 포함 버전)
+     */
+    private fun parseMissionResponseWithDifficulty(response: String): List<Mission> {
+        return try {
+            // JSON 블록 추출 (```json ... ``` 형식 처리)
+            val jsonContent = extractJsonFromResponse(response)
+            val jsonResponse = objectMapper.readValue<MissionResponse>(jsonContent)
+            jsonResponse.missions
+        } catch (e: Exception) {
+            logger.error("미션 응답 파싱 실패 (difficulty 포함): ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * 응답에서 JSON 부분 추출
+     */
+    private fun extractJsonFromResponse(response: String): String {
+        val trimmed = response.trim()
+
+        // ```json ... ``` 형식 처리
+        val jsonBlockRegex = Regex("```json\\s*(.+?)\\s*```", RegexOption.DOT_MATCHES_ALL)
+        val jsonBlockMatch = jsonBlockRegex.find(trimmed)
+        if (jsonBlockMatch != null) {
+            return jsonBlockMatch.groupValues[1].trim()
+        }
+
+        // ``` ... ``` 형식 처리
+        val codeBlockRegex = Regex("```\\s*(.+?)\\s*```", RegexOption.DOT_MATCHES_ALL)
+        val codeBlockMatch = codeBlockRegex.find(trimmed)
+        if (codeBlockMatch != null) {
+            return codeBlockMatch.groupValues[1].trim()
+        }
+
+        // 이미 JSON 형식이면 그대로 반환
+        return trimmed
     }
 
     /**
@@ -329,6 +513,8 @@ $difficultyDescription
     private data class Mission(
         val id: Long? = null,
         val content: String,
-        val relatedInterest: String
+        val relatedInterest: List<String>,
+        val difficulty: Int? = null,
+        val createdType: String = "AI"  // "EMBEDDING" or "AI"
     )
 }

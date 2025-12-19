@@ -27,7 +27,7 @@ CROSS JOIN (VALUES
     ('영어'),
     ('일본어'),
     ('중국어'),
-    ('기타 외국어')
+    ('기타')
 ) v(name)
 WHERE m.name = '외국어 공부' AND m.level = 'MAIN';
 
@@ -78,7 +78,9 @@ CROSS JOIN (VALUES
     ('직무 전문 분야'),
     ('국가자격'),
     ('어학 자격 능력'),
-    ('기술 분야')
+    ('기술 분야'),
+    ('AI 툴 사용역량 강화'),
+    ('이직 준비')
 ) v(name)
 WHERE m.name = '자격증 공부' AND m.level = 'MAIN';
 
@@ -92,9 +94,8 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
-    ('직무별 프로그램 학습'),
-    ('커리어 전환 준비'),
-    ('자격증'),
+    ('이직 준비'),
+    ('리더쉽'),
     ('업무 능력 향상')
 ) v(name)
 WHERE m.name = '직무 관련 역량 개발' AND m.level = 'MAIN';
@@ -113,7 +114,7 @@ CROSS JOIN (VALUES
     ('단어 학습'),
     ('시험 공부 (토익/토익스피킹/오픽/토플 등)'),
     ('회화 공부'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '영어' AND mid.level = 'MIDDLE';
 
@@ -130,7 +131,7 @@ CROSS JOIN (VALUES
     ('단어 학습'),
     ('시험 공부'),
     ('회화 공부'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '일본어' AND mid.level = 'MIDDLE';
 
@@ -147,11 +148,11 @@ CROSS JOIN (VALUES
     ('단어 학습'),
     ('시험 공부'),
     ('회화 공부'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '중국어' AND mid.level = 'MIDDLE';
 
--- 기타 외국어 하위
+-- 기타 하위
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
 SELECT
     v.name,
@@ -164,9 +165,10 @@ CROSS JOIN (VALUES
     ('단어 학습'),
     ('시험 공부'),
     ('회화 공부'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
-WHERE mid.name = '기타 외국어' AND mid.level = 'MIDDLE';
+WHERE mid.name = '기타' AND mid.level = 'MIDDLE'
+  AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '외국어 공부' AND level = 'MAIN');
 
 -- 지출 관리·예산 세우기 하위
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
@@ -179,11 +181,10 @@ SELECT
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('지출 점검하기'),
-    ('카테고리별 소비 분석'),
-    ('고정지출/변동지출 정리'),
+    ('나의 소비 패턴 분석하기'),
+    ('카드 소비 패턴 파악하기'),
     ('한달 예산 세우기'),
-    ('카드 소비 패턴 파악'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '지출 관리·예산 세우기' AND mid.level = 'MIDDLE';
 
@@ -197,11 +198,11 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('월간 저축 목표 설정'),
-    ('저축 루틴 만들기'),
-    ('적금 시작하기'),
-    ('소비 절약 루틴 만들기'),
-    ('직접입력')
+    ('단기, 장기 저축 계획 세우기'),
+    ('나만의 저축 루틴 만들기'),
+    ('적금 상품 비교 방법 알아보기'),
+    ('일상에서의 소비 절약 루틴 만들기'),
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '저축·적금하기' AND mid.level = 'MIDDLE';
 
@@ -215,10 +216,10 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('금융 상품 종류 익히기(주식/ETF)'),
-    ('시장·경제 흐름 읽기 (환율/물가)'),
-    ('금융 용어 기본 개념 배우기 (금리/세금)'),
-    ('직접입력')
+    ('금융 상품 종류 익히기'),
+    ('시장·경제 흐름 읽기'),
+    ('금융 용어 기본 개념 이해하기'),
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '금융지식 쌓기' AND mid.level = 'MIDDLE';
 
@@ -232,11 +233,11 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('소액 투자'),
-    ('투자 상품 이해하기'),
-    ('투자금 만들기'),
-    ('나에게 맞는 투자 방향 찾기'),
-    ('직접입력')
+    ('소액 투자 시작하기'),
+    ('나만의 투자 목표 설정하기'),
+    ('리스크 이해하기'),
+    ('현재 세계 주식 흐름 공부하기'),
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '투자 시작하기' AND mid.level = 'MIDDLE';
 
@@ -254,7 +255,7 @@ CROSS JOIN (VALUES
     ('체중 조절'),
     ('근력 키우기'),
     ('체형 교정'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '헬스' AND mid.level = 'MIDDLE';
 
@@ -272,7 +273,7 @@ CROSS JOIN (VALUES
     ('체중 조절'),
     ('스트레스 해소'),
     ('마라톤/러닝대회 준비'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '러닝' AND mid.level = 'MIDDLE';
 
@@ -290,7 +291,7 @@ CROSS JOIN (VALUES
     ('체중 조절'),
     ('근력 키우기'),
     ('체형 교정'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '필라테스/요가' AND mid.level = 'MIDDLE';
 
@@ -308,11 +309,11 @@ CROSS JOIN (VALUES
     ('체중 조절'),
     ('근력 키우기'),
     ('출퇴근·이동 등 교통수단 활용'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '자전거' AND mid.level = 'MIDDLE';
 
--- 직무 전문 분야 하위
+-- 직무 전문 분야 하위 (자격증 공부)
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
 SELECT
     v.name,
@@ -323,7 +324,7 @@ SELECT
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('(온보딩 시 입력한 개인정보 기반)'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '직무 전문 분야' AND mid.level = 'MIDDLE';
 
@@ -337,10 +338,11 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('전기기능사'),
-    ('소방설비기사'),
-    ('공인회계사'),
-    ('직접입력')
+    ('정보처리기사'),
+    ('컴퓨터활용능력 2급'),
+    ('공인중개사'),
+    ('SQLD'),
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '국가자격' AND mid.level = 'MIDDLE';
 
@@ -355,11 +357,10 @@ SELECT
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('토익'),
-    ('토익스피킹'),
     ('오픽'),
-    ('토플'),
+    ('JLPT'),
     ('HSK'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '어학 자격 능력' AND mid.level = 'MIDDLE';
 
@@ -373,18 +374,15 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('손뜨개전문가'),
-    ('청소 전문가'),
-    ('반려동물장례지도사'),
+    ('직업상담사'),
     ('베이비시터'),
-    ('전기 기사'),
-    ('컬러리스트 기사'),
-    ('미용사(네일)'),
-    ('직접입력')
+    ('손뜨개 전문가'),
+    ('반려동물장례지도사'),
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '기술 분야' AND mid.level = 'MIDDLE';
 
--- 직무별 프로그램 학습 하위
+-- AI 툴 사용역량 강화 하위
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
 SELECT
     v.name,
@@ -395,12 +393,12 @@ SELECT
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('AI 프롬프트 학습'),
-    ('작업용 프로그램 학습'),
-    ('직접입력')
+    ('실무 AI 프로그램 탐색 및 활용'),
+    ('직접 입력하기')
 ) v(name)
-WHERE mid.name = '직무별 프로그램 학습' AND mid.level = 'MIDDLE';
+WHERE mid.name = 'AI 툴 사용역량 강화' AND mid.level = 'MIDDLE';
 
--- 커리어 전환 준비 하위
+-- 이직 준비 하위 (자격증 공부)
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
 SELECT
     v.name,
@@ -411,14 +409,12 @@ SELECT
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('포트폴리오 제작'),
-    ('이력서 관리'),
-    ('자격증 취득'),
-    ('어학 공부'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
-WHERE mid.name = '커리어 전환 준비' AND mid.level = 'MIDDLE';
+WHERE mid.name = '이직 준비' AND mid.level = 'MIDDLE'
+  AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '자격증 공부' AND level = 'MAIN');
 
--- 자격증 (직무 관련 역량 개발) 하위
+-- 이직 준비 하위 (직무 관련 역량 개발)
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
 SELECT
     v.name,
@@ -428,12 +424,29 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('직무 전문 분야 자격증'),
-    ('어학'),
-    ('직접입력')
+    ('이력서•경력기술서 관리'),
+    ('면접 대비'),
+    ('연봉협상•처우조건 이해'),
+    ('직접 입력하기')
 ) v(name)
-WHERE mid.name = '자격증' AND mid.level = 'MIDDLE'
+WHERE mid.name = '이직 준비' AND mid.level = 'MIDDLE'
   AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '직무 관련 역량 개발' AND level = 'MAIN');
+
+-- 리더쉽 하위
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+SELECT
+    v.name,
+    'SUB',
+    mid.id::text,
+    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
+    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+FROM interest_embeddings mid
+CROSS JOIN (VALUES
+    ('비전 설정 및 방향제시'),
+    ('피드백•코칭 스킬'),
+    ('직접 입력하기')
+) v(name)
+WHERE mid.name = '리더쉽' AND mid.level = 'MIDDLE';
 
 -- 업무 능력 향상 하위
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
@@ -445,11 +458,11 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('업무 효율 높이기 (우선순위/시간관리)'),
+    ('업무 효율 높이기 (우선순위 설정/시간관리)'),
     ('커뮤니케이션·협업 능력 키우기'),
     ('문제 해결능력 향상'),
     ('문서·기획·정리 스킬 향상(PPT·보고서)'),
-    ('직접입력')
+    ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '업무 능력 향상' AND mid.level = 'MIDDLE';
 
