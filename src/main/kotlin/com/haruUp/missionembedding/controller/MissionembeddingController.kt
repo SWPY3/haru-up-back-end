@@ -83,26 +83,6 @@ class MissionembeddingController(
             - difficulty 5: 전문가 수준 (하루 100개, 2시간)
         """
     )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "추천 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = MissionRecommendationResponse::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청 (유효하지 않은 userId 등)"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
-    )
     @RateLimit(key = "api:missions:recommend", limit = 50)
     @PostMapping("/recommend")
     fun recommendMissions(
@@ -203,26 +183,6 @@ class MissionembeddingController(
             }
             ```
         """
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "추천 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = MissionRecommendationResponse::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청 (관심사를 찾을 수 없음 등)"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @RateLimit(key = "api:missions:today-recommend", limit = 50)
     @PostMapping("/today-recommend")
@@ -351,22 +311,6 @@ class MissionembeddingController(
             - mission: 미션 내용
         """
     )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "저장 성공"
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
-    )
     @PostMapping("/select")
     fun selectMissions(
         @AuthenticationPrincipal principal: MemberPrincipal,
@@ -431,22 +375,6 @@ class MissionembeddingController(
             - Body: {"isCompleted": true}  // 완료
             - Body: {"isCompleted": false} // 포기
         """
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "상태 업데이트 성공"
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "미션을 찾을 수 없음"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @PutMapping("/completed/{missionId}")
     fun updateMissionStatus(

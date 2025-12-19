@@ -62,94 +62,6 @@ class InterestController(
             ```
         """
     )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "추천 성공",
-                content = [Content(
-                    mediaType = "application/json",
-                    schema = Schema(implementation = InterestRecommendationResponse::class),
-                    examples = [
-                        ExampleObject(
-                            name = "대분류 추천 예시",
-                            value = """
-                                {
-                                  "interests": [
-                                    {
-                                      "id": "1",
-                                      "name": "운동",
-                                      "level": "MAIN",
-                                      "parentId": null,
-                                      "isEmbedded": false,
-                                      "usageCount": 15,
-                                      "fullPath": "운동"
-                                    },
-                                    {
-                                      "id": "2",
-                                      "name": "공부",
-                                      "level": "MAIN",
-                                      "parentId": null,
-                                      "isEmbedded": false,
-                                      "usageCount": 12,
-                                      "fullPath": "공부"
-                                    }
-                                  ],
-                                  "ragCount": 2,
-                                  "aiCount": 0,
-                                  "totalCount": 2,
-                                  "ragRatio": 1.0,
-                                  "aiRatio": 0.0,
-                                  "summary": "총 2개 (RAG: 2개 100%, AI: 0개 0%)"
-                                }
-                            """
-                        ),
-                        ExampleObject(
-                            name = "중분류 추천 예시",
-                            value = """
-                                {
-                                  "interests": [
-                                    {
-                                      "id": "11",
-                                      "name": "헬스",
-                                      "level": "MIDDLE",
-                                      "parentId": "1",
-                                      "isEmbedded": false,
-                                      "usageCount": 10,
-                                      "fullPath": "운동 > 헬스"
-                                    },
-                                    {
-                                      "id": "12",
-                                      "name": "요가",
-                                      "level": "MIDDLE",
-                                      "parentId": "1",
-                                      "isEmbedded": false,
-                                      "usageCount": 8,
-                                      "fullPath": "운동 > 요가"
-                                    }
-                                  ],
-                                  "ragCount": 0,
-                                  "aiCount": 2,
-                                  "totalCount": 2,
-                                  "ragRatio": 0.0,
-                                  "aiRatio": 1.0,
-                                  "summary": "총 2개 (RAG: 0개 0%, AI: 2개 100%)"
-                                }
-                            """
-                        )
-                    ]
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청 (유효하지 않은 memberId, currentLevel 등)"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
-    )
     @RateLimit(key = "api:interests:recommend", limit = 50)
     @PostMapping("/recommend")
     fun recommendInterests(
@@ -274,22 +186,6 @@ class InterestController(
         summary = "멤버 관심사 조회",
         description = "사용자가 선택한 관심사 목록을 조회합니다 (임베딩 벡터 데이터는 제외)"
     )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "조회 성공"
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "사용자를 찾을 수 없음"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
-    )
     @GetMapping("/member")
     fun getMemberInterests(
         @AuthenticationPrincipal principal: MemberPrincipal
@@ -352,18 +248,6 @@ class InterestController(
             - ID 5('직무 관련 역량 개발')의 중분류 조회: /api/interests/data?parentId=5
         """
     )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "조회 성공"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
-    )
     @GetMapping("/data")
     fun getInterestsData(
         @Parameter(
@@ -421,22 +305,6 @@ class InterestController(
     @Operation(
         summary = "멤버 관심사 저장",
         description = "사용자가 선택한 관심사를 저장합니다."
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "200",
-                description = "저장 성공"
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "서버 에러"
-            )
-        ]
     )
     @PostMapping("/member")
     fun saveMemberInterests(
