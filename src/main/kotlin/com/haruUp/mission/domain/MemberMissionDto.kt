@@ -18,6 +18,8 @@ class MemberMissionDto (
 
     var missionId: Long,
 
+    var memberInterestId: Long,
+
     var isCompleted: Boolean = false,
 
     var missionStatus : MissionStatus = MissionStatus.ACTIVE,
@@ -34,6 +36,7 @@ class MemberMissionDto (
         id = this.id,
         memberId = this.memberId,
         missionId = this.missionId,
+        memberInterestId = this.memberInterestId,
         isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,

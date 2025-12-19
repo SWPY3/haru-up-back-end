@@ -55,6 +55,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
             MemberMission(
                 memberId = 10L,
                 missionId = 99L,
+                memberInterestId = 1L,
                 isCompleted = false,
                 expEarned = 250,
                 missionStatus = MissionStatus.COMPLETED
@@ -87,6 +88,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
             MemberMission(
                 memberId = 10L,
                 missionId = 100L,
+                memberInterestId = 1L,
                 isCompleted = false,
                 expEarned = 120,   // 100 → 레벨업, 20 잔여
                 missionStatus = MissionStatus.COMPLETED

@@ -30,9 +30,9 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
                     WHERE m.member_id = :memberId
                       AND m.is_completed = false
                       AND (
-                            (m.mission_status = 'POSTPONED' AND m.target_date = CURRENT_DATE - INTERVAL '1 day')
+                            (m.mission_status = 'POSTPONED' AND m.create_at = CURRENT_DATE - INTERVAL '1 day')
                             OR
-                            (m.mission_status = 'READY' AND m.target_date = CURRENT_DATE)
+                            (m.mission_status = 'READY' AND m.create_at = CURRENT_DATE)
                           )
                 ) sub
                 WHERE sub.rn = 1

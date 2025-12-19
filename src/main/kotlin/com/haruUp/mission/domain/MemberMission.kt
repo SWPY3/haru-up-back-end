@@ -34,6 +34,9 @@ class MemberMission (
     @Column(name = "mission_id", nullable = false)
     val missionId: Long,
 
+    @Column(name = "member_interest_id", nullable = false)
+    val memberInterestId: Long,
+
     @Column(name = "is_completed", nullable = false)
     var isCompleted: Boolean = false,
 
@@ -52,6 +55,7 @@ class MemberMission (
         id = this.id,
         memberId = this.memberId,
         missionId = this.missionId,
+        memberInterestId = this.memberInterestId,
         isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,

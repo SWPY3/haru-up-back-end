@@ -50,6 +50,7 @@ class MemberMissionUseCaseUnitTest {
             id = 1L,
             memberId = 10L,
             missionId = 99L,
+            memberInterestId = 1L,
             isCompleted = false,
             expEarned = 250     // 250 경험치 획득
         )
@@ -123,6 +124,7 @@ class MemberMissionUseCaseUnitTest {
             id = 1L,
             memberId = memberId,
             missionId = 101L,
+            memberInterestId = 1L,
             expEarned = 10,
             missionStatus = MissionStatus.ACTIVE,
             targetDate = LocalDate.now(),
@@ -133,6 +135,7 @@ class MemberMissionUseCaseUnitTest {
             id = 2L,
             memberId = memberId,
             missionId = 102L,
+            memberInterestId = 2L,
             expEarned = 20,
             missionStatus = MissionStatus.POSTPONED,
             targetDate = LocalDate.now(),
@@ -160,6 +163,7 @@ class MemberMissionUseCaseUnitTest {
             id = 1L,
             memberId = 10L,
             missionId = 99L,
+            memberInterestId = 1L,
             missionStatus = MissionStatus.ACTIVE,
             expEarned = 0
         )
@@ -182,6 +186,7 @@ class MemberMissionUseCaseUnitTest {
             id = 1L,
             memberId = 10L,
             missionId = 99L,
+            memberInterestId = 1L,
             missionStatus = MissionStatus.POSTPONED,
             expEarned = 0
         )
@@ -204,6 +209,7 @@ class MemberMissionUseCaseUnitTest {
             id = 1L,
             memberId = 10L,
             missionId = 99L,
+            memberInterestId = 1L,
             missionStatus = MissionStatus.INACTIVE,
             expEarned = 0
         )
