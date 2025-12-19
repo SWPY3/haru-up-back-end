@@ -317,6 +317,12 @@ class InterestController(
             var savedCount = 0
 
             for (interestPath in request.interests) {
+                // 대분류, 중분류, 소분류 모두 입력되었는지 확인
+                if (interestPath.directFullPath.size != 3) {
+                    logger.warn("대분류, 중분류, 소분류가 모두 입력되어야 합니다: ${interestPath.directFullPath}")
+                    continue
+                }
+
                 val fullPathStr = "{${interestPath.directFullPath.joinToString(",")}}"
                 val interestId = interestEmbeddingRepository.findIdByFullPath(fullPathStr)
 
