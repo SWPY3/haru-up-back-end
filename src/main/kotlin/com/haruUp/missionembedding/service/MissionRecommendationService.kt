@@ -132,7 +132,7 @@ class MissionRecommendationService(
                     id = mission.id,
                     content = mission.content,
                     relatedInterest = mission.relatedInterest,
-                    difficulty = difficulty,
+                    difficulty = mission.difficulty,
                     createdType = mission.createdType
                 )
             }
@@ -171,24 +171,31 @@ class MissionRecommendationService(
         )
 
         // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
+        // relatedInterest는 LLM 응답이 아닌 실제 interestPath 사용
+        // difficulty는 LLM이 생성한 값 사용 (파라미터가 null인 경우)
+        val actualInterestPath = interestPath.toPathList()
         val missionsWithId = aiMissions.mapNotNull { mission ->
+            // LLM이 생성한 difficulty 또는 파라미터로 받은 difficulty 사용
+            val missionDifficulty = mission.difficulty ?: difficulty
             try {
                 val savedEntity = missionEmbeddingService.saveMissionWithoutEmbedding(
-                    directFullPath = interestPath.toPathList(),
-                    difficulty = difficulty,
+                    directFullPath = actualInterestPath,
+                    difficulty = missionDifficulty,
                     missionContent = mission.content
                 )
                 Mission(
                     id = savedEntity?.id,
                     content = mission.content,
-                    relatedInterest = mission.relatedInterest
+                    relatedInterest = actualInterestPath,
+                    difficulty = savedEntity?.difficulty ?: missionDifficulty
                 )
             } catch (e: Exception) {
                 logger.warn("오늘의 미션 저장 실패: ${mission.content}, 에러: ${e.message}")
                 Mission(
                     id = null,
                     content = mission.content,
-                    relatedInterest = mission.relatedInterest
+                    relatedInterest = actualInterestPath,
+                    difficulty = missionDifficulty
                 )
             }
         }
@@ -217,17 +224,35 @@ class MissionRecommendationService(
         )
 
         // 제외할 미션 내용 조회
+        logger.info("제외할 미션 ID 목록: $excludeIds")
         val excludeMissionsText = if (excludeIds.isNotEmpty()) {
             val excludeMissions = missionEmbeddingService.findByIds(excludeIds)
+            logger.info("제외할 미션 조회 결과: ${excludeMissions.size}개")
             if (excludeMissions.isNotEmpty()) {
                 val missionList = excludeMissions.mapIndexed { index, entity ->
-                    "${index + 1}. ${entity.missionContent}"
+                    "- ${entity.missionContent}"
                 }.joinToString("\n")
+                logger.info("제외할 미션 내용:\n$missionList")
                 """
 
-**제외할 미션 (이전에 추천받은 미션):**
-다음 미션들과 동일하거나 유사한 미션은 절대 추천하지 마세요:
+###############################################
+# 중요: 아래 미션들은 절대 추천하지 마세요 #
+###############################################
+
+<EXCLUDED_MISSIONS>
 $missionList
+</EXCLUDED_MISSIONS>
+
+위 목록에 있는 미션과 동일하거나 의미가 유사한 미션은 반드시 제외해야 합니다.
+
+제외 판단 기준:
+1. 동일한 표현: 글자가 완전히 같은 경우
+2. 유사한 의미: 같은 활동을 다른 말로 표현한 경우
+   - 예: "스트레칭하기" ≈ "몸 풀기" ≈ "스트레칭으로 몸 풀기"
+   - 예: "유산소 운동하기" ≈ "유산소 운동 해보기" ≈ "가벼운 유산소"
+3. 포함 관계: 한 미션이 다른 미션을 포함하는 경우
+   - 예: "운동하기"는 "헬스장에서 운동하기"를 포함
+
 """
             } else ""
         } else ""
@@ -236,17 +261,46 @@ $missionList
             """
 $basePrompt
 
-**생성할 미션 개수: $count 개**
+===== 생성 요청 =====
+난이도 1, 2, 3, 4, 5 각각 1개씩, 총 5개의 새로운 미션을 생성하세요.
 $excludeMissionsText
-**중요: 미션 형식 요구사항**
-정량적 수치나 구체적인 횟수, 시간, 개수를 포함하지 마세요.
-일반적이고 자유로운 형태의 미션을 추천해주세요.
+===== 난이도 기준 =====
+- 난이도 1 (매우 쉬움): 5-10분 소요, 누구나 쉽게 할 수 있는 작은 목표
+- 난이도 2 (쉬움): 15-20분 소요, 약간의 노력이 필요한 목표
+- 난이도 3 (보통): 30분-1시간 소요, 체계적인 실행이 필요한 목표
+- 난이도 4 (어려움): 1-2시간 소요, 상당한 노력이 필요한 목표
+- 난이도 5 (매우 어려움): 2시간 이상 소요, 높은 집중력과 전문성이 필요한 목표
 
-예시:
+===== 미션 형식 요구사항 =====
+- 정량적 수치(횟수, 시간, 개수)를 포함하지 마세요
+- 일반적이고 자유로운 형태로 작성하세요
+
+올바른 예시:
 - "영어 단어 공부하기" (O)
-- "하루 10개 영단어 암기하기" (X - 수치 포함)
 - "헬스장에서 운동하기" (O)
+
+잘못된 예시:
+- "하루 10개 영단어 암기하기" (X - 수치 포함)
 - "주 3회 30분 운동하기" (X - 수치 포함)
+
+===== 응답 전 체크리스트 =====
+응답하기 전에 다음을 반드시 확인하세요:
+[ ] 각 미션이 <EXCLUDED_MISSIONS> 목록과 중복되지 않는가?
+[ ] 각 미션이 목록의 미션과 유사한 의미를 가지지 않는가?
+[ ] 5개 미션이 모두 서로 다른 새로운 활동인가?
+
+===== 응답 형식 (JSON) =====
+```json
+{
+  "missions": [
+    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 1},
+    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 2},
+    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 3},
+    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 4},
+    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 5}
+  ]
+}
+```
             """.trim()
         } else {
             val difficultyDescription = getDifficultyDescription(difficulty)
@@ -281,7 +335,8 @@ $difficultyDescription
 
         val response = clovaApiClient.generateText(
             userMessage = userMessage,
-            systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT
+            systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT,
+            temperature = 0.8  // 다양성 증가를 위해 temperature 높임, seed는 자동 랜덤
         )
 
         logger.debug("오늘의 미션 Clova API 응답: $response")
@@ -403,7 +458,8 @@ $basePrompt
 
         val response = clovaApiClient.generateText(
             userMessage = userMessage,
-            systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT
+            systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT,
+            temperature = 0.8  // 다양성 증가를 위해 temperature 높임, seed는 자동 랜덤
         )
 
         return parseMissionResponseWithDifficulty(response)
@@ -453,10 +509,13 @@ $basePrompt
      */
     private fun parseMissionResponse(response: String): List<Mission> {
         return try {
-            val jsonResponse = objectMapper.readValue<MissionResponse>(response.trim())
+            // JSON 블록 추출 (```json ... ``` 형식 처리)
+            val jsonContent = extractJsonFromResponse(response)
+            val jsonResponse = objectMapper.readValue<MissionResponse>(jsonContent)
             jsonResponse.missions
         } catch (e: Exception) {
             logger.error("미션 응답 파싱 실패: ${e.message}")
+            logger.debug("파싱 실패한 응답: $response")
             emptyList()
         }
     }

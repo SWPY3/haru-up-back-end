@@ -62,7 +62,7 @@ class MissionSelectionService(
             }
 
             // 사용자가 해당 관심사를 이미 등록했는지 확인 (member_interest 테이블)
-            val memberInterest = memberInterestRepository.findByMemberIdAndInterestId(memberId, dto.interestId)
+            val memberInterest = memberInterestRepository.findFirstByMemberIdAndInterestIdOrderByCreatedAtDesc(memberId, dto.interestId)
                 ?: throw IllegalArgumentException("사용자가 해당 관심사를 등록하지 않았습니다: memberId=$memberId, interestId=${dto.interestId}")
 
             // memberInterestId를 Map에 저장

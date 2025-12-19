@@ -53,4 +53,19 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
         memberId: Long,
         targetDate: LocalDate
     ): List<Long>
+
+    /**
+     * 사용자의 ACTIVE 상태 미션 ID 목록 조회
+     * 오늘의 미션 추천 시 제외할 미션 조회에 사용
+     */
+    @Query("""
+    SELECT m.missionId
+    FROM MemberMission m
+    WHERE m.memberId = :memberId
+      AND m.missionStatus = :status
+    """)
+    fun findMissionIdsByMemberIdAndStatus(
+        memberId: Long,
+        status: MissionStatus
+    ): List<Long>
 }
