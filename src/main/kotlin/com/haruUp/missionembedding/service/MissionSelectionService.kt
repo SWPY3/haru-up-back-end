@@ -5,6 +5,7 @@ import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.missionembedding.dto.MissionSelectionRequest
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -84,6 +85,7 @@ class MissionSelectionService(
                     memberId = memberId,
                     missionId = dto.missionId,
                     memberInterestId = memberInterestId,
+                    missionStatus = MissionStatus.ACTIVE,
                     expEarned = 0
                 )
                 val saved = memberMissionRepository.save(memberMission)
