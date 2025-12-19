@@ -50,16 +50,16 @@ class MissionSelectionService(
             }
 
             // parentId가 interest_embeddings에 존재하고 SUB 레벨인지 확인
-            val parentInterest = interestEmbeddingJpaRepository.findById(dto.parentId).orElse(null)
-                ?: throw IllegalArgumentException("parentId에 해당하는 관심사를 찾을 수 없습니다: parentId=${dto.parentId}")
+            val parentInterest = interestEmbeddingJpaRepository.findById(dto.interestId).orElse(null)
+                ?: throw IllegalArgumentException("parentId에 해당하는 관심사를 찾을 수 없습니다: parentId=${dto.interestId}")
 
             if (parentInterest.level != InterestLevel.SUB) {
-                throw IllegalArgumentException("parentId는 소분류(SUB)만 사용 가능합니다: parentId=${dto.parentId}, level=${parentInterest.level}")
+                throw IllegalArgumentException("parentId는 소분류(SUB)만 사용 가능합니다: parentId=${dto.interestId}, level=${parentInterest.level}")
             }
 
             // 사용자가 해당 관심사를 이미 등록했는지 확인 (member_interest 테이블)
-            if (!memberInterestRepository.existsByMemberIdAndInterestId(memberId, dto.parentId)) {
-                throw IllegalArgumentException("사용자가 해당 관심사를 등록하지 않았습니다: memberId=$memberId, interestId=${dto.parentId}")
+            if (!memberInterestRepository.existsByMemberIdAndInterestId(memberId, dto.interestId)) {
+                throw IllegalArgumentException("사용자가 해당 관심사를 등록하지 않았습니다: memberId=$memberId, interestId=${dto.interestId}")
             }
         }
 

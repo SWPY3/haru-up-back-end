@@ -291,7 +291,7 @@ class MissionembeddingController(
             {
               "missions": [
                 {
-                  "parentId": 97,
+                  "interestId": 97,
                   "directFullPath": [
                     "직무 관련 역량 개발",
                     "업무 능력 향상",
@@ -305,7 +305,7 @@ class MissionembeddingController(
             ```
 
             **필드 설명:**
-            - parentId: 소분류 부모 관심사 ID (반드시 소분류 관심사 parentId로 입력해주세요.)
+            - interestId: 소분류 관심사 ID (반드시 소분류 관심사 interestId로 입력해주세요.)
             - directFullPath: 관심사 경로 배열 [대분류, 중분류, 소분류]
             - difficulty: 난이도 (1~5, 선택)
             - mission: 미션 내용

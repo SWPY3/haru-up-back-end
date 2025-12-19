@@ -184,7 +184,7 @@ class InterestController(
      */
     @Operation(
         summary = "멤버 관심사 조회",
-        description = "사용자가 선택한 관심사 목록을 조회합니다 (임베딩 벡터 데이터는 제외)"
+        description = "사용자가 선택한 관심사 목록을 조회합니다"
     )
     @GetMapping("/member")
     fun getMemberInterests(

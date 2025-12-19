@@ -89,11 +89,11 @@ data class MissionDto(
 @Schema(description = "선택한 미션 정보")
 data class SelectedMissionDto(
     @Schema(
-        description = "부모 관심사 ID (interest_embeddings 테이블의 ID)",
+        description = "관심사 ID (interest_embeddings 테이블의 ID)",
         example = "97",
         required = true
     )
-    val parentId: Long,
+    val interestId: Long,
 
     @Schema(
         description = "전체 경로 배열 [대분류, 중분류, 소분류]",
@@ -157,7 +157,7 @@ data class MissionSelectionRequest(
         description = "선택한 미션 목록",
         example = """[
             {
-                "parentId": 97,
+                "interestId": 97,
                 "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
                 "difficulty": 1,
                 "missionId": 123
