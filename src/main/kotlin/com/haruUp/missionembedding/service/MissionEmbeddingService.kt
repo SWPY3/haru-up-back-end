@@ -22,63 +22,6 @@ class MissionEmbeddingService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 미션 내용을 임베딩하여 저장
-     *
-     * @param directFullPath 전체 경로 배열 (예: ["외국어 공부", "영어", "단어 학습"])
-     * @param difficulty 난이도
-     * @param missionContent 미션 내용
-     * @return 저장된 미션 임베딩 엔티티
-     */
-    @Transactional
-    suspend fun embedAndSaveMission(
-        directFullPath: List<String>,
-        difficulty: Int?,
-        missionContent: String
-    ): MissionEmbeddingEntity {
-        val directFullPathPostgres = listToPostgresArray(directFullPath)
-
-        // 중복 체크
-        val existing = missionEmbeddingRepository.findByMissionContentAndCategory(
-            missionContent = missionContent,
-            directFullPath = directFullPathPostgres
-        )
-
-        if (existing != null) {
-            // 이미 존재하면 사용 횟수만 증가 (custom UPDATE query 사용)
-            missionEmbeddingRepository.incrementUsageCount(
-                id = existing.id!!,
-                updatedAt = java.time.LocalDateTime.now()
-            )
-            // 업데이트된 엔티티 반환
-            return missionEmbeddingRepository.findById(existing.id!!)
-                .orElseThrow { IllegalStateException("미션 임베딩 조회 실패: ID ${existing.id}") }
-        }
-
-        // 임베딩 생성
-        val interestPath = MissionEmbeddingEntity.categoryPathToString(directFullPath)
-        val embeddingText = buildEmbeddingText(interestPath, difficulty, missionContent)
-        val embeddingVector = clovaEmbeddingClient.createEmbedding(embeddingText)
-        val embeddingString = MissionEmbeddingEntity.vectorToString(embeddingVector)
-
-        // 새로운 미션 임베딩 저장 (custom insert method with type casting)
-        missionEmbeddingRepository.insertMissionEmbedding(
-            directFullPath = directFullPathPostgres,
-            difficulty = difficulty,
-            missionContent = missionContent,
-            embedding = embeddingString,
-            usageCount = 1,
-            isActivated = true,
-            createdAt = java.time.LocalDateTime.now()
-        )
-
-        // 저장된 엔티티 반환 (저장 후 조회)
-        return missionEmbeddingRepository.findByMissionContentAndCategory(
-            missionContent = missionContent,
-            directFullPath = directFullPathPostgres
-        ) ?: throw IllegalStateException("미션 임베딩 저장 실패: $missionContent")
-    }
-
-    /**
      * 미션 내용을 embedding 없이 저장 (추천 시점에 즉시 저장용)
      *
      * @param directFullPath 전체 경로 배열 (예: ["외국어 공부", "영어", "단어 학습"])
@@ -132,42 +75,6 @@ class MissionEmbeddingService(
     }
 
     /**
-     * 유사한 미션 검색 (RAG)
-     *
-     * @param directFullPath 전체 경로 배열 (예: ["외국어 공부", "영어", "단어 학습"])
-     * @param difficulty 난이도
-     * @param memberProfile 멤버 프로필 정보 (검색 쿼리 생성용)
-     * @param limit 반환할 결과 개수
-     * @return 유사한 미션 목록
-     */
-    suspend fun findSimilarMissions(
-        directFullPath: List<String>,
-        difficulty: Int?,
-        memberProfile: String? = null,
-        limit: Int = 5
-    ): List<MissionEmbeddingEntity> {
-        val directFullPathPostgres = listToPostgresArray(directFullPath)
-
-        // 관심사 경로 생성
-        val interestPath = MissionEmbeddingEntity.categoryPathToString(directFullPath)
-
-        // 검색 쿼리 생성
-        val queryText = buildSearchQuery(interestPath, difficulty, memberProfile)
-
-        // 쿼리 임베딩 생성
-        val queryEmbedding = clovaEmbeddingClient.createEmbedding(queryText)
-        val embeddingString = MissionEmbeddingEntity.vectorToString(queryEmbedding)
-
-        // 벡터 유사도 검색
-        return missionEmbeddingRepository.findByVectorSimilarity(
-            embedding = embeddingString,
-            directFullPath = directFullPathPostgres,
-            difficulty = difficulty,
-            limit = limit
-        )
-    }
-
-    /**
      * ID 목록으로 미션 조회
      *
      * @param ids 미션 ID 목록
@@ -175,22 +82,6 @@ class MissionEmbeddingService(
      */
     fun findByIds(ids: List<Long>): List<MissionEmbeddingEntity> {
         return missionEmbeddingRepository.findAllById(ids)
-    }
-
-    /**
-     * 인기 미션 조회
-     */
-    fun findPopularMissions(
-        directFullPath: List<String>,
-        difficulty: Int?,
-        limit: Int = 5
-    ): List<MissionEmbeddingEntity> {
-        val directFullPathPostgres = listToPostgresArray(directFullPath)
-        return missionEmbeddingRepository.findPopularMissions(
-            directFullPath = directFullPathPostgres,
-            difficulty = difficulty,
-            limit = limit
-        )
     }
 
     /**

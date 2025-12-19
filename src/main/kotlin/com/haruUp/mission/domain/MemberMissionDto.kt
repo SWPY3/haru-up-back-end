@@ -1,12 +1,6 @@
 package com.haruUp.mission.domain
 
 import com.haruUp.global.common.BaseEntity
-import jakarta.persistence.Column
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -57,13 +51,7 @@ data class MissionCandidateDto(
     val directFullPath: List<String>,  // 전체 경로 배열 ["대분류", "중분류", "소분류"]
     val difficulty: Int?,
     val reason: String
-) {
-    /**
-     * 경로를 문자열로 표현 (예: "운동 > 헬스 > 가슴 운동")
-     */
-    val pathString: String
-        get() = directFullPath.joinToString(" > ")
-}
+)
 
 data class MissionRecommendResult(
     val generatedAt: LocalDateTime,

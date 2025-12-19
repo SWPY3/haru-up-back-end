@@ -1,7 +1,6 @@
 package com.haruUp.interest.repository
 
 import com.haruUp.interest.entity.InterestEmbeddingEntity
-import com.haruUp.interest.model.InterestLevel
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -17,20 +16,6 @@ import org.springframework.stereotype.Repository
  */
 @Repository
 interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity, Long> {
-
-    /**
-     * 레벨로 조회
-     *
-     * Note: 네이티브 쿼리 사용 (p6spy + hypersistence-utils 호환성 문제 해결)
-     */
-    @Query(
-        value = """
-            SELECT * FROM interest_embeddings
-            WHERE level = :level
-        """,
-        nativeQuery = true
-    )
-    fun findByLevel(@Param("level") level: String): List<InterestEmbeddingEntity>
 
     /**
      * 코사인 유사도 기반 검색 (특정 레벨)
@@ -92,17 +77,6 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
         @Param("threshold") threshold: Double,
         @Param("limit") limit: Int
     ): List<InterestEmbeddingEntity>
-
-    /**
-     * 전체 임베딩 개수
-     */
-    @Query("SELECT COUNT(*) FROM InterestEmbeddingEntity")
-    fun countAll(): Long
-
-    /**
-     * 레벨별 임베딩 개수
-     */
-    fun countByLevel(level: InterestLevel): Long
 
     /**
      * 하이브리드 스코어 기반 검색 (유사도 + 인기도)

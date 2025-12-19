@@ -34,22 +34,7 @@ data class InterestNode(
     val createdBy: Long? = null,             // 생성한 사용자 ID
     val createdAt: LocalDateTime,
     var embeddedAt: LocalDateTime? = null
-) {
-    /**
-     * 전체 경로를 문자열로 표현 (예: "운동 > 헬스 > 가슴 운동")
-     */
-    val fullPathString: String
-        get() = fullPath.joinToString(" > ")
-
-    /**
-     * 임베딩 자격 여부
-     */
-    fun isEligibleForEmbedding(minUsageCount: Int, delayDays: Long): Boolean {
-        return !isEmbedded &&
-                usageCount >= minUsageCount &&
-                createdAt.isBefore(LocalDateTime.now().minusDays(delayDays))
-    }
-}
+)
 
 
 /**
@@ -60,15 +45,6 @@ data class InterestPath(
     val middleCategory: String? = null,     // 중분류
     val subCategory: String? = null         // 소분류
 ) {
-    /**
-     * 경로 깊이
-     */
-    fun depth(): Int = when {
-        subCategory != null -> 3
-        middleCategory != null -> 2
-        else -> 1
-    }
-
     /**
      * 경로를 문자열로 표현
      */
@@ -86,20 +62,6 @@ data class InterestPath(
         middleCategory,
         subCategory
     )
-
-    /**
-     * 현재 레벨
-     */
-    fun currentLevel(): InterestLevel = when (depth()) {
-        1 -> InterestLevel.MAIN
-        2 -> InterestLevel.MIDDLE
-        else -> InterestLevel.SUB
-    }
-
-    /**
-     * 다음 레벨
-     */
-    fun nextLevel(): InterestLevel? = currentLevel().next()
 }
 
 /**
@@ -108,31 +70,7 @@ data class InterestPath(
 data class UserInterests(
     val interests: List<InterestPath>
 ) {
-    fun filterByMainCategory(mainCategory: String): List<InterestPath> {
-        return interests.filter { it.mainCategory == mainCategory }
-    }
-
-    fun getMainCategories(): List<String> {
-        return interests.map { it.mainCategory }.distinct()
-    }
-
-    fun getCompleteInterests(): List<InterestPath> {
-        return interests.filter { it.depth() == 3 }
-    }
-
     fun toPathStrings(): List<String> {
         return interests.map { it.toPathString() }
     }
 }
-
-/**
- * 임베딩 데이터
- */
-data class InterestEmbedding(
-    val interestId: String,
-    val name: String,
-    val level: InterestLevel,
-    val fullPath: List<String>,
-    val embedding: List<Float>,
-    val metadata: Map<String, Any>
-)

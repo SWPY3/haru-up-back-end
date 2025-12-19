@@ -70,25 +70,6 @@ class MissionEmbeddingEntity(
         return directFullPath.joinToString(" > ")
     }
 
-    /**
-     * 임베딩 벡터를 Float 리스트로 변환
-     */
-    fun getEmbeddingVector(): List<Float>? {
-        return embedding?.let {
-            it.trim('[', ']')
-                .split(',')
-                .map { value -> value.trim().toFloat() }
-        }
-    }
-
-    /**
-     * 사용 횟수 증가
-     */
-    fun incrementUsageCount() {
-        usageCount++
-        updatedAt = LocalDateTime.now()
-    }
-
     companion object {
         /**
          * Float 리스트를 pgvector 문자열로 변환

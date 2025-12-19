@@ -12,7 +12,6 @@ import jakarta.persistence.Index
 import jakarta.persistence.Table
 import lombok.NoArgsConstructor
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Entity
 @NoArgsConstructor

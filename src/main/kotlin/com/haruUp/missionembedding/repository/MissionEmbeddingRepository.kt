@@ -57,26 +57,6 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
     ): List<MissionEmbeddingEntity>
 
     /**
-     * 인기 미션 조회 (사용 횟수 기준)
-     */
-    @Query(
-        value = """
-            SELECT * FROM mission_embeddings
-            WHERE is_activated = true
-            AND direct_full_path = CAST(:directFullPath AS TEXT[])
-            AND (:difficulty IS NULL OR difficulty = :difficulty OR difficulty IS NULL)
-            ORDER BY usage_count DESC
-            LIMIT :limit
-        """,
-        nativeQuery = true
-    )
-    fun findPopularMissions(
-        @Param("directFullPath") directFullPath: String,  // PostgreSQL 배열 형식: "{대분류,중분류,소분류}"
-        @Param("difficulty") difficulty: Int?,
-        @Param("limit") limit: Int
-    ): List<MissionEmbeddingEntity>
-
-    /**
      * 난이도별 미션 1개씩 조회 (대분류 필터 + 임베딩 유사도 + usage_count 우선)
      *
      * 대분류(direct_full_path[1])로 먼저 필터링 후,
