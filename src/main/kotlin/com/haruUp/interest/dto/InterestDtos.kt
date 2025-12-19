@@ -197,19 +197,6 @@ data class MissionCompletedRequest(
 )
 
 /**
- * 미션 상태 업데이트 요청
- */
-@Schema(description = "미션 상태 업데이트 요청")
-data class UpdateMissionStatusRequest(
-    @Schema(
-        description = "완료 여부 (true: 완료, false: 포기)",
-        example = "true",
-        required = true
-    )
-    val isCompleted: Boolean
-)
-
-/**
  * ================================
  * 임베딩 초기화 응답 DTO
  * ================================
@@ -334,9 +321,8 @@ data class MemberInterestSaveRequest(
             멤버 관심사 저장 요청
             예시:
             - 소분류까지 저장: [{"parentId": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]
-            - 대분류만 저장: [{"parentId": 12, "directFullPath": ["체력관리 및 운동"]}]
         """,
-        example = """[{"parentId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}]""",
+        example = """[{"parentId": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]""",
         required = false
     )
     val interests: List<InterestPathDto> = emptyList(),

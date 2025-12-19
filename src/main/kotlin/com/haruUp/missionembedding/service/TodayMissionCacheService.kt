@@ -78,20 +78,4 @@ class TodayMissionCacheService(
             emptyList()
         }
     }
-
-    /**
-     * 추천된 미션 ID 캐시 삭제
-     *
-     * @param memberId 사용자 ID
-     * @param interestId 관심사 ID
-     */
-    fun clearRecommendedMissionIds(memberId: Long, interestId: Long) {
-        val key = buildKey(memberId, interestId)
-        try {
-            redisTemplate.delete(key)
-            logger.info("추천 미션 ID 캐시 삭제 - key: $key")
-        } catch (e: Exception) {
-            logger.error("추천 미션 ID 캐시 삭제 실패 - key: $key, error: ${e.message}")
-        }
-    }
 }

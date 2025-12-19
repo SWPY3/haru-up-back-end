@@ -23,8 +23,7 @@ import java.util.*
 class HybridInterestRecommendationService(
     private val vectorRepository: VectorInterestRepository,
     private val embeddingRepository: InterestEmbeddingJpaRepository,
-    private val aiRecommender: AIInterestRecommender,
-    private val embeddingService: EmbeddingService
+    private val aiRecommender: AIInterestRecommender
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -251,38 +250,6 @@ class HybridInterestRecommendationService(
             isNew = true,
             similarInterests = similarInterests
         )
-    }
-
-    /**
-     * 미션 완료 시 호출 - 사용 횟수 추적
-     */
-    fun onMissionCompleted(interestPath: InterestPath) {
-        val fullPathList = interestPath.toPathList()
-        val fullPathPostgresArray = listToPostgresArray(fullPathList)
-        val entityId = embeddingRepository.findIdByFullPath(fullPathPostgresArray)
-        entityId?.let { id ->
-            embeddingRepository.incrementUsageCountByFullPath(
-                fullPath = fullPathPostgresArray,
-                updatedAt = LocalDateTime.now()
-            )
-
-            // 임베딩 후보 체크
-            embeddingRepository.findById(id).ifPresent { entity ->
-                checkEmbeddingCandidate(entity.toInterestNode())
-            }
-        }
-    }
-
-    /**
-     * 임베딩 후보 체크
-     */
-    private fun checkEmbeddingCandidate(interest: InterestNode) {
-        if (!interest.isEmbedded &&
-            interest.usageCount >= EmbeddingConfig.MIN_USAGE_COUNT) {
-
-            logger.info("임베딩 후보 발견: ${interest.name} (사용: ${interest.usageCount}회)")
-            embeddingService.addToQueue(interest)
-        }
     }
 }
 

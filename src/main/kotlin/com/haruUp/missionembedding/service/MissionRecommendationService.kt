@@ -345,27 +345,6 @@ $difficultyDescription
     }
 
     /**
-     * 오늘의 미션용 멤버 프로필을 문자열로 변환
-     *
-     * 직업, 직업상세, 성별 정보를 포함
-     */
-    private fun buildMemberProfileStringForToday(memberProfile: MissionMemberProfile): String {
-        val parts = mutableListOf<String>()
-        memberProfile.age?.let { parts.add("${it}세") }
-        memberProfile.gender?.let {
-            val genderKorean = when (it) {
-                "MALE" -> "남성"
-                "FEMALE" -> "여성"
-                else -> it
-            }
-            parts.add(genderKorean)
-        }
-        memberProfile.jobName?.let { parts.add("직업: $it") }
-        memberProfile.jobDetailName?.let { parts.add("직업상세: $it") }
-        return parts.joinToString(", ").ifEmpty { "프로필 정보 없음" }
-    }
-
-    /**
      * 단일 관심사에 대해 난이도 1~5 미션 5개 추천
      *
      * - RAG에서 5개 모두 조회되면 RAG 결과 반환
