@@ -46,18 +46,18 @@ class MemberMissionUseCase(
      * 개별 미션 상태 변경 처리
      */
     private fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
-        // 둘 다 없으면 에러
-        if (item.missionStatus == null && item.postponedAt == null) {
-            throw IllegalArgumentException("missionStatus 또는 postponedAt 값이 필요합니다. (id: ${item.id})")
-        }
-
         // COMPLETED 상태인 경우 경험치 처리 필요
         if (item.missionStatus == MissionStatus.COMPLETED) {
-            return handleMissionCompleted(item.id, item.postponedAt)
+            return handleMissionCompleted(item.id)
         }
 
-        // 그 외의 경우 (status 변경, postponedAt 변경, 또는 둘 다)
-        memberMissionService.updateMission(item.id, item.missionStatus, item.postponedAt)
+        if (item.missionStatus == MissionStatus.POSTPONED) {
+            memberMissionService.handleMissionPostponed(item.id)
+            return null
+        }
+
+        // 그 외의 경우 (status 변경)
+        memberMissionService.updateMission(item.id, item.missionStatus)
         return null
     }
 
@@ -65,12 +65,12 @@ class MemberMissionUseCase(
     /**
      * 미션 완료 → 경험치 반영 → 레벨업 처리
      */
-    private fun handleMissionCompleted(missionId: Long, postponedAt: java.time.LocalDate? = null): MemberCharacterDto {
+    private fun handleMissionCompleted(missionId: Long): MemberCharacterDto {
 
         // ----------------------------------------------------------------------
-        // 1) 미션 완료 처리 (postponedAt도 함께 변경 가능)
+        // 1) 미션 완료 처리
         // ----------------------------------------------------------------------
-        val missionCompleted = memberMissionService.updateMission(missionId, MissionStatus.COMPLETED, postponedAt)
+        val missionCompleted = memberMissionService.updateMission(missionId, MissionStatus.COMPLETED)
 
         // ----------------------------------------------------------------------
         // 2) 선택된 캐릭터 조회

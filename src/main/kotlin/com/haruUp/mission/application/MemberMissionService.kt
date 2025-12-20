@@ -31,11 +31,32 @@ class MemberMissionService(
     }
 
     /**
-     * 미션 상태 및 postponedAt 변경
-     * - status: 변경할 상태 (null이면 변경 안함)
-     * - postponedAt: 미루기 날짜 (null이면 변경 안함)
+     * 미션 미루기 처리
+     * - 기존 row는 그대로 유지
+     * - 새로운 row 생성: missionStatus=POSTPONED, targetDate=내일
      */
-    fun updateMission(missionId: Long, status: MissionStatus?, postponedAt: LocalDate?): MemberMission {
+    fun handleMissionPostponed(missionId: Long): MemberMission {
+        val stored = memberMissionRepository.findByIdOrNull(missionId)
+            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
+
+        // 새로운 row 생성 (기존 row는 그대로 유지)
+        val postponedMission = MemberMission(
+            memberId = stored.memberId,
+            missionId = stored.missionId,
+            memberInterestId = stored.memberInterestId,
+            missionStatus = MissionStatus.POSTPONED,
+            expEarned = 0,
+            targetDate = LocalDate.now().plusDays(1)
+        )
+
+        return memberMissionRepository.save(postponedMission)
+    }
+
+    /**
+     * 미션 상태 변경
+     * - status: 변경할 상태 (null이면 변경 안함)
+     */
+    fun updateMission(missionId: Long, status: MissionStatus?): MemberMission {
         val stored = memberMissionRepository.findByIdOrNull(missionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
@@ -46,11 +67,6 @@ class MemberMissionService(
                 throw IllegalStateException("이미 완료된 미션은 상태를 변경할 수 없습니다.")
             }
             stored.missionStatus = status
-        }
-
-        // postponedAt 변경
-        if (postponedAt != null) {
-            stored.postponedAt = postponedAt
         }
 
         stored.updatedAt = LocalDateTime.now()

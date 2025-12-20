@@ -20,8 +20,6 @@ class MemberMissionDto (
 
     var expEarned : Int,
 
-    var postponedAt : LocalDate? = null,
-
     var targetDate: LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
@@ -33,7 +31,6 @@ class MemberMissionDto (
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        postponedAt = this.postponedAt,
         targetDate = this.targetDate
     )
 }
@@ -63,8 +60,7 @@ data class MissionRecommendResult(
  */
 data class MissionStatusChangeItem(
     val id: Long,
-    val missionStatus: MissionStatus? = null,
-    val postponedAt: LocalDate? = null
+    val missionStatus: MissionStatus? = null
 )
 
 /**

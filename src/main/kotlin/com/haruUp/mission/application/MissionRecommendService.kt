@@ -56,7 +56,7 @@ class MissionRecommendService(
             memberId = memberId,
             memberInterestId = memberInterestId,
             targetDate = today,
-            statuses = listOf(MissionStatus.READY, MissionStatus.ACTIVE)
+            statuses = listOf(MissionStatus.READY, MissionStatus.ACTIVE, MissionStatus.POSTPONED)
         )
 
         logger.info("오늘의 미션 조회 - memberId: $memberId, memberInterestId: $memberInterestId, 결과: ${memberMissions.size}개")
