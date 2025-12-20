@@ -1,24 +1,44 @@
 package com.haruUp.mission.application
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
+import com.haruUp.category.repository.JobDetailRepository
+import com.haruUp.category.repository.JobRepository
+import com.haruUp.global.clova.MissionMemberProfile
+import com.haruUp.interest.model.InterestPath
+import com.haruUp.interest.repository.MemberInterestJpaRepository
+import com.haruUp.member.infrastructure.MemberProfileRepository
 import com.haruUp.mission.domain.MissionCandidateDto
 import com.haruUp.mission.domain.MissionRecommendResult
+import com.haruUp.mission.domain.MissionStatus
+import com.haruUp.mission.infrastructure.MemberMissionRepository
 import com.haruUp.mission.infrastructure.MissionAiClient
+import com.haruUp.missionembedding.dto.MissionRecommendationResponse
+import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
+import com.haruUp.missionembedding.service.MissionRecommendationService
+import com.haruUp.missionembedding.service.TodayMissionCacheService
+import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlin.jvm.java
+import java.time.Period
 
 @Service
 class MissionRecommendService(
     private val redisTemplate: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
     private val missionEmbeddingRepository: MissionEmbeddingRepository,
-    private val missionAiClient: MissionAiClient
+    private val missionAiClient: MissionAiClient,
+    private val missionRecommendationService: MissionRecommendationService,
+    private val todayMissionCacheService: TodayMissionCacheService,
+    private val memberProfileRepository: MemberProfileRepository,
+    private val memberMissionRepository: MemberMissionRepository,
+    private val jobRepository: JobRepository,
+    private val jobDetailRepository: JobDetailRepository,
+    private val memberInterestRepository: MemberInterestJpaRepository
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     private val MAX_RETRY = 3
     private val RECOMMEND_LIMIT = 5
@@ -40,21 +60,115 @@ class MissionRecommendService(
     }
 
     /**
-     * 재추천
+     * 재추천 (memberInterestId 기반)
+     *
+     * 사용자 프로필과 관심사 정보를 기반으로 미션 재추천
+     * - ACTIVE 상태인 기존 미션 자동 제외
+     * - Redis에 저장된 이전 추천 미션 자동 제외
+     * - 추천된 미션 ID는 Redis에 캐싱 (24시간)
+     * - reset_mission_count 카운트 증가
      */
-    fun retry(memberId: Long): MissionRecommendResult {
-        val today = LocalDate.now()
-        val retryKey = MissionRecommendRedisKey.retry(memberId, today)
+    suspend fun retryWithInterest(memberId: Long, memberInterestId: Long): MissionRecommendationResponse {
+        logger.info("오늘의 미션 재추천 요청 - 사용자: $memberId, memberInterestId: $memberInterestId")
 
-        val count = redisTemplate.opsForValue().increment(retryKey) ?: 0
-        if (count > MAX_RETRY) {
-            throw IllegalStateException("재추천 가능 횟수를 초과했습니다.")
+        // 1. DB에서 사용자 프로필 조회
+        val memberProfileEntity = memberProfileRepository.findByMemberId(memberId)
+            ?: throw IllegalArgumentException("사용자 프로필을 찾을 수 없습니다.")
+
+        // 2. 직업 정보 조회
+        val jobName = memberProfileEntity.jobId?.let { jobId ->
+            jobRepository.findById(jobId).orElse(null)?.jobName
+        }
+        val jobDetailName = memberProfileEntity.jobDetailId?.let { jobDetailId ->
+            jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
         }
 
-        val key = MissionRecommendRedisKey.recommend(memberId, today)
-        val result = generate(memberId)
-        cache(key, result)
-        return result
+        val missionMemberProfile = MissionMemberProfile(
+            age = memberProfileEntity.birthDt?.let { calculateAge(it) },
+            gender = memberProfileEntity.gender?.name,
+            jobName = jobName,
+            jobDetailName = jobDetailName
+        )
+
+        // 3. 멤버 관심사 조회
+        val memberInterest = memberInterestRepository.findById(memberInterestId).orElse(null)
+            ?: throw IllegalArgumentException("멤버 관심사를 찾을 수 없습니다. (memberInterestId: $memberInterestId)")
+
+        // 3-1. 해당 관심사가 현재 사용자의 것인지 확인
+        if (memberInterest.memberId != memberId) {
+            throw IllegalArgumentException("해당 관심사에 접근 권한이 없습니다.")
+        }
+
+        val interestPath = memberInterest.directFullPath?.let { path ->
+            InterestPath(
+                mainCategory = path.getOrNull(0) ?: "",
+                middleCategory = path.getOrNull(1),
+                subCategory = path.getOrNull(2)
+            )
+        } ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다. (memberInterestId: $memberInterestId)")
+
+        logger.info("관심사 경로: ${interestPath.toPathString()}")
+
+        // 4. 제외할 미션 ID 수집
+        val activeMissionIds = memberMissionRepository.findMissionIdsByMemberIdAndStatus(
+            memberId = memberId,
+            status = MissionStatus.ACTIVE
+        )
+        logger.info("ACTIVE 상태 미션 ID: $activeMissionIds")
+
+        val cachedMissionIds = todayMissionCacheService.getRecommendedMissionIds(
+            memberId = memberId,
+            interestId = memberInterest.interestId
+        )
+        logger.info("Redis 캐시 미션 ID: $cachedMissionIds")
+
+        val excludeIds = (activeMissionIds + cachedMissionIds).distinct()
+        logger.info("제외할 미션 ID 총합: ${excludeIds.size}개")
+
+        // 5. 미션 추천 (난이도 1~5 각각 1개씩)
+        val missionDtos = missionRecommendationService.recommendTodayMissions(
+            interestPath = interestPath,
+            memberProfile = missionMemberProfile,
+            difficulty = null,
+            excludeIds = excludeIds
+        )
+
+        // 6. 추천된 미션 ID를 Redis에 저장
+        val recommendedMissionIds = missionDtos.mapNotNull { it.id }
+        if (recommendedMissionIds.isNotEmpty()) {
+            todayMissionCacheService.saveRecommendedMissionIds(
+                memberId = memberId,
+                interestId = memberInterest.interestId,
+                missionIds = recommendedMissionIds
+            )
+        }
+
+        // 7. reset_mission_count 증가
+        memberInterest.incrementResetMissionCount()
+        memberInterestRepository.save(memberInterest)
+        logger.info("reset_mission_count 증가: ${memberInterest.resetMissionCount}")
+
+        // 8. 응답 생성
+        val missionGroup = com.haruUp.missionembedding.dto.MissionGroupDto(
+            seqNo = 1,
+            data = missionDtos
+        )
+
+        logger.info("오늘의 미션 재추천 성공: ${missionDtos.size}개")
+
+        return MissionRecommendationResponse(
+            missions = listOf(missionGroup),
+            totalCount = missionDtos.size
+        )
+    }
+
+    /**
+     * 생년월일로부터 나이 계산
+     */
+    private fun calculateAge(birthDt: LocalDateTime): Int {
+        val birthDate = birthDt.toLocalDate()
+        val now = LocalDateTime.now().toLocalDate()
+        return Period.between(birthDate, now).years
     }
 
     /**
