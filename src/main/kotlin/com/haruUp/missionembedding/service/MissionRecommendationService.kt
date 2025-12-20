@@ -53,8 +53,8 @@ class MissionRecommendationService(
         val missionGroups = mutableListOf<MissionGroupDto>()
 
         // 각 관심사에 대해 난이도 1~5 미션 추천
-        for ((seqNo, interestPath) in interests) {
-            logger.info("처리 중: seqNo=$seqNo, path=${interestPath.toPathString()}")
+        for ((memberInterestId, interestPath) in interests) {
+            logger.info("처리 중: seqNo=$memberInterestId, path=${interestPath.toPathString()}")
 
             try {
                 // RAG + AI 하이브리드로 난이도 1~5 미션 생성
@@ -77,18 +77,18 @@ class MissionRecommendationService(
                 // seqNo별 그룹으로 묶기
                 missionGroups.add(
                     MissionGroupDto(
-                        seqNo = seqNo,
+                        memberInterestId = memberInterestId,
                         data = missionDtos
                     )
                 )
-                logger.info("seqNo=$seqNo 미션 추천 완료: ${missionDtos.size}개 (난이도 1~5)")
+                logger.info("seqNo=$memberInterestId 미션 추천 완료: ${missionDtos.size}개 (난이도 1~5)")
 
             } catch (e: Exception) {
-                logger.error("seqNo=$seqNo 미션 추천 실패: ${e.message}", e)
+                logger.error("seqNo=$memberInterestId 미션 추천 실패: ${e.message}", e)
                 // 실패한 경우 빈 그룹 추가
                 missionGroups.add(
                     MissionGroupDto(
-                        seqNo = seqNo,
+                        memberInterestId = memberInterestId,
                         data = emptyList()
                     )
                 )

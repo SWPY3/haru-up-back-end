@@ -13,6 +13,11 @@ import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import com.haruUp.category.repository.JobRepository
 import com.haruUp.category.repository.JobDetailRepository
+import com.haruUp.interest.model.InterestPath
+import com.haruUp.interest.repository.MemberInterestJpaRepository
+import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MissionStatus
+import com.haruUp.mission.infrastructure.MemberMissionRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
@@ -35,32 +40,36 @@ class MissionembeddingController(
     private val missionSelectionService: MissionSelectionService,
     private val memberProfileRepository: MemberProfileRepository,
     private val jobRepository: JobRepository,
-    private val jobDetailRepository: JobDetailRepository
+    private val jobDetailRepository: JobDetailRepository,
+    private val memberMissionRepository: MemberMissionRepository,
+    private val memberInterestRepository: MemberInterestJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * 미션 추천 API
      *
-     * 사용자가 선택한 관심사를 기반으로 각 관심사당 미션 5개씩 추천
+     * 등록된 관심사(member_interest)를 기반으로 각 관심사당 미션 5개씩 추천
+     * - 사전에 관심사가 등록되어 있어야 함 (/api/interests/member)
+     * - 기존 READY 상태 미션은 soft delete 처리
+     * - 추천된 미션은 READY 상태로 member_mission에 저장
      *
-     * @param request 미션 추천 요청
+     * @param request 미션 추천 요청 (memberInterestIds)
      * @return 추천된 미션 목록
      */
     @Operation(
         summary = "미션 추천",
         description = """
-            사용자가 선택한 관심사를 기반으로 AI가 미션을 추천합니다.
+            등록된 관심사를 기반으로 AI가 미션을 추천합니다.
+
+            **사전 조건:** 관심사가 먼저 등록되어 있어야 합니다 (/api/interests/member)
 
             각 관심사당 난이도 1~5 각각 1개씩, 총 5개의 미션이 추천됩니다.
 
             **호출 예시:**
             ```json
             {
-              "interests": [
-                {"seqNo": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]},
-                {"seqNo": 2, "directFullPath": ["외국어 공부", "영어", "단어 학습"]}
-              ]
+              "memberInterestIds": [1, 2, 3]
             }
             ```
 
@@ -83,16 +92,35 @@ class MissionembeddingController(
         )
         @RequestBody request: MissionRecommendationRequest
     ): ResponseEntity<MissionRecommendationResponse> = runBlocking {
-        logger.info("미션 추천 요청 - 사용자: ${principal.id}, 관심사 개수: ${request.interests.size}")
+        logger.info("미션 추천 요청 - 사용자: ${principal.id}, 관심사 개수: ${request.memberInterestIds.size}")
 
         try {
-            // DB에서 사용자 프로필 조회
+            // 1. memberInterestIds 유효성 검증 및 조회
+            val memberInterests = request.memberInterestIds.mapNotNull { memberInterestId ->
+                val memberInterest = memberInterestRepository.findById(memberInterestId).orElse(null)
+                if (memberInterest == null) {
+                    logger.warn("멤버 관심사를 찾을 수 없습니다: memberInterestId=$memberInterestId")
+                    return@mapNotNull null
+                }
+                if (memberInterest.memberId != principal.id) {
+                    logger.warn("해당 관심사에 접근 권한이 없습니다: memberInterestId=$memberInterestId")
+                    return@mapNotNull null
+                }
+                memberInterest
+            }
+
+            if (memberInterests.isEmpty()) {
+                logger.error("유효한 관심사가 없습니다.")
+                return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>()
+            }
+
+            // 2. DB에서 사용자 프로필 조회
             val memberProfileEntity = memberProfileRepository.findByMemberId(principal.id)
                 ?: return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>().also {
                     logger.error("사용자 프로필을 찾을 수 없음: ${principal.id}")
                 }
 
-            // 직업 정보 조회
+            // 3. 직업 정보 조회
             val jobName = memberProfileEntity.jobId?.let { jobId ->
                 jobRepository.findById(jobId).orElse(null)?.jobName
             }
@@ -100,7 +128,6 @@ class MissionembeddingController(
                 jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
             }
 
-            // MemberProfileEntity → MissionMemberProfile 변환 (직업, 성별 정보 포함)
             val missionMemberProfile = MissionMemberProfile(
                 age = memberProfileEntity.birthDt?.let { calculateAge(it) },
                 gender = memberProfileEntity.gender?.name,
@@ -110,23 +137,76 @@ class MissionembeddingController(
 
             logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}, 성별: ${missionMemberProfile.gender}, 직업: ${missionMemberProfile.jobName}")
 
-            // interests를 (seqNo, InterestPath) 튜플로 변환 (난이도는 자동으로 1~5 할당)
-            val interestsWithDetails = request.interests.map { dto ->
-                Pair(dto.seqNo, dto.toModel())
+            // 4. memberInterest에서 InterestPath 추출하여 (memberInterestId, InterestPath) 튜플로 변환
+            val interestsWithDetails = memberInterests.map { memberInterest ->
+                val directFullPath = memberInterest.directFullPath
+                    ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
+
+                val interestPath = InterestPath(
+                    mainCategory = directFullPath.getOrNull(0) ?: "",
+                    middleCategory = directFullPath.getOrNull(1),
+                    subCategory = directFullPath.getOrNull(2)
+                )
+                Pair(memberInterest.id!!.toInt(), interestPath)  // seqNo = memberInterestId
             }
 
-            // 미션 추천 (각 관심사당 난이도 1~5 각각 1개씩)
+            // 5. 미션 추천 (각 관심사당 난이도 1~5 각각 1개씩)
             val missions = missionRecommendationService.recommendMissions(
                 interests = interestsWithDetails,
                 memberProfile = missionMemberProfile
             )
 
+            // 6. 요청받은 관심사들의 기존 READY 상태 member_mission soft delete
+            var totalDeletedCount = 0
+            for (memberInterest in memberInterests) {
+                val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatus(
+                    memberId = principal.id,
+                    memberInterestId = memberInterest.id!!,
+                    status = MissionStatus.READY,
+                    deletedAt = LocalDateTime.now()
+                )
+                totalDeletedCount += deletedCount
+            }
+            logger.info("기존 READY 상태 미션 soft delete 완료: ${totalDeletedCount}개")
+
+            // 7. 추천된 미션들을 member_mission에 READY 상태로 저장
+            var savedMissionCount = 0
+            for (memberInterest in memberInterests) {
+                val memberInterestId = memberInterest.id!!.toInt()
+
+                // 해당 memberInterestId의 미션 그룹 찾기
+                val missionGroup = missions.find { it.memberInterestId == memberInterestId }
+                if (missionGroup == null) {
+                    logger.warn("memberInterestId=${memberInterestId}에 해당하는 미션 그룹을 찾을 수 없습니다.")
+                    continue
+                }
+
+                // 추천된 미션들을 member_mission에 READY 상태로 저장
+                for (missionDto in missionGroup.data) {
+                    val missionId = missionDto.id ?: continue
+                    try {
+                        val memberMission = MemberMission(
+                            memberId = principal.id,
+                            missionId = missionId,
+                            memberInterestId = memberInterest.id!!,
+                            missionStatus = MissionStatus.READY,
+                            expEarned = 0
+                        )
+                        memberMissionRepository.save(memberMission)
+                        savedMissionCount++
+                    } catch (e: Exception) {
+                        logger.error("member_mission 저장 실패: missionId=$missionId, 에러: ${e.message}")
+                    }
+                }
+            }
+            logger.info("member_mission READY 상태로 저장 완료: ${savedMissionCount}개")
+
             val response = MissionRecommendationResponse(
                 missions = missions,
-                totalCount = missions.size
+                totalCount = missions.sumOf { it.data.size }
             )
 
-            logger.info("미션 추천 성공: ${missions.size}개")
+            logger.info("미션 추천 성공: ${response.totalCount}개")
 
             ResponseEntity.ok(response)
 

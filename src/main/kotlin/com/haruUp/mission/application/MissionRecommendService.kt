@@ -7,10 +7,12 @@ import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.interest.model.InterestPath
 import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.member.infrastructure.MemberProfileRepository
+import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MissionCandidateDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
+import org.springframework.transaction.annotation.Transactional
 import com.haruUp.mission.infrastructure.MissionAiClient
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
@@ -133,6 +135,35 @@ class MissionRecommendService(
             excludeIds = excludeIds
         )
 
+        // 5-1. 해당 관심사의 기존 READY 상태 member_mission soft delete
+        val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatus(
+            memberId = memberId,
+            memberInterestId = memberInterestId,
+            status = MissionStatus.READY,
+            deletedAt = LocalDateTime.now()
+        )
+        logger.info("기존 READY 상태 미션 soft delete 완료 (memberInterestId: $memberInterestId): ${deletedCount}개")
+
+        // 5-2. 추천된 미션들을 member_mission에 READY 상태로 저장
+        val savedMemberMissions = missionDtos.mapNotNull { missionDto ->
+            missionDto.id?.let { missionId ->
+                try {
+                    val memberMission = MemberMission(
+                        memberId = memberId,
+                        missionId = missionId,
+                        memberInterestId = memberInterestId,
+                        missionStatus = MissionStatus.READY,
+                        expEarned = 0
+                    )
+                    memberMissionRepository.save(memberMission)
+                } catch (e: Exception) {
+                    logger.error("member_mission 저장 실패: missionId=$missionId, 에러: ${e.message}")
+                    null
+                }
+            }
+        }
+        logger.info("member_mission READY 상태로 저장 완료: ${savedMemberMissions.size}개")
+
         // 6. 추천된 미션 ID를 Redis에 저장
         val recommendedMissionIds = missionDtos.mapNotNull { it.id }
         if (recommendedMissionIds.isNotEmpty()) {
@@ -150,7 +181,7 @@ class MissionRecommendService(
 
         // 8. 응답 생성
         val missionGroup = com.haruUp.missionembedding.dto.MissionGroupDto(
-            seqNo = 1,
+            memberInterestId = 1,
             data = missionDtos
         )
 

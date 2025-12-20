@@ -3,7 +3,10 @@ package com.haruUp.mission.infrastructure
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MissionStatus
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
 
@@ -57,4 +60,25 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
         memberId: Long,
         status: MissionStatus
     ): List<Long>
+
+    /**
+     * 특정 관심사의 READY 상태 미션을 soft delete 처리
+     * 새로운 미션 추천 시 해당 관심사의 기존 READY 상태 미션들만 삭제 처리
+     */
+    @Transactional
+    @Modifying
+    @Query("""
+    UPDATE MemberMission m
+    SET m.deleted = true, m.deletedAt = :deletedAt
+    WHERE m.memberId = :memberId
+      AND m.memberInterestId = :memberInterestId
+      AND m.missionStatus = :status
+      AND m.deleted = false
+    """)
+    fun softDeleteByMemberIdAndInterestIdAndStatus(
+        memberId: Long,
+        memberInterestId: Long,
+        status: MissionStatus,
+        deletedAt: LocalDateTime
+    ): Int
 }
