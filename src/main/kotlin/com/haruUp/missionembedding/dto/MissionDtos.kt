@@ -134,23 +134,3 @@ data class TodayMissionRecommendationRequest(
     )
     val memberInterestId: Long
 )
-
-/**
- * 미션 선택 요청
- */
-@Schema(description = "미션 선택 요청")
-data class MissionSelectionRequest(
-    @Schema(
-        description = "선택한 미션 목록",
-        example = """[
-            {
-                "interestId": 97,
-                "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
-                "difficulty": 1,
-                "missionId": 123
-            }
-        ]""",
-        required = true
-    )
-    val missions: List<SelectedMissionDto>
-)

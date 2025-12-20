@@ -1,6 +1,8 @@
 package com.haruUp.mission.domain
 
 import com.haruUp.global.common.BaseEntity
+import com.haruUp.missionembedding.dto.SelectedMissionDto
+import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -70,4 +72,39 @@ data class MissionStatusChangeItem(
  */
 data class MissionStatusChangeRequest(
     val missions: List<MissionStatusChangeItem>
+)
+
+@Schema(description = "선택한 미션 정보")
+data class SelectedMemberMissionDto(
+    @Schema(
+        description = "멤버 관심사 ID (member_interest 테이블의 ID)",
+        example = "2",
+        required = true
+    )
+    val memberInterestId: Long,
+
+    @Schema(
+        description = "mission_embeddings 테이블의 ID",
+        example = "3",
+        required = true
+    )
+    val missionId: Long
+)
+
+/**
+ * 미션 선택 요청
+ */
+@Schema(description = "미션 선택 요청")
+data class MemberMissionSelectionRequest(
+    @Schema(
+        description = "선택한 미션 목록",
+        example = """[
+            {
+                "memberInterestId": 2,
+                "missionId": 3
+            }
+        ]""",
+        required = true
+    )
+    val missions: List<SelectedMemberMissionDto>
 )

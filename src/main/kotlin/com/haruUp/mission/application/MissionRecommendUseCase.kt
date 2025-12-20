@@ -1,12 +1,14 @@
 package com.haruUp.mission.application
 
+import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import org.springframework.stereotype.Component
 
 @Component
 class MissionRecommendUseCase(
-    private val missionRecommendService: MissionRecommendService
+    private val missionRecommendService: MissionRecommendService,
+    private val memberMissionService: MemberMissionService
 ) {
 
     /**
@@ -25,5 +27,9 @@ class MissionRecommendUseCase(
      */
     suspend fun retryRecommend(memberId: Long, memberInterestId: Long): MissionRecommendationResponse {
         return missionRecommendService.retryWithInterest(memberId, memberInterestId)
+    }
+
+    fun memberMissionSelection(memberId: Long, memberMissionSelectionRequest: MemberMissionSelectionRequest): List<Long>{
+        return memberMissionService.saveMissions(memberId, memberMissionSelectionRequest)
     }
 }

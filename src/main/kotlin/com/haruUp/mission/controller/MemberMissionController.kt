@@ -10,6 +10,7 @@ import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.missionembedding.dto.TodayMissionRecommendationRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
+import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
@@ -88,6 +89,73 @@ class MemberMissionController(
         } catch (e: Exception) {
             logger.error("미션 상태 변경 실패: ${e.message}", e)
             ApiResponse(success = false, data = null, errorMessage = "서버 오류가 발생했습니다.")
+        }
+    }
+
+    /**
+     * 미션 선택 API
+     *
+     * 사용자가 선택한 미션들을 데이터베이스에 저장
+     *
+     * @param request 미션 선택 요청
+     * @return 저장 결과
+     */
+    @Operation(
+        summary = "미션 선택",
+        description = """
+            사용자가 선택한 미션들을 저장합니다.
+
+            **호출 예시:**
+            ```json
+            {
+              "missions": [
+                {
+                  "memberInterestId": 2,
+                  "missionId": 3
+                }
+              ]
+            }
+            ```
+
+            **필드 설명:**
+            - memberInterestId: 멤버 관심사 ID (반드시 소분류까지 입력된 memberInterestId로 입력해주세요.)
+            - missionId: 미션 번호
+        """
+    )
+    @PostMapping("/select")
+    fun selectMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "미션 선택 요청 정보",
+            required = true,
+            schema = Schema(implementation = MemberMissionSelectionRequest::class)
+        )
+        @RequestBody request: MemberMissionSelectionRequest
+    ): ResponseEntity<ApiResponse<List<Long>>> {
+        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.missions.size}")
+
+        return try {
+            val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request)
+            logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
+            ResponseEntity.ok(ApiResponse.success(savedMissionIds))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = e.message ?: "유효성 검증 실패"
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("미션 선택 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = "서버 오류가 발생했습니다"
+                )
+            )
         }
     }
 

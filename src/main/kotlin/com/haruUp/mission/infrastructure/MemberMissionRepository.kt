@@ -105,4 +105,13 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
         targetDate: LocalDate,
         statuses: List<MissionStatus>
     ): List<MemberMission>
+
+    /**
+     * memberId, memberInterestId, missionId로 미션 조회 (deleted=false)
+     */
+    fun findByMemberIdAndMemberInterestIdAndMissionIdAndDeletedFalse(
+        memberId: Long,
+        memberInterestId: Long,
+        missionId: Long
+    ): MemberMission?
 }

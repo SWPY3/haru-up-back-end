@@ -1,13 +1,10 @@
 package com.haruUp.missionembedding.controller
 
-import com.haruUp.global.common.ApiResponse as CommonApiResponse
 import com.haruUp.global.security.MemberPrincipal
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import com.haruUp.missionembedding.dto.MissionRecommendationRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
-import com.haruUp.missionembedding.dto.MissionSelectionRequest
 import com.haruUp.missionembedding.service.MissionRecommendationService
-import com.haruUp.missionembedding.service.MissionSelectionService
 import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
@@ -37,7 +34,6 @@ import java.time.Period
 @RequestMapping("/api/missions")
 class MissionembeddingController(
     private val missionRecommendationService: MissionRecommendationService,
-    private val missionSelectionService: MissionSelectionService,
     private val memberProfileRepository: MemberProfileRepository,
     private val jobRepository: JobRepository,
     private val jobDetailRepository: JobDetailRepository,
@@ -216,81 +212,6 @@ class MissionembeddingController(
         } catch (e: Exception) {
             logger.error("미션 추천 실패: ${e.message}", e)
             ResponseEntity.internalServerError().build()
-        }
-    }
-
-    /**
-     * 미션 선택 API
-     *
-     * 사용자가 선택한 미션들을 데이터베이스에 저장
-     *
-     * @param request 미션 선택 요청
-     * @return 저장 결과
-     */
-    @Operation(
-        summary = "미션 선택",
-        description = """
-            사용자가 선택한 미션들을 저장합니다.
-
-            **호출 예시:**
-            ```json
-            {
-              "missions": [
-                {
-                  "interestId": 97,
-                  "directFullPath": [
-                    "직무 관련 역량 개발",
-                    "업무 능력 향상",
-                    "문서·기획·정리 스킬 향상(PPT·보고서)"
-                  ],
-                  "difficulty": 1,
-                  "mission": "보고서 작성법 관련 책 1권 읽고 요약 정리하기"
-                }
-              ]
-            }
-            ```
-
-            **필드 설명:**
-            - interestId: 소분류 관심사 ID (반드시 소분류 관심사 interestId로 입력해주세요.)
-            - directFullPath: 관심사 경로 배열 [대분류, 중분류, 소분류]
-            - difficulty: 난이도 (1~5, 선택)
-            - mission: 미션 내용
-        """
-    )
-    @PostMapping("/select")
-    fun selectMissions(
-        @AuthenticationPrincipal principal: MemberPrincipal,
-        @Parameter(
-            description = "미션 선택 요청 정보",
-            required = true,
-            schema = Schema(implementation = MissionSelectionRequest::class)
-        )
-        @RequestBody request: MissionSelectionRequest
-    ): ResponseEntity<CommonApiResponse<List<Long>>> {
-        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.missions.size}")
-
-        return try {
-            val savedMissionIds = missionSelectionService.saveMissions(principal.id, request)
-            logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
-            ResponseEntity.ok(CommonApiResponse.success(savedMissionIds))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(
-                CommonApiResponse(
-                    success = false,
-                    data = emptyList(),
-                    errorMessage = e.message ?: "유효성 검증 실패"
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("미션 선택 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                CommonApiResponse(
-                    success = false,
-                    data = emptyList(),
-                    errorMessage = "서버 오류가 발생했습니다"
-                )
-            )
         }
     }
 
