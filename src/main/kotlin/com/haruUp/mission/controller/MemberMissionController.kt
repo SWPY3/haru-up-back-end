@@ -48,7 +48,7 @@ class MemberMissionController(
     }
 
     /**
-     * 미션 상태 벌크 변경 (ACTIVE / COMPLETED / INACTIVE) 및 미루기 (postponedAt 설정)
+     * 미션 상태 벌크 변경 (ACTIVE / COMPLETED / INACTIVE / POSTPONED) 및 미루기
      */
     @Operation(
         summary = "미션 상태 벌크 변경",
@@ -56,10 +56,7 @@ class MemberMissionController(
             여러 미션의 상태를 한 번에 변경합니다.
 
             **상태 변경:**
-            - missionStatus: ACTIVE (선택), COMPLETED (완료), INACTIVE (포기)
-
-            **미루기:**
-            - postponedAt: 날짜를 설정하면 해당 날짜로 미루기 처리 (status는 변경되지 않음)
+            - missionStatus: ACTIVE (선택), COMPLETED (완료), INACTIVE (포기), POSTPONED (내일로 미루기)
 
             **호출 예시:**
             ```json
@@ -67,7 +64,7 @@ class MemberMissionController(
               "missions": [
                 { "id": 1, "missionStatus": "COMPLETED" },
                 { "id": 2, "missionStatus": "ACTIVE" },
-                { "id": 3, "postponedAt": "2024-01-02" }
+                { "id": 3, "missionStatus": "POSTPONED" }
               ]
             }
             ```
