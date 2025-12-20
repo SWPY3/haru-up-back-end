@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.mission.domain.MissionCandidateDto
 import com.haruUp.mission.domain.MissionRecommendResult
-import com.haruUp.mission.infrastructure.MemberMissionRepository
 import com.haruUp.mission.infrastructure.MissionAiClient
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
@@ -18,7 +17,6 @@ class MissionRecommendService(
     private val redisTemplate: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
     private val missionEmbeddingRepository: MissionEmbeddingRepository,
-    private val memberMissionRepository: MemberMissionRepository,
     private val missionAiClient: MissionAiClient
 ) {
 
@@ -66,15 +64,7 @@ class MissionRecommendService(
         // 1️⃣ 유저 임베딩 생성
         val userEmbedding = missionAiClient.createUserEmbedding(memberId)
 
-        // 2️⃣ 오늘 이미 확정한 미션 content 제외
-// 2️⃣ 오늘 이미 확정한 미션 ID 제외
-        val todayMissionIds =
-            memberMissionRepository.findMissionIdsByMemberIdAndDate(
-                memberId,
-                LocalDate.now()
-            )
-
-// 3️⃣ 벡터 유사도 기반 추천
+        // 2️⃣ 벡터 유사도 기반 추천
         // TODO: 사용자의 실제 관심사 경로로 변경 필요
         val defaultDirectFullPath = "{LIFE}"  // PostgreSQL 배열 형식
         val candidates =
@@ -85,9 +75,8 @@ class MissionRecommendService(
                 limit = RECOMMEND_LIMIT * 2
             )
 
-// 4️⃣ 필터링 + DTO 변환
+        // 3️⃣ DTO 변환
         val missions = candidates
-            .filterNot { it.id in todayMissionIds }   // 🔥 정확한 키 비교
             .take(RECOMMEND_LIMIT)
             .map {
                 MissionCandidateDto(

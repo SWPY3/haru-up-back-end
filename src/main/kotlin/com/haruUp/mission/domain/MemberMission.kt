@@ -39,11 +39,7 @@ class MemberMission (
     @Enumerated(EnumType.STRING)
     var missionStatus : MissionStatus = MissionStatus.READY,
 
-    var missionLevel : Int = 0,
-
     var expEarned : Int,
-
-    var targetDate : LocalDate = LocalDate.now(),
 
     var postponedAt : LocalDate? = null
 
@@ -56,8 +52,6 @@ class MemberMission (
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate,
-        missionLevel = this.missionLevel,
         postponedAt = this.postponedAt
     )
 

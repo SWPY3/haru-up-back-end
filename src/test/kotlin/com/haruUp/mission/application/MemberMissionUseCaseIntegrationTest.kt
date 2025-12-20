@@ -6,6 +6,8 @@ import com.haruUp.character.infrastructure.LevelRepository
 import com.haruUp.character.infrastructure.MemberCharacterRepository
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MissionStatus
+import com.haruUp.mission.domain.MissionStatusChangeItem
+import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.infrastructure.MemberMissionRepository
 import jakarta.transaction.Transactional
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -61,13 +63,17 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
             )
         )
 
-        val dto = mission.toDto()
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = mission.id!!, missionStatus = MissionStatus.COMPLETED)
+            )
+        )
 
         // When
-        val result = useCase.missionChangeStatus(dto)
+        val result = useCase.missionChangeStatus(request)
 
         // Then
-        assertEquals(3, result.levelId)     // 250 exp → 2단계 레벨업
+        assertEquals(3, result!!.levelId)     // 250 exp → 2단계 레벨업
         assertEquals(250, result.totalExp)
         assertEquals(50, result.currentExp)
 
@@ -93,13 +99,17 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
             )
         )
 
-        val dto = mission.toDto()
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = mission.id!!, missionStatus = MissionStatus.COMPLETED)
+            )
+        )
 
         // When
-        val result = useCase.missionChangeStatus(dto)
+        val result = useCase.missionChangeStatus(request)
 
         // Then
-        assertEquals(2L, result.levelId)
+        assertEquals(2L, result!!.levelId)
         assertEquals(120, result.totalExp)
         assertEquals(20, result.currentExp)
 

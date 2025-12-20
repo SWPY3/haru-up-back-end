@@ -16,11 +16,7 @@ class MemberMissionDto (
 
     var missionStatus : MissionStatus = MissionStatus.ACTIVE,
 
-    var missionLevel : Int = 0,
-
     var expEarned : Int,
-
-    var targetDate : LocalDate = LocalDate.now(),
 
     var postponedAt : LocalDate? = null
 
@@ -33,8 +29,6 @@ class MemberMissionDto (
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate,
-        missionLevel = this.missionLevel,
         postponedAt = this.postponedAt
     )
 }

@@ -133,9 +133,7 @@ class MemberMissionUseCaseUnitTest {
             missionId = 101L,
             memberInterestId = 1L,
             expEarned = 10,
-            missionStatus = MissionStatus.ACTIVE,
-            targetDate = LocalDate.now(),
-            missionLevel = 1
+            missionStatus = MissionStatus.ACTIVE
         )
 
         val mission2 = MemberMission(
@@ -145,8 +143,6 @@ class MemberMissionUseCaseUnitTest {
             memberInterestId = 2L,
             expEarned = 20,
             missionStatus = MissionStatus.READY,
-            targetDate = LocalDate.now(),
-            missionLevel = 2,
             postponedAt = LocalDate.now()  // 미루기된 미션
         )
 
