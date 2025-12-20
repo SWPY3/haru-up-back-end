@@ -36,9 +36,6 @@ class MemberMission (
     @Column(name = "member_interest_id", nullable = false)
     val memberInterestId: Long,
 
-    @Column(name = "is_completed", nullable = false)
-    var isCompleted: Boolean = false,
-
     @Enumerated(EnumType.STRING)
     var missionStatus : MissionStatus = MissionStatus.READY,
 
@@ -55,7 +52,6 @@ class MemberMission (
         memberId = this.memberId,
         missionId = this.missionId,
         memberInterestId = this.memberInterestId,
-        isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
         targetDate = this.targetDate,

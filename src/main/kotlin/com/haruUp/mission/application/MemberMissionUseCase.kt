@@ -66,7 +66,7 @@ class MemberMissionUseCase(
         // 1) 미션 완료 처리
         // ----------------------------------------------------------------------
         val missionCompleted = memberMissionService
-            .missionCompleted(dto.apply { this.isCompleted = true }.toEntity())
+            .missionCompleted(dto.apply { this.missionStatus = MissionStatus.COMPLETED }.toEntity())
 
         // ----------------------------------------------------------------------
         // 2) 선택된 캐릭터 조회

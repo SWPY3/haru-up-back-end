@@ -28,7 +28,7 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
                         ) AS rn
                     FROM member_mission m
                     WHERE m.member_id = :memberId
-                      AND m.is_completed = false
+                      AND m.mission_status <> 'COMPLETED'
                       AND (
                             (m.mission_status = 'POSTPONED' AND m.create_at = CURRENT_DATE - INTERVAL '1 day')
                             OR

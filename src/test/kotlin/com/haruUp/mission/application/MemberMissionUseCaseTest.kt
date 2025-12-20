@@ -51,11 +51,11 @@ class MemberMissionUseCaseUnitTest {
             memberId = 10L,
             missionId = 99L,
             memberInterestId = 1L,
-            isCompleted = false,
+            missionStatus = MissionStatus.COMPLETED,
             expEarned = 250     // 250 경험치 획득
         )
 
-        val missionEntity = missionDto.toEntity().apply { isCompleted = true }
+        val missionEntity = missionDto.toEntity().apply { missionStatus = MissionStatus.COMPLETED }
 
         whenever(memberMissionService.missionCompleted(any())).thenReturn(missionEntity)
 

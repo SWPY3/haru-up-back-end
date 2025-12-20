@@ -33,11 +33,11 @@ class MemberMissionService(
         val stored = memberMissionRepository.findByIdOrNull(mission.id!!)
             ?: throw IllegalArgumentException("Mission not found")
 
-        if (stored.isCompleted) {
+        if (stored.missionStatus == MissionStatus.COMPLETED) {
             return stored // 이미 완료 처리된 경우
         }
 
-        stored.isCompleted = true
+        stored.missionStatus = MissionStatus.COMPLETED
         stored.expEarned = mission.expEarned
         stored.updatedAt = LocalDateTime.now()
 
