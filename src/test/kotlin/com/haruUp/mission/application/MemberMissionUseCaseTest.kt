@@ -10,6 +10,8 @@ import com.haruUp.global.error.ErrorCode
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
+import com.haruUp.mission.domain.MissionStatusChangeItem
+import com.haruUp.mission.domain.MissionStatusChangeRequest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -46,18 +48,22 @@ class MemberMissionUseCaseUnitTest {
         // -----------------------------------------
         // Given
         // -----------------------------------------
-        val missionDto = MemberMissionDto(
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.COMPLETED)
+            )
+        )
+
+        val missionEntity = MemberMission(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
             memberInterestId = 1L,
-            isCompleted = false,
-            expEarned = 250     // 250 경험치 획득
+            missionStatus = MissionStatus.COMPLETED,
+            expEarned = 250
         )
 
-        val missionEntity = missionDto.toEntity().apply { isCompleted = true }
-
-        whenever(memberMissionService.missionCompleted(any())).thenReturn(missionEntity)
+        whenever(memberMissionService.updateMission(1L, MissionStatus.COMPLETED, null)).thenReturn(missionEntity)
 
         // 캐릭터 현재 상태
         val mc = MemberCharacter(
@@ -99,16 +105,17 @@ class MemberMissionUseCaseUnitTest {
         // -----------------------------------------
         // When
         // -----------------------------------------
-        val result = useCase.missionChangeStatus(missionDto)
+        val result = useCase.missionChangeStatus(request)
 
         // -----------------------------------------
         // Then
         // -----------------------------------------
-        assertEquals(3L, result.levelId)
+        assertNotNull(result)
+        assertEquals(3L, result!!.levelId)
         assertEquals(250, result.totalExp)
         assertEquals(50, result.currentExp)
 
-        verify(memberMissionService).missionCompleted(any())
+        verify(memberMissionService).updateMission(1L, MissionStatus.COMPLETED, null)
         verify(memberCharacterService).getSelectedCharacter(10L)
         verify(levelService).getById(1L)
         verify(levelService, times(3)).getNextLevel(any())
@@ -126,9 +133,7 @@ class MemberMissionUseCaseUnitTest {
             missionId = 101L,
             memberInterestId = 1L,
             expEarned = 10,
-            missionStatus = MissionStatus.ACTIVE,
-            targetDate = LocalDate.now(),
-            missionLevel = 1
+            missionStatus = MissionStatus.ACTIVE
         )
 
         val mission2 = MemberMission(
@@ -137,9 +142,8 @@ class MemberMissionUseCaseUnitTest {
             missionId = 102L,
             memberInterestId = 2L,
             expEarned = 20,
-            missionStatus = MissionStatus.POSTPONED,
-            targetDate = LocalDate.now(),
-            missionLevel = 2
+            missionStatus = MissionStatus.READY,
+            postponedAt = LocalDate.now()  // 미루기된 미션
         )
 
         whenever(memberMissionService.getTodayMissionsByMemberId(memberId))
@@ -159,7 +163,13 @@ class MemberMissionUseCaseUnitTest {
     @Test
     fun `미션 ACTIVE 상태 처리 단위 테스트`() {
 
-        val dto = MemberMissionDto(
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.ACTIVE)
+            )
+        )
+
+        val missionEntity = MemberMission(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
@@ -168,44 +178,54 @@ class MemberMissionUseCaseUnitTest {
             expEarned = 0
         )
 
-        whenever(memberMissionService.activeMission(any()))
-            .thenReturn(dto.toEntity())
+        whenever(memberMissionService.updateMission(1L, MissionStatus.ACTIVE, null))
+            .thenReturn(missionEntity)
 
-        val exception = assertThrows<BusinessException> {
-            useCase.missionChangeStatus(dto)
-        }
+        val result = useCase.missionChangeStatus(request)
 
-        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode)
-        verify(memberMissionService).activeMission(any())
+        assertNull(result)
+        verify(memberMissionService).updateMission(1L, MissionStatus.ACTIVE, null)
     }
 
     @Test
-    fun `미션 POSTPONED 상태 처리 단위 테스트`() {
+    fun `미션 미루기 처리 단위 테스트`() {
 
-        val dto = MemberMissionDto(
+        val postponedAt = LocalDate.now().plusDays(1)
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = 1L, postponedAt = postponedAt)
+            )
+        )
+
+        val postponedMission = MemberMission(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
             memberInterestId = 1L,
-            missionStatus = MissionStatus.POSTPONED,
-            expEarned = 0
+            missionStatus = MissionStatus.ACTIVE,
+            expEarned = 0,
+            postponedAt = postponedAt
         )
 
-        whenever(memberMissionService.postponeMission(any()))
-            .thenReturn(dto.toEntity())
+        whenever(memberMissionService.updateMission(1L, null, postponedAt))
+            .thenReturn(postponedMission)
 
-        val exception = assertThrows<BusinessException> {
-            useCase.missionChangeStatus(dto)
-        }
+        val result = useCase.missionChangeStatus(request)
 
-        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode)
-        verify(memberMissionService).postponeMission(any())
+        assertNull(result)
+        verify(memberMissionService).updateMission(1L, null, postponedAt)
     }
 
     @Test
     fun `미션 INACTIVE 상태 처리 단위 테스트`() {
 
-        val dto = MemberMissionDto(
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.INACTIVE)
+            )
+        )
+
+        val missionEntity = MemberMission(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
@@ -214,15 +234,70 @@ class MemberMissionUseCaseUnitTest {
             expEarned = 0
         )
 
-        whenever(memberMissionService.failMission(any()))
-            .thenReturn(dto.toEntity())
+        whenever(memberMissionService.updateMission(1L, MissionStatus.INACTIVE, null))
+            .thenReturn(missionEntity)
 
-        val exception = assertThrows<BusinessException> {
-            useCase.missionChangeStatus(dto)
-        }
+        val result = useCase.missionChangeStatus(request)
 
-        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode)
-        verify(memberMissionService).failMission(any())
+        assertNull(result)
+        verify(memberMissionService).updateMission(1L, MissionStatus.INACTIVE, null)
+    }
+
+    @Test
+    fun `벌크 미션 상태 변경 테스트`() {
+
+        val postponedAt = LocalDate.now().plusDays(1)
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.ACTIVE),
+                MissionStatusChangeItem(id = 2L, missionStatus = MissionStatus.INACTIVE),
+                MissionStatusChangeItem(id = 3L, postponedAt = postponedAt)
+            )
+        )
+
+        val mission1 = MemberMission(id = 1L, memberId = 10L, missionId = 101L, memberInterestId = 1L, missionStatus = MissionStatus.ACTIVE, expEarned = 0)
+        val mission2 = MemberMission(id = 2L, memberId = 10L, missionId = 102L, memberInterestId = 1L, missionStatus = MissionStatus.INACTIVE, expEarned = 0)
+        val mission3 = MemberMission(id = 3L, memberId = 10L, missionId = 103L, memberInterestId = 1L, missionStatus = MissionStatus.READY, expEarned = 0, postponedAt = postponedAt)
+
+        whenever(memberMissionService.updateMission(1L, MissionStatus.ACTIVE, null)).thenReturn(mission1)
+        whenever(memberMissionService.updateMission(2L, MissionStatus.INACTIVE, null)).thenReturn(mission2)
+        whenever(memberMissionService.updateMission(3L, null, postponedAt)).thenReturn(mission3)
+
+        val result = useCase.missionChangeStatus(request)
+
+        assertNull(result)
+        verify(memberMissionService).updateMission(1L, MissionStatus.ACTIVE, null)
+        verify(memberMissionService).updateMission(2L, MissionStatus.INACTIVE, null)
+        verify(memberMissionService).updateMission(3L, null, postponedAt)
+    }
+
+    @Test
+    fun `미션 상태와 postponedAt 동시 변경 테스트`() {
+
+        val postponedAt = LocalDate.now().plusDays(2)
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.ACTIVE, postponedAt = postponedAt)
+            )
+        )
+
+        val missionEntity = MemberMission(
+            id = 1L,
+            memberId = 10L,
+            missionId = 99L,
+            memberInterestId = 1L,
+            missionStatus = MissionStatus.ACTIVE,
+            expEarned = 0,
+            postponedAt = postponedAt
+        )
+
+        whenever(memberMissionService.updateMission(1L, MissionStatus.ACTIVE, postponedAt))
+            .thenReturn(missionEntity)
+
+        val result = useCase.missionChangeStatus(request)
+
+        assertNull(result)
+        verify(memberMissionService).updateMission(1L, MissionStatus.ACTIVE, postponedAt)
     }
 
 }

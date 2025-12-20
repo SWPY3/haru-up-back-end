@@ -1,6 +1,5 @@
 package com.haruUp.missionembedding.dto
 
-import com.haruUp.interest.dto.InterestPathDto
 import io.swagger.v3.oas.annotations.media.Schema
 
 /**
@@ -11,18 +10,19 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 /**
  * 미션 추천 요청
+ *
+ * member_interest 테이블의 ID 목록을 받아서 해당 관심사들에 대한 미션 추천
+ * - 사전에 관심사가 등록되어 있어야 함 (/api/interests/member)
+ * - 각 관심사당 난이도 1~5 각각 1개씩, 총 5개의 미션이 추천됨
  */
 @Schema(description = "미션 추천 요청")
 data class MissionRecommendationRequest(
     @Schema(
-        description = "사용자가 선택한 관심사 목록 (대분류 > 중분류 > 소분류, 난이도 포함)",
-        example = """[
-            {"seqNo": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]},
-            {"seqNo": 2, "directFullPath": ["외국어 공부", "영어", "단어 학습"]}
-        ]""",
+        description = "멤버 관심사 ID 목록 (member_interest 테이블의 id)",
+        example = "[1, 2, 3]",
         required = true
     )
-    val interests: List<InterestPathDto>
+    val memberInterestIds: List<Long>
 )
 
 /**
@@ -42,8 +42,8 @@ data class MissionRecommendationResponse(
  */
 @Schema(description = "관심사별 미션 그룹")
 data class MissionGroupDto(
-    @Schema(description = "순번 (어떤 관심사에 대한 미션인지)", example = "1")
-    val seqNo: Int?,
+    @Schema(description = "멤버 관심사 번호", example = "1")
+    val memberInterestId: Int?,
 
     @Schema(description = "해당 관심사의 미션 목록")
     val data: List<MissionDto>
@@ -133,24 +133,4 @@ data class TodayMissionRecommendationRequest(
         required = true
     )
     val memberInterestId: Long
-)
-
-/**
- * 미션 선택 요청
- */
-@Schema(description = "미션 선택 요청")
-data class MissionSelectionRequest(
-    @Schema(
-        description = "선택한 미션 목록",
-        example = """[
-            {
-                "interestId": 97,
-                "directFullPath": ["직무 관련 역량 개발", "업무 능력 향상", "문서·기획·정리 스킬 향상(PPT·보고서)"],
-                "difficulty": 1,
-                "missionId": 123
-            }
-        ]""",
-        required = true
-    )
-    val missions: List<SelectedMissionDto>
 )

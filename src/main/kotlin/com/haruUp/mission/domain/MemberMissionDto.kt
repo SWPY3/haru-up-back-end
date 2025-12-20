@@ -1,6 +1,8 @@
 package com.haruUp.mission.domain
 
 import com.haruUp.global.common.BaseEntity
+import com.haruUp.missionembedding.dto.SelectedMissionDto
+import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -14,15 +16,13 @@ class MemberMissionDto (
 
     var memberInterestId: Long,
 
-    var isCompleted: Boolean = false,
-
     var missionStatus : MissionStatus = MissionStatus.ACTIVE,
-
-    var missionLevel : Int = 0,
 
     var expEarned : Int,
 
-    var targetDate : LocalDate = LocalDate.now()
+    var postponedAt : LocalDate? = null,
+
+    var targetDate: LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
 
@@ -31,11 +31,10 @@ class MemberMissionDto (
         memberId = this.memberId,
         missionId = this.missionId,
         memberInterestId = this.memberInterestId,
-        isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate,
-        missionLevel = this.missionLevel
+        postponedAt = this.postponedAt,
+        targetDate = this.targetDate
     )
 }
 
@@ -46,14 +45,66 @@ data class AiMissionResult(
 )
 
 data class MissionCandidateDto(
-    val embeddingMissionId: Long,
+    val memberMissionId: Long,
+    val missionStatus: MissionStatus,
     val content: String,
     val directFullPath: List<String>,  // 전체 경로 배열 ["대분류", "중분류", "소분류"]
     val difficulty: Int?,
+    val targetDate: LocalDate,
     val reason: String
 )
 
 data class MissionRecommendResult(
-    val generatedAt: LocalDateTime,
     val missions: List<MissionCandidateDto>
+)
+
+/**
+ * 개별 미션 상태 변경 항목
+ */
+data class MissionStatusChangeItem(
+    val id: Long,
+    val missionStatus: MissionStatus? = null,
+    val postponedAt: LocalDate? = null
+)
+
+/**
+ * 미션 상태 변경 벌크 요청 DTO
+ */
+data class MissionStatusChangeRequest(
+    val missions: List<MissionStatusChangeItem>
+)
+
+@Schema(description = "선택한 미션 정보")
+data class SelectedMemberMissionDto(
+    @Schema(
+        description = "멤버 관심사 ID (member_interest 테이블의 ID)",
+        example = "2",
+        required = true
+    )
+    val memberInterestId: Long,
+
+    @Schema(
+        description = "mission_embeddings 테이블의 ID",
+        example = "3",
+        required = true
+    )
+    val missionId: Long
+)
+
+/**
+ * 미션 선택 요청
+ */
+@Schema(description = "미션 선택 요청")
+data class MemberMissionSelectionRequest(
+    @Schema(
+        description = "선택한 미션 목록",
+        example = """[
+            {
+                "memberInterestId": 2,
+                "missionId": 3
+            }
+        ]""",
+        required = true
+    )
+    val missions: List<SelectedMemberMissionDto>
 )

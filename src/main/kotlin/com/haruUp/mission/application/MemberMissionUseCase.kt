@@ -9,6 +9,8 @@ import com.haruUp.member.domain.type.MemberStatus
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
+import com.haruUp.mission.domain.MissionStatusChangeItem
+import com.haruUp.mission.domain.MissionStatusChangeRequest
 import org.springframework.stereotype.Component
 
 @Component
@@ -25,48 +27,50 @@ class MemberMissionUseCase(
     }
 
     /**
-     * 미션 상태 변경(선택 / 완료 / 미루기 / 실패)
+     * 미션 상태 벌크 변경 (선택 / 완료 / 미루기 / 실패)
      */
-    fun missionChangeStatus(memberMissionDto: MemberMissionDto): MemberCharacterDto {
+    fun missionChangeStatus(request: MissionStatusChangeRequest): MemberCharacterDto? {
+        var lastCharacterDto: MemberCharacterDto? = null
 
-        return when (memberMissionDto.missionStatus) {
-
-            // 완료
-            MissionStatus.COMPLETED -> handleMissionCompleted(memberMissionDto)
-
-            // 선택
-            MissionStatus.ACTIVE -> {
-                memberMissionService.activeMission(memberMissionDto.toEntity()).toDto()
-                throw BusinessException(ErrorCode.NOT_FOUND, "미션을 찾을수 없습니다.")
+        for (item in request.missions) {
+            val result = processStatusChange(item)
+            if (result != null) {
+                lastCharacterDto = result
             }
-
-            // 미루기
-            MissionStatus.POSTPONED -> {
-                memberMissionService.postponeMission(memberMissionDto.toEntity()).toDto()
-                throw BusinessException(ErrorCode.NOT_FOUND, "미션을 찾을수 없습니다.")
-            }
-
-            // 삭제
-            MissionStatus.INACTIVE -> {
-                memberMissionService.failMission(memberMissionDto.toEntity()).toDto()
-                throw BusinessException(ErrorCode.NOT_FOUND, "미션을 찾을수 없습니다.")
-            }
-
-            else -> throw IllegalArgumentException("Invalid mission status: ${memberMissionDto.missionStatus}")
         }
+
+        return lastCharacterDto
+    }
+
+    /**
+     * 개별 미션 상태 변경 처리
+     */
+    private fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
+        // 둘 다 없으면 에러
+        if (item.missionStatus == null && item.postponedAt == null) {
+            throw IllegalArgumentException("missionStatus 또는 postponedAt 값이 필요합니다. (id: ${item.id})")
+        }
+
+        // COMPLETED 상태인 경우 경험치 처리 필요
+        if (item.missionStatus == MissionStatus.COMPLETED) {
+            return handleMissionCompleted(item.id, item.postponedAt)
+        }
+
+        // 그 외의 경우 (status 변경, postponedAt 변경, 또는 둘 다)
+        memberMissionService.updateMission(item.id, item.missionStatus, item.postponedAt)
+        return null
     }
 
 
     /**
      * 미션 완료 → 경험치 반영 → 레벨업 처리
      */
-    private fun handleMissionCompleted(dto: MemberMissionDto): MemberCharacterDto {
+    private fun handleMissionCompleted(missionId: Long, postponedAt: java.time.LocalDate? = null): MemberCharacterDto {
 
         // ----------------------------------------------------------------------
-        // 1) 미션 완료 처리
+        // 1) 미션 완료 처리 (postponedAt도 함께 변경 가능)
         // ----------------------------------------------------------------------
-        val missionCompleted = memberMissionService
-            .missionCompleted(dto.apply { this.isCompleted = true }.toEntity())
+        val missionCompleted = memberMissionService.updateMission(missionId, MissionStatus.COMPLETED, postponedAt)
 
         // ----------------------------------------------------------------------
         // 2) 선택된 캐릭터 조회

@@ -36,17 +36,15 @@ class MemberMission (
     @Column(name = "member_interest_id", nullable = false)
     val memberInterestId: Long,
 
-    @Column(name = "is_completed", nullable = false)
-    var isCompleted: Boolean = false,
-
     @Enumerated(EnumType.STRING)
     var missionStatus : MissionStatus = MissionStatus.READY,
 
-    var missionLevel : Int = 0,
-
     var expEarned : Int,
 
-    var targetDate : LocalDate = LocalDate.now()
+    var postponedAt : LocalDate? = null,
+
+    @Column(name = "target_date", nullable = false)
+    var targetDate: LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
 
@@ -55,11 +53,10 @@ class MemberMission (
         memberId = this.memberId,
         missionId = this.missionId,
         memberInterestId = this.memberInterestId,
-        isCompleted = this.isCompleted,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate,
-        missionLevel = this.missionLevel
+        postponedAt = this.postponedAt,
+        targetDate = this.targetDate
     )
 
 }

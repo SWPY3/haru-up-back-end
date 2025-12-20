@@ -3,7 +3,9 @@ package com.haruUp.mission.infrastructure
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MissionStatus
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -12,47 +14,38 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
     /** * 사용자의 모든 미션 조회 */
     fun findByMemberId(memberId: Long): List<MemberMission>
 
-    /* 오늘의 추천 미션 조회*/
+    /* 오늘의 추천 미션 조회 - mission_embeddings.difficulty 기준 */
     @Query(
         value = """
-            SELECT *
-            FROM member_mission
-            WHERE id IN (
+            SELECT mm.*
+            FROM member_mission mm
+            JOIN mission_embeddings me ON mm.mission_id = me.id
+            WHERE mm.id IN (
                 SELECT id FROM (
-                    SELECT 
+                    SELECT
                         m.id,
                         ROW_NUMBER() OVER (
-                            PARTITION BY m.mission_level
-                            ORDER BY 
-                                CASE WHEN m.mission_status = 'POSTPONED' THEN 0 ELSE 1 END
+                            PARTITION BY e.difficulty
+                            ORDER BY
+                                CASE WHEN m.postponed_at = CURRENT_DATE THEN 0 ELSE 1 END
                         ) AS rn
                     FROM member_mission m
+                    JOIN mission_embeddings e ON m.mission_id = e.id
                     WHERE m.member_id = :memberId
-                      AND m.is_completed = false
+                      AND m.mission_status <> 'COMPLETED'
                       AND (
-                            (m.mission_status = 'POSTPONED' AND m.create_at = CURRENT_DATE - INTERVAL '1 day')
+                            (m.postponed_at = CURRENT_DATE)
                             OR
-                            (m.mission_status = 'READY' AND m.create_at = CURRENT_DATE)
+                            (m.mission_status = 'READY' AND m.created_at = CURRENT_DATE AND m.postponed_at IS NULL)
                           )
                 ) sub
                 WHERE sub.rn = 1
             )
-            ORDER BY mission_level
+            ORDER BY me.difficulty
         """,
         nativeQuery = true
     )
     fun getTodayMissionsByMemberId(memberId: Long): List<MemberMission>
-
-    @Query("""
-    SELECT m.missionId
-    FROM MemberMission m
-    WHERE m.memberId = :memberId
-      AND m.targetDate = :targetDate
-    """)
-    fun findMissionIdsByMemberIdAndDate(
-        memberId: Long,
-        targetDate: LocalDate
-    ): List<Long>
 
     /**
      * 사용자의 ACTIVE 상태 미션 ID 목록 조회
@@ -68,4 +61,57 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
         memberId: Long,
         status: MissionStatus
     ): List<Long>
+
+    /**
+     * 특정 관심사의 READY 상태 미션을 soft delete 처리
+     * 새로운 미션 추천 시 해당 관심사의 기존 READY 상태 미션들만 삭제 처리
+     */
+    @Transactional
+    @Modifying
+    @Query("""
+    UPDATE MemberMission m
+    SET m.deleted = true, m.deletedAt = :deletedAt
+    WHERE m.memberId = :memberId
+      AND m.memberInterestId = :memberInterestId
+      AND m.missionStatus = :status
+      AND m.deleted = false
+    """)
+    fun softDeleteByMemberIdAndInterestIdAndStatus(
+        memberId: Long,
+        memberInterestId: Long,
+        status: MissionStatus,
+        deletedAt: LocalDateTime
+    ): Int
+
+    /**
+     * 오늘의 미션 조회
+     * - deleted = false
+     * - targetDate = 오늘
+     * - missionStatus IN (READY, ACTIVE)
+     * - 특정 memberInterestId
+     */
+    @Query("""
+    SELECT m FROM MemberMission m
+    WHERE m.memberId = :memberId
+      AND m.memberInterestId = :memberInterestId
+      AND m.deleted = false
+      AND m.targetDate = :targetDate
+      AND m.missionStatus IN :statuses
+    ORDER BY m.id
+    """)
+    fun findTodayMissions(
+        memberId: Long,
+        memberInterestId: Long,
+        targetDate: LocalDate,
+        statuses: List<MissionStatus>
+    ): List<MemberMission>
+
+    /**
+     * memberId, memberInterestId, missionId로 미션 조회 (deleted=false)
+     */
+    fun findByMemberIdAndMemberInterestIdAndMissionIdAndDeletedFalse(
+        memberId: Long,
+        memberInterestId: Long,
+        missionId: Long
+    ): MemberMission?
 }

@@ -1,19 +1,27 @@
 package com.haruUp.mission.application
 
-import com.haruUp.member.domain.type.MemberStatus
+import org.slf4j.LoggerFactory
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
+import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
+import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
+import com.haruUp.missionembedding.service.MissionEmbeddingService
+import kotlinx.coroutines.runBlocking
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
 class MemberMissionService(
-    private val memberMissionRepository: MemberMissionRepository
+    private val memberMissionRepository: MemberMissionRepository,
+    private val missionEmbeddingRepository: MissionEmbeddingRepository,
+    private val missionEmbeddingService: MissionEmbeddingService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     // 전체 미션 조회
     fun getAllMissions(memberId: Long): List<MemberMissionDto> {
@@ -22,41 +30,32 @@ class MemberMissionService(
             .toList()
     }
 
-    // 사용자 미션 선택
-    fun activeMission(mission: MemberMission): MemberMission {
-        return memberMissionRepository.save(mission)
-    }
+    /**
+     * 미션 상태 및 postponedAt 변경
+     * - status: 변경할 상태 (null이면 변경 안함)
+     * - postponedAt: 미루기 날짜 (null이면 변경 안함)
+     */
+    fun updateMission(missionId: Long, status: MissionStatus?, postponedAt: LocalDate?): MemberMission {
+        val stored = memberMissionRepository.findByIdOrNull(missionId)
+            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
-    // 미션 완료처리
-    fun missionCompleted(mission: MemberMission): MemberMission {
-
-        val stored = memberMissionRepository.findByIdOrNull(mission.id!!)
-            ?: throw IllegalArgumentException("Mission not found")
-
-        if (stored.isCompleted) {
-            return stored // 이미 완료 처리된 경우
+        // 상태 변경
+        if (status != null) {
+            // 이미 완료된 미션은 상태 변경 불가
+            if (stored.missionStatus == MissionStatus.COMPLETED && status != MissionStatus.COMPLETED) {
+                throw IllegalStateException("이미 완료된 미션은 상태를 변경할 수 없습니다.")
+            }
+            stored.missionStatus = status
         }
 
-        stored.isCompleted = true
-        stored.expEarned = mission.expEarned
+        // postponedAt 변경
+        if (postponedAt != null) {
+            stored.postponedAt = postponedAt
+        }
+
         stored.updatedAt = LocalDateTime.now()
 
         return memberMissionRepository.save(stored)
-    }
-
-    // 사용자가 미션을 미루기로 선택했을때
-    fun postponeMission(mission : MemberMission) : MemberMission{
-
-        // 새부 로직은 검토 필요
-
-        return memberMissionRepository.save(mission)
-    }
-
-    // 사용자가 미션을 포기 했을때
-    fun failMission(mission : MemberMission) : MemberMission {
-
-        // 새부 로직은 거모 필요
-        return memberMissionRepository.save(mission)
     }
 
 
@@ -68,7 +67,54 @@ class MemberMissionService(
        return memberMissionRepository.getTodayMissionsByMemberId(memberId)
     }
 
+    /**
+     * 사용자가 선택한 미션들을 ACTIVE 상태로 변경
+     *
+     * @param memberId 사용자 ID
+     * @param memberMissionSelectionRequest 미션 선택 요청
+     * @return 업데이트된 member_mission ID 목록
+     */
+    @Transactional
+    fun saveMissions(memberId: Long, memberMissionSelectionRequest: MemberMissionSelectionRequest): List<Long> {
+        val updatedMemberMissionIds = mutableListOf<Long>()
+        val today = LocalDate.now()
 
+        memberMissionSelectionRequest.missions.forEach { dto ->
 
+            // missionId가 mission_embeddings 테이블에 존재하는지 확인
+            if (!missionEmbeddingRepository.existsById(dto.missionId)) {
+                throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=${dto.missionId}")
+            }
 
+            runBlocking {
+                missionEmbeddingService.generateAndUpdateEmbedding(dto.missionId)
+            }
+
+            // memberId, memberInterestId, missionId로 기존 데이터 조회
+            val memberMission = memberMissionRepository.findByMemberIdAndMemberInterestIdAndMissionIdAndDeletedFalse(
+                memberId = memberId,
+                memberInterestId = dto.memberInterestId,
+                missionId = dto.missionId
+            )
+
+            if (memberMission == null) {
+                throw IllegalArgumentException(
+                    "등록된 미션을 찾을 수 없습니다: memberId=$memberId, memberInterestId=${dto.memberInterestId}, missionId=${dto.missionId}"
+                )
+            }
+
+            // missionStatus를 ACTIVE로, targetDate를 오늘로 변경
+            memberMission.missionStatus = MissionStatus.ACTIVE
+            memberMission.targetDate = today
+            memberMission.updatedAt = LocalDateTime.now()
+
+            val saved = memberMissionRepository.save(memberMission)
+            saved.id?.let { updatedMemberMissionIds.add(it) }
+            logger.info("미션 활성화 완료: memberId=$memberId, memberInterestId=${dto.memberInterestId}, missionId=${dto.missionId}")
+        }
+
+        logger.info("미션 선택 완료 - 업데이트된 개수: ${updatedMemberMissionIds.size}")
+
+        return updatedMemberMissionIds
+    }
 }
