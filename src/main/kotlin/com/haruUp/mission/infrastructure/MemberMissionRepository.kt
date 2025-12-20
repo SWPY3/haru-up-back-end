@@ -19,20 +19,20 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
             FROM member_mission
             WHERE id IN (
                 SELECT id FROM (
-                    SELECT 
+                    SELECT
                         m.id,
                         ROW_NUMBER() OVER (
                             PARTITION BY m.mission_level
-                            ORDER BY 
-                                CASE WHEN m.mission_status = 'POSTPONED' THEN 0 ELSE 1 END
+                            ORDER BY
+                                CASE WHEN m.postponed_at = CURRENT_DATE THEN 0 ELSE 1 END
                         ) AS rn
                     FROM member_mission m
                     WHERE m.member_id = :memberId
                       AND m.mission_status <> 'COMPLETED'
                       AND (
-                            (m.mission_status = 'POSTPONED' AND m.create_at = CURRENT_DATE - INTERVAL '1 day')
+                            (m.postponed_at = CURRENT_DATE)
                             OR
-                            (m.mission_status = 'READY' AND m.create_at = CURRENT_DATE)
+                            (m.mission_status = 'READY' AND m.create_at = CURRENT_DATE AND m.postponed_at IS NULL)
                           )
                 ) sub
                 WHERE sub.rn = 1

@@ -22,41 +22,32 @@ class MemberMissionService(
             .toList()
     }
 
-    // 사용자 미션 선택
-    fun activeMission(mission: MemberMission): MemberMission {
-        return memberMissionRepository.save(mission)
-    }
+    /**
+     * 미션 상태 및 postponedAt 변경
+     * - status: 변경할 상태 (null이면 변경 안함)
+     * - postponedAt: 미루기 날짜 (null이면 변경 안함)
+     */
+    fun updateMission(missionId: Long, status: MissionStatus?, postponedAt: LocalDate?): MemberMission {
+        val stored = memberMissionRepository.findByIdOrNull(missionId)
+            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
-    // 미션 완료처리
-    fun missionCompleted(mission: MemberMission): MemberMission {
-
-        val stored = memberMissionRepository.findByIdOrNull(mission.id!!)
-            ?: throw IllegalArgumentException("Mission not found")
-
-        if (stored.missionStatus == MissionStatus.COMPLETED) {
-            return stored // 이미 완료 처리된 경우
+        // 상태 변경
+        if (status != null) {
+            // 이미 완료된 미션은 상태 변경 불가
+            if (stored.missionStatus == MissionStatus.COMPLETED && status != MissionStatus.COMPLETED) {
+                throw IllegalStateException("이미 완료된 미션은 상태를 변경할 수 없습니다.")
+            }
+            stored.missionStatus = status
         }
 
-        stored.missionStatus = MissionStatus.COMPLETED
-        stored.expEarned = mission.expEarned
+        // postponedAt 변경
+        if (postponedAt != null) {
+            stored.postponedAt = postponedAt
+        }
+
         stored.updatedAt = LocalDateTime.now()
 
         return memberMissionRepository.save(stored)
-    }
-
-    // 사용자가 미션을 미루기로 선택했을때
-    fun postponeMission(mission : MemberMission) : MemberMission{
-
-        // 새부 로직은 검토 필요
-
-        return memberMissionRepository.save(mission)
-    }
-
-    // 사용자가 미션을 포기 했을때
-    fun failMission(mission : MemberMission) : MemberMission {
-
-        // 새부 로직은 거모 필요
-        return memberMissionRepository.save(mission)
     }
 
 

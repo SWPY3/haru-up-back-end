@@ -20,7 +20,9 @@ class MemberMissionDto (
 
     var expEarned : Int,
 
-    var targetDate : LocalDate = LocalDate.now()
+    var targetDate : LocalDate = LocalDate.now(),
+
+    var postponedAt : LocalDate? = null
 
 ) : BaseEntity() {
 
@@ -32,7 +34,8 @@ class MemberMissionDto (
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
         targetDate = this.targetDate,
-        missionLevel = this.missionLevel
+        missionLevel = this.missionLevel,
+        postponedAt = this.postponedAt
     )
 }
 
@@ -53,4 +56,20 @@ data class MissionCandidateDto(
 data class MissionRecommendResult(
     val generatedAt: LocalDateTime,
     val missions: List<MissionCandidateDto>
+)
+
+/**
+ * 개별 미션 상태 변경 항목
+ */
+data class MissionStatusChangeItem(
+    val id: Long,
+    val missionStatus: MissionStatus? = null,
+    val postponedAt: LocalDate? = null
+)
+
+/**
+ * 미션 상태 변경 벌크 요청 DTO
+ */
+data class MissionStatusChangeRequest(
+    val missions: List<MissionStatusChangeItem>
 )

@@ -43,7 +43,9 @@ class MemberMission (
 
     var expEarned : Int,
 
-    var targetDate : LocalDate = LocalDate.now()
+    var targetDate : LocalDate = LocalDate.now(),
+
+    var postponedAt : LocalDate? = null
 
 ) : BaseEntity() {
 
@@ -55,7 +57,8 @@ class MemberMission (
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
         targetDate = this.targetDate,
-        missionLevel = this.missionLevel
+        missionLevel = this.missionLevel,
+        postponedAt = this.postponedAt
     )
 
 }
