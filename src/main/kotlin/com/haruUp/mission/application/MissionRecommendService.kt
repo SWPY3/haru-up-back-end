@@ -12,12 +12,10 @@ import com.haruUp.mission.domain.MissionCandidateDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
-import org.springframework.transaction.annotation.Transactional
 import com.haruUp.mission.infrastructure.MissionAiClient
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.missionembedding.service.MissionRecommendationService
-import com.haruUp.missionembedding.service.TodayMissionCacheService
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
@@ -33,7 +31,6 @@ class MissionRecommendService(
     private val missionEmbeddingRepository: MissionEmbeddingRepository,
     private val missionAiClient: MissionAiClient,
     private val missionRecommendationService: MissionRecommendationService,
-    private val todayMissionCacheService: TodayMissionCacheService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberMissionRepository: MemberMissionRepository,
     private val jobRepository: JobRepository,
@@ -41,24 +38,47 @@ class MissionRecommendService(
     private val memberInterestRepository: MemberInterestJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
-
-    private val MAX_RETRY = 3
-    private val RECOMMEND_LIMIT = 5
+    private val TODAY_RETRY_TTL = Duration.ofHours(24)  // 24시간 후 자동 만료
 
     /**
-     * 오늘의 미션 추천 (캐시 우선)
+     * 오늘의 미션 추천 조회
+     *
+     * member_mission에서 조건에 맞는 미션 조회:
+     * - deleted = false
+     * - targetDate = 오늘
+     * - missionStatus IN (READY, ACTIVE)
      */
-    fun recommend(memberId: Long): MissionRecommendResult {
+    fun recommend(memberId: Long, memberInterestId: Long): MissionRecommendResult {
         val today = LocalDate.now()
-        val key = MissionRecommendRedisKey.recommend(memberId, today)
 
-        redisTemplate.opsForValue().get(key)?.let {
-            return objectMapper.readValue(it, MissionRecommendResult::class.java)
+        // member_mission에서 오늘의 미션 조회
+        val memberMissions = memberMissionRepository.findTodayMissions(
+            memberId = memberId,
+            memberInterestId = memberInterestId,
+            targetDate = today,
+            statuses = listOf(MissionStatus.READY, MissionStatus.ACTIVE)
+        )
+
+        logger.info("오늘의 미션 조회 - memberId: $memberId, memberInterestId: $memberInterestId, 결과: ${memberMissions.size}개")
+
+        // mission_embeddings에서 상세 정보 조회하여 MissionCandidateDto로 변환
+        val missions = memberMissions.mapNotNull { memberMission ->
+            missionEmbeddingRepository.findById(memberMission.missionId).orElse(null)?.let { embedding ->
+                MissionCandidateDto(
+                    memberMissionId = memberMission.id!!,
+                    missionStatus = memberMission.missionStatus,
+                    content = embedding.missionContent,
+                    directFullPath = embedding.directFullPath,
+                    difficulty = embedding.difficulty,
+                    targetDate = memberMission.targetDate,
+                    reason = "오늘의 미션"
+                )
+            }
         }
 
-        val result = generate(memberId)
-        cache(key, result)
-        return result
+        return MissionRecommendResult(
+            missions = missions
+        )
     }
 
     /**
@@ -118,7 +138,7 @@ class MissionRecommendService(
         )
         logger.info("ACTIVE 상태 미션 ID: $activeMissionIds")
 
-        val cachedMissionIds = todayMissionCacheService.getRecommendedMissionIds(
+        val cachedMissionIds = getRecommendedMissionIds(
             memberId = memberId,
             interestId = memberInterest.interestId
         )
@@ -167,7 +187,7 @@ class MissionRecommendService(
         // 6. 추천된 미션 ID를 Redis에 저장
         val recommendedMissionIds = missionDtos.mapNotNull { it.id }
         if (recommendedMissionIds.isNotEmpty()) {
-            todayMissionCacheService.saveRecommendedMissionIds(
+            saveRecommendedMissionIds(
                 memberId = memberId,
                 interestId = memberInterest.interestId,
                 missionIds = recommendedMissionIds
@@ -203,43 +223,6 @@ class MissionRecommendService(
     }
 
     /**
-     * 추천 생성 핵심 로직
-     */
-    private fun generate(memberId: Long): MissionRecommendResult {
-        // 1️⃣ 유저 임베딩 생성
-        val userEmbedding = missionAiClient.createUserEmbedding(memberId)
-
-        // 2️⃣ 벡터 유사도 기반 추천
-        // TODO: 사용자의 실제 관심사 경로로 변경 필요
-        val defaultDirectFullPath = "{LIFE}"  // PostgreSQL 배열 형식
-        val candidates =
-            missionEmbeddingRepository.findByVectorSimilarity(
-                embedding = userEmbedding,
-                directFullPath = defaultDirectFullPath,
-                difficulty = null,
-                limit = RECOMMEND_LIMIT * 2
-            )
-
-        // 3️⃣ DTO 변환
-        val missions = candidates
-            .take(RECOMMEND_LIMIT)
-            .map {
-                MissionCandidateDto(
-                    embeddingMissionId = it.id!!,
-                    content = it.missionContent,
-                    directFullPath = it.directFullPath,
-                    difficulty = it.difficulty,
-                    reason = "최근 관심사와 유사한 미션이에요"
-                )
-            }
-
-        return MissionRecommendResult(
-            generatedAt = LocalDateTime.now(),
-            missions = missions
-        )
-    }
-
-    /**
      * Redis 캐시
      */
     private fun cache(key: String, value: MissionRecommendResult) {
@@ -255,13 +238,57 @@ class MissionRecommendService(
         val midnight = now.toLocalDate().plusDays(1).atStartOfDay()
         return Duration.between(now, midnight).seconds
     }
+
+    /**
+     * 추천된 미션 ID 목록 저장
+     *
+     * @param memberId 사용자 ID
+     * @param interestId 관심사 ID
+     * @param missionIds 추천된 미션 ID 목록
+     */
+    fun saveRecommendedMissionIds(memberId: Long, interestId: Long, missionIds: List<Long>) {
+        val key = MissionRecommendRedisKey.retry(memberId, interestId, LocalDate.now())
+        try {
+            // 기존 값에 추가
+            val existingIds = getRecommendedMissionIds(memberId, interestId)
+            val allIds = (existingIds + missionIds).distinct()
+
+            // Set으로 저장
+            redisTemplate.delete(key)
+            if (allIds.isNotEmpty()) {
+                redisTemplate.opsForSet().add(key, *allIds.map { it.toString() }.toTypedArray())
+                redisTemplate.expire(key, TODAY_RETRY_TTL)
+            }
+
+            logger.info("추천 미션 ID 캐시 저장 - key: $key, ids: $allIds")
+        } catch (e: Exception) {
+            logger.error("추천 미션 ID 캐시 저장 실패 - key: $key, error: ${e.message}")
+        }
+    }
+
+    /**
+     * 추천된 미션 ID 목록 조회
+     *
+     * @param memberId 사용자 ID
+     * @param interestId 관심사 ID
+     * @return 이전에 추천된 미션 ID 목록
+     */
+    fun getRecommendedMissionIds(memberId: Long, interestId: Long): List<Long> {
+        val key = MissionRecommendRedisKey.retry(memberId, interestId, LocalDate.now())
+        return try {
+            val members = redisTemplate.opsForSet().members(key)
+            val ids = members?.mapNotNull { it.toString().toLongOrNull() } ?: emptyList()
+            logger.info("추천 미션 ID 캐시 조회 - key: $key, ids: $ids")
+            ids
+        } catch (e: Exception) {
+            logger.error("추천 미션 ID 캐시 조회 실패 - key: $key, error: ${e.message}")
+            emptyList()
+        }
+    }
 }
 
 
 object MissionRecommendRedisKey {
-    fun recommend(memberId: Long, date: LocalDate) =
-        "mission:recommend:$memberId:$date"
-
-    fun retry(memberId: Long, date: LocalDate) =
-        "mission:recommend:retry:$memberId:$date"
+    fun retry(memberId: Long, memberInterestId: Long, date: LocalDate) =
+        "today-mission:$memberId:$memberInterestId:$date"
 }

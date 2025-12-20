@@ -6,6 +6,7 @@ import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.mission.application.MemberMissionUseCase
 import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.MemberMissionDto
+import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.missionembedding.dto.TodayMissionRecommendationRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
@@ -87,6 +88,62 @@ class MemberMissionController(
         } catch (e: Exception) {
             logger.error("미션 상태 변경 실패: ${e.message}", e)
             ApiResponse(success = false, data = null, errorMessage = "서버 오류가 발생했습니다.")
+        }
+    }
+
+    /**
+     * 오늘의 미션 추천 API
+     *
+     * @param request 오늘의 미션 추천 요청 (memberInterestId)
+     * @return 추천된 미션 목록
+     */
+    @Operation(
+        summary = "오늘의 미션 추천",
+        description = """
+            오늘의 미션 추천 정보를 조회합니다.
+
+            **호출 예시:**
+            ```json
+            {
+              "memberInterestId": 1
+            }
+            ```
+        """
+    )
+    @PostMapping("/recommend")
+    fun recommendMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "오늘의 미션 추천 요청 정보",
+            required = true,
+            schema = Schema(implementation = TodayMissionRecommendationRequest::class)
+        )
+        @RequestBody request: TodayMissionRecommendationRequest
+    ): ResponseEntity<ApiResponse<MissionRecommendResult>> = runBlocking {
+        try {
+            val response = missionRecommendUseCase.recommendToday(
+                memberId = principal.id,
+                memberInterestId = request.memberInterestId
+            )
+            ResponseEntity.ok(ApiResponse.success(response))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "잘못된 요청입니다."
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
         }
     }
 

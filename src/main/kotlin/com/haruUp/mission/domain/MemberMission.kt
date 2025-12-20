@@ -41,7 +41,10 @@ class MemberMission (
 
     var expEarned : Int,
 
-    var postponedAt : LocalDate? = null
+    var postponedAt : LocalDate? = null,
+
+    @Column(name = "target_date", nullable = false)
+    var targetDate: LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
 
@@ -52,7 +55,8 @@ class MemberMission (
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        postponedAt = this.postponedAt
+        postponedAt = this.postponedAt,
+        targetDate = this.targetDate
     )
 
 }

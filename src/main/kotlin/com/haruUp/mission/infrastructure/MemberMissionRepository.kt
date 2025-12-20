@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
@@ -81,4 +82,27 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
         status: MissionStatus,
         deletedAt: LocalDateTime
     ): Int
+
+    /**
+     * 오늘의 미션 조회
+     * - deleted = false
+     * - targetDate = 오늘
+     * - missionStatus IN (READY, ACTIVE)
+     * - 특정 memberInterestId
+     */
+    @Query("""
+    SELECT m FROM MemberMission m
+    WHERE m.memberId = :memberId
+      AND m.memberInterestId = :memberInterestId
+      AND m.deleted = false
+      AND m.targetDate = :targetDate
+      AND m.missionStatus IN :statuses
+    ORDER BY m.id
+    """)
+    fun findTodayMissions(
+        memberId: Long,
+        memberInterestId: Long,
+        targetDate: LocalDate,
+        statuses: List<MissionStatus>
+    ): List<MemberMission>
 }

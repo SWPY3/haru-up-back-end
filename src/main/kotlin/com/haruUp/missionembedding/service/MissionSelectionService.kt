@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 
 /**
  * 미션 선택 서비스
@@ -86,7 +87,8 @@ class MissionSelectionService(
                     missionId = dto.missionId,
                     memberInterestId = memberInterestId,
                     missionStatus = MissionStatus.ACTIVE,
-                    expEarned = 0
+                    expEarned = 0,
+                    targetDate = LocalDate.now()
                 )
                 val saved = memberMissionRepository.save(memberMission)
                 saved.id?.let { savedMemberMissionIds.add(it) }

@@ -18,7 +18,9 @@ class MemberMissionDto (
 
     var expEarned : Int,
 
-    var postponedAt : LocalDate? = null
+    var postponedAt : LocalDate? = null,
+
+    var targetDate: LocalDate = LocalDate.now()
 
 ) : BaseEntity() {
 
@@ -29,7 +31,8 @@ class MemberMissionDto (
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        postponedAt = this.postponedAt
+        postponedAt = this.postponedAt,
+        targetDate = this.targetDate
     )
 }
 
@@ -40,15 +43,16 @@ data class AiMissionResult(
 )
 
 data class MissionCandidateDto(
-    val embeddingMissionId: Long,
+    val memberMissionId: Long,
+    val missionStatus: MissionStatus,
     val content: String,
     val directFullPath: List<String>,  // 전체 경로 배열 ["대분류", "중분류", "소분류"]
     val difficulty: Int?,
+    val targetDate: LocalDate,
     val reason: String
 )
 
 data class MissionRecommendResult(
-    val generatedAt: LocalDateTime,
     val missions: List<MissionCandidateDto>
 )
 

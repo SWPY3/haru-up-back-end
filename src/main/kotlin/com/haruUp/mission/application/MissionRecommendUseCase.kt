@@ -10,10 +10,12 @@ class MissionRecommendUseCase(
 ) {
 
     /**
-     * 오늘의 미션 추천
+     * 오늘의 미션 추천 (memberInterestId 기반)
+     *
+     * 사용자 프로필과 관심사 정보를 기반으로 미션 추천된 미션 보여주기
      */
-    fun recommendToday(memberId: Long): MissionRecommendResult {
-        return missionRecommendService.recommend(memberId)
+    suspend fun recommendToday(memberId: Long, memberInterestId: Long): MissionRecommendResult {
+        return missionRecommendService.recommend(memberId, memberInterestId)
     }
 
     /**
