@@ -1,8 +1,11 @@
 package com.haruUp.global.security
 
 import com.haruUp.member.application.service.MemberService
+import jakarta.servlet.DispatcherType
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
+import org.springframework.http.HttpMethod
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
@@ -13,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 
 /**
  * Spring Security 전역 설정 클래스.
@@ -60,6 +64,7 @@ class SecurityConfig(
     fun jwtAuthenticationFilter(): JwtAuthenticationFilter =
         JwtAuthenticationFilter(jwtTokenProvider, memberService)
 
+
     /**
      * HTTP 보안 설정의 핵심.
      *
@@ -71,44 +76,45 @@ class SecurityConfig(
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            // 1) CSRF 설정
-            //    - 주로 브라우저 기반 폼 로그인에서 사용되는 CSRF 보호 기능
-            //    - REST API + JWT 조합에서는 보통 사용하지 않으므로 disable
-            .csrf { csrf ->
-                csrf.disable()
+            .csrf { it.disable() }
+
+            // ✅ CORS 활성화 (중요)
+            .cors { }
+
+            .sessionManagement {
+                it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
 
-            // 2) 세션 정책 설정
-            //    - STATELESS: 서버가 HTTP 세션을 생성/유지하지 않음
-            //    - 매 요청마다 클라이언트가 Access Token(JWT)을 보내서 인증
-            .sessionManagement { session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            }
-
-            // 3) URL 별 인가(Authorization) 규칙 설정
             .authorizeHttpRequests { auth ->
                 auth
-                    // 3-1) 로그인/회원가입/토큰 재발급 등 인증 없이 접근 가능한 경로
+                    // 🔥 CORS preflight 통과
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                    // 🔥 SSE 비동기 디스패치 허용
+                    .dispatcherTypeMatchers(
+                        DispatcherType.ASYNC,
+                        DispatcherType.ERROR
+                    ).permitAll()
+
+                    // SSE 엔드포인트는 인증 필요
+                    .requestMatchers("/api/member/curation/**").authenticated()
+
                     .requestMatchers(
-                        "/api/member/auth/**",  // Auth 관련 엔드포인트는 모두 허용
-                        "/v3/api-docs/**",      // Swagger/OpenAPI 문서
+                        "/api/member/auth/**",
+                        "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/actuator/prometheus/**"
                     ).permitAll()
-                    // 3-2) 위에서 명시한 경로를 제외한 나머지 모든 요청은 인증 필요
+
                     .anyRequest().authenticated()
             }
 
-            // 4) 필터 체인에 커스텀 JWT 필터 추가
-            //    - UsernamePasswordAuthenticationFilter 실행 "이전"에 JWT 필터가 동작하도록 설정
-            //    - 즉, 폼 로그인 인증 전에 JWT 인증을 먼저 시도
             .addFilterBefore(
                 jwtAuthenticationFilter(),
                 UsernamePasswordAuthenticationFilter::class.java
             )
 
-        // 5) 최종적으로 구성된 SecurityFilterChain 을 반환
         return http.build()
     }
 }

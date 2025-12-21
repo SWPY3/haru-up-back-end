@@ -1,0 +1,81 @@
+### ============================================
+### 환경 설정
+### ============================================
+#@host = 223.130.141.179
+@host = localhost
+@port = 8080
+@baseUrl = http://{{host}}:{{port}}
+
+### ============================================
+### 1. SNS 로그인 (신규 or 기존)
+### ============================================
+# @name snsLogin
+POST {{baseUrl}}/api/member/auth/sns-login
+Content-Type: application/json
+
+{
+  "loginType": "KAKAO",
+  "snsId": "SNhello112hello112S_E2E_002",
+  "email": "",
+  "name": ""
+}
+
+> {%
+    const data = response.body.data;
+
+    client.global.set("accessToken", data.accessToken);
+    client.global.set("refreshToken", data.refreshToken);
+    client.global.set("memberId", String(data.id));
+
+    console.log("=== SNS 로그인 성공 ===");
+    console.log("memberId =", data.id);
+%}
+
+### ============================================
+### 2. 초기 큐레이션 실행 (SSE)
+### ============================================
+# @name initialCuration
+POST {{baseUrl}}/api/member/curation/initial
+Accept: text/event-stream
+Content-Type: application/json
+jwt-token: {{accessToken}}
+
+{
+  "characterId": 1,
+  "nickname": "테스트",
+  "birthDt": "1995-07-30",
+  "gender": "MALE",
+  "jobId": 1,
+  "jobDetailId": 1
+}
+
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwibmFtZSI6IiIsInR5cGUiOiJBQ0NFU1MiLCJpYXQiOjE3NjYwNjA0NDAsImV4cCI6MTc3NDcwMDQ0MH0.tFvwkE5Ul_YtpHve51KiioMfymqPwz2yWq82oHHs-6Q
+
+###
+ curl -N  \
+  -H "Accept: text/event-stream"  \
+  -H "jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwibmFtZSI6IiIsInR5cGUiOiJBQ0NFU1MiLCJpYXQiOjE3NjU5Njg3MDQsImV4cCI6MTc3NDYwODcwNH0.k08C52Aa-W1a3CzyI355Rq9a0Q4nbvJFQq3Mi8nogeI" \
+  -X POST http://localhost:8080/api/member/curation/initial \
+  -d '{\
+    "characterId":1,\
+    "nickname":"테스트",\
+    "birthDt":"1995-07-30",\
+    "gender":"MALE",\
+    "jobId":1,\
+    "jobDetailId":1\
+  }'
+POST http://localhost:8080/api/member/curation/initial
+Accept: text/event-stream
+jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwibmFtZSI6IiIsInR5cGUiOiJBQ0NFU1MiLCJpYXQiOjE3NjU5Njg3MDQsImV4cCI6MTc3NDYwODcwNH0.k08C52Aa-W1a3CzyI355Rq9a0Q4nbvJFQq3Mi8nogeI
+Content-Type: application/x-www-form-urlencoded
+
+{
+    "characterId":1,
+    "nickname":"테스트",
+    "birthDt":"1995-07-30",
+    "gender":"MALE",
+    "jobId":1,
+    "jobDetailId":1
+  }
+
+###

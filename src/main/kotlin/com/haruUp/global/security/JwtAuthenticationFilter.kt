@@ -1,6 +1,7 @@
 package com.haruUp.global.security
 
 import com.haruUp.member.application.service.MemberService
+import jakarta.servlet.DispatcherType
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -128,46 +129,52 @@ class JwtAuthenticationFilter(
         filterChain.doFilter(request, response)
     }
 
-
     /**
-     * HTTP 요청 헤더에서 JWT 토큰을 꺼내는 역할
+     * HTTP 요청에서 JWT 토큰을 꺼낸다.
      *
-     * 우선 표준 Authorization 헤더(Bearer 토큰)를 보고,
-     * 없으면 기존 호환을 위해 "jwt-token" 헤더도 허용.
+     * 우선순위:
+     * 1. Authorization: Bearer xxx
+     * 2. legacy "jwt-token" 헤더
+     * 3. SSE/EventSource용 query parameter (?token=xxx)
      */
     private fun resolveToken(request: HttpServletRequest): String? {
-        // 요청 기본 정보
         log.info("resolveToken - {} {}", request.method, request.requestURI)
 
-        // 1) 표준 Authorization 헤더
+        // 1) Authorization 헤더
         val bearer = request.getHeader("Authorization")
         log.info("resolveToken - Authorization header = {}", bearer)
 
         if (!bearer.isNullOrBlank() && bearer.startsWith("Bearer ", ignoreCase = true)) {
             val token = bearer.substring(7)
-            // 토큰 전체는 말고 앞부분만
-            log.info(
-                "resolveToken - Bearer token found, prefix = {}...",
-                token.take(15)
-            )
+            log.info("resolveToken - Bearer token found, prefix = {}...", token.take(15))
             return token
         }
 
-        // 2) legacy "jwt-token" 헤더
+        // 2) legacy jwt-token 헤더
         val legacy = request.getHeader("jwt-token")
         log.info("resolveToken - jwt-token header = {}", legacy)
 
         if (!legacy.isNullOrBlank()) {
-            log.info(
-                "resolveToken - using legacy jwt-token header, prefix = {}...",
-                legacy.take(15)
-            )
+            log.info("resolveToken - using legacy jwt-token header, prefix = {}...", legacy.take(15))
             return legacy
         }
 
-        // 3) 둘 다 없으면
-        log.warn("resolveToken - no token found in Authorization or jwt-token header")
+        // 3) 🔥 SSE / EventSource 전용: query parameter
+        val queryToken = request.getParameter("token")
+        log.info("resolveToken - query token = {}", queryToken?.take(15))
+
+        if (!queryToken.isNullOrBlank()) {
+            log.info("resolveToken - using query token, prefix = {}...", queryToken.take(15))
+            return queryToken
+        }
+
+        log.warn("resolveToken - no JWT token found in header or query parameter")
         return null
+    }
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        return request.method == "OPTIONS"
+                || request.dispatcherType == DispatcherType.ASYNC
     }
 
 }

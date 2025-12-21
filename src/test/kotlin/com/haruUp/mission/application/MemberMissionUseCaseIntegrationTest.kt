@@ -55,7 +55,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         // Given
         val mission = missionRepo.save(
             MemberMission(
-                memberId = 10L,
+                memberId = 1L,
                 missionId = 99L,
                 memberInterestId = 1L,
                 expEarned = 250,
@@ -91,7 +91,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         // Given
         val mission = missionRepo.save(
             MemberMission(
-                memberId = 10L,
+                memberId = 1L,
                 missionId = 100L,
                 memberInterestId = 1L,
                 expEarned = 120,   // 100 → 레벨업, 20 잔여

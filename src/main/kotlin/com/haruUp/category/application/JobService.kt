@@ -15,4 +15,11 @@ class JobService (
             .map { job -> job.toDto()  }
             .toList()
     }
+
+    fun getJob(jobId: Long): JobDto {
+        val job = jobRepository.findById(jobId)
+            .orElseThrow { IllegalArgumentException("존재하지 않는 Job ID: $jobId") }
+
+        return job.toDto()
+    }
 }

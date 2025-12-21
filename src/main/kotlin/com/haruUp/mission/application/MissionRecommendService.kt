@@ -216,7 +216,7 @@ class MissionRecommendService(
     /**
      * 생년월일로부터 나이 계산
      */
-    private fun calculateAge(birthDt: LocalDateTime): Int {
+     fun calculateAge(birthDt: LocalDateTime): Int {
         val birthDate = birthDt.toLocalDate()
         val now = LocalDateTime.now().toLocalDate()
         return Period.between(birthDate, now).years
@@ -225,7 +225,7 @@ class MissionRecommendService(
     /**
      * Redis 캐시
      */
-    private fun cache(key: String, value: MissionRecommendResult) {
+     fun cache(key: String, value: MissionRecommendResult) {
         redisTemplate.opsForValue().set(
             key,
             objectMapper.writeValueAsString(value),
@@ -233,7 +233,7 @@ class MissionRecommendService(
         )
     }
 
-    private fun secondsUntilMidnight(): Long {
+     fun secondsUntilMidnight(): Long {
         val now = LocalDateTime.now()
         val midnight = now.toLocalDate().plusDays(1).atStartOfDay()
         return Duration.between(now, midnight).seconds

@@ -15,6 +15,7 @@ class MemberCharacterService(
     private val memberCharacterRepository: MemberCharacterRepository
 ) {
 
+    @Transactional
     fun createInitial(memberId: Long, characterId: Long, levelId: Long): MemberCharacter {
 
         val mc = MemberCharacter(
@@ -26,6 +27,7 @@ class MemberCharacterService(
         return memberCharacterRepository.save(mc)
     }
 
+    @Transactional
     fun getSelectedCharacter(memberId: Long): MemberCharacter? {
         return memberCharacterRepository.findByMemberId(memberId)
     }
