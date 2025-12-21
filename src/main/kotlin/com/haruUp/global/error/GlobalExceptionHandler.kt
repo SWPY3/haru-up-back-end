@@ -12,7 +12,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException::class)
-    fun handleBusinessException(ex: BusinessException): ResponseEntity<ApiResponse<Nothing>> {
+    fun handleBusinessException(
+        ex: BusinessException,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        // 🔥 SSE 요청은 GlobalExceptionHandler에서 처리하지 않음
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex
+        }
+
         val status = when (ex.errorCode) {
             ErrorCode.UNAUTHORIZED -> HttpStatus.UNAUTHORIZED
             ErrorCode.FORBIDDEN -> HttpStatus.FORBIDDEN
@@ -22,15 +31,26 @@ class GlobalExceptionHandler {
             else -> HttpStatus.BAD_REQUEST
         }
 
-        val body = ApiResponse.failure<Nothing>( ex.message)
+        val body = ApiResponse.failure<Nothing>(ex.message)
         return ResponseEntity.status(status).body(body)
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class, BindException::class)
-    fun handleValidationExceptions(ex: Exception): ResponseEntity<ApiResponse<Nothing>> {
+    fun handleValidationExceptions(
+        ex: Exception,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        // 🔥 SSE 요청 제외
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex
+        }
+
         val errorMessage = when (ex) {
-            is MethodArgumentNotValidException -> ex.bindingResult.allErrors.joinToString(", ") { it.defaultMessage ?: "Invalid input" }
-            is BindException -> ex.bindingResult.allErrors.joinToString(", ") { it.defaultMessage ?: "Invalid input" }
+            is MethodArgumentNotValidException ->
+                ex.bindingResult.allErrors.joinToString(", ") { it.defaultMessage ?: "Invalid input" }
+            is BindException ->
+                ex.bindingResult.allErrors.joinToString(", ") { it.defaultMessage ?: "Invalid input" }
             else -> "Invalid input"
         }
 
@@ -39,7 +59,16 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception::class)
-    fun handleException(ex: Exception): ResponseEntity<ApiResponse<Nothing>> {
+    fun handleException(
+        ex: Exception,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        // ⭐ 가장 중요한 부분
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex   // ← SSE는 컨트롤러/Emitter에서 처리
+        }
+
         val body = ApiResponse.failure<Nothing>(ErrorCode.INTERNAL_SERVER_ERROR.message)
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body)
     }

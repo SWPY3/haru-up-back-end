@@ -26,7 +26,8 @@ class ApiLoggingFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        if (shouldSkip(request)) {
+        // 🔥 SSE 요청은 절대 감싸지 말 것
+        if (isSseRequest(request) || shouldSkip(request)) {
             filterChain.doFilter(request, response)
             return
         }
@@ -43,6 +44,11 @@ class ApiLoggingFilter(
             logApiCall(wrappedRequest, wrappedResponse, duration)
             wrappedResponse.copyBodyToResponse()
         }
+    }
+
+    private fun isSseRequest(request: HttpServletRequest): Boolean {
+        return request.getHeader("Accept") == "text/event-stream" ||
+                request.requestURI.startsWith("/api/member/curation")
     }
 
     private fun shouldSkip(request: HttpServletRequest): Boolean {
@@ -105,10 +111,8 @@ class ApiLoggingFilter(
     private fun parseJsonOrTruncate(body: String, maxLength: Int = 5000): Any {
         if (body.isBlank()) return ""
         return try {
-            // JSON 파싱 성공 시 객체 그대로 반환 (truncate 안 함)
             objectMapper.readTree(body)
         } catch (e: Exception) {
-            // JSON 아니면 문자열로 truncate
             if (body.length > maxLength) {
                 body.take(maxLength) + "...(truncated)"
             } else body

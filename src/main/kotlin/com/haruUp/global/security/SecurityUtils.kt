@@ -1,5 +1,6 @@
 package com.haruUp.global.security
 
+import jakarta.annotation.PostConstruct
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
@@ -14,4 +15,13 @@ class SecurityUtils {
             principal.id
         } else null
     }
+
+
+    @PostConstruct
+    fun enableSecurityContextPropagation() {
+        SecurityContextHolder.setStrategyName(
+            SecurityContextHolder.MODE_INHERITABLETHREADLOCAL
+        )
+    }
+
 }

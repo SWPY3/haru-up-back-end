@@ -71,7 +71,9 @@ interest:
 
 server:
   port: 8080
-
+  compression:
+    enabled: true
+    mime-types: application/json
 # Swagger UI 설정
 springdoc:
   swagger-ui:

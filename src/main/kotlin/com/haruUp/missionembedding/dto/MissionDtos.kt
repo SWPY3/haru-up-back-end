@@ -22,7 +22,7 @@ data class MissionRecommendationRequest(
         example = "[1, 2, 3]",
         required = true
     )
-    val memberInterestIds: List<Long>
+    var memberInterestIds: List<Long>
 )
 
 /**

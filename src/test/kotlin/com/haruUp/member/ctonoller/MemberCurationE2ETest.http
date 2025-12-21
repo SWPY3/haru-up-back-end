@@ -1,5 +1,5 @@
 ### 환경 설정 (필요하면 포트/URL만 수정)
-@host = localhost
+@host = 223.130.141.179
 @port = 8080
 @baseUrl = http://{{host}}:{{port}}
 
@@ -10,7 +10,7 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNS_E2E_002",
+  "snsId": "SNhello112hello112S_E2E_002",
   "email": "",
   "name": ""
 }
@@ -146,3 +146,35 @@ jwt-token: {{refreshToken}}
 {
     "id" : 2
 }
+
+
+
+###
+# curl --no-buffer -N
+#  -H "Accept: text/event-stream"
+#  -H "Content-Type: application/json"
+#  -H "jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwibmFtZSI6IiIsInR5cGUiOiJBQ0NFU1MiLCJpYXQiOjE3NjU5Njg3MDQsImV4cCI6MTc3NDYwODcwNH0.k08C52Aa-W1a3CzyI355Rq9a0Q4nbvJFQq3Mi8nogeI"
+#  http://localhost:8080/api/member/curation/initial
+#  -d '{
+#    "characterId": 1,
+#    "nickname": "테스트",
+#    "birthDt": "1995-07-30",
+#    "gender": "MALE",
+#    "jobId": 1,
+#    "jobDetailId": 1
+#  }'
+POST http://localhost:8080/api/member/curation/initial
+Accept: text/event-stream
+jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwibmFtZSI6IiIsInR5cGUiOiJBQ0NFU1MiLCJpYXQiOjE3NjU5Njg3MDQsImV4cCI6MTc3NDYwODcwNH0.k08C52Aa-W1a3CzyI355Rq9a0Q4nbvJFQq3Mi8nogeI
+Content-Type: application/json
+
+{
+  "characterId": 1,
+  "nickname": "테스트",
+  "birthDt": "1995-07-30",
+  "gender": "MALE",
+  "jobId": 1,
+  "jobDetailId": 1
+}
+
+###
