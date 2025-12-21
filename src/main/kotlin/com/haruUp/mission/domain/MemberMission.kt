@@ -41,8 +41,6 @@ class MemberMission (
 
     var expEarned : Int,
 
-    var postponedAt : LocalDate? = null,
-
     @Column(name = "target_date", nullable = false)
     var targetDate: LocalDate = LocalDate.now()
 
@@ -55,7 +53,6 @@ class MemberMission (
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        postponedAt = this.postponedAt,
         targetDate = this.targetDate
     )
 
