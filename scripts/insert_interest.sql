@@ -79,7 +79,7 @@ CROSS JOIN (VALUES
     ('국가자격'),
     ('어학 자격 능력'),
     ('기술 분야'),
-    ('AI 툴 사용역량 강화'),
+    ('AI 사용역량 강화'),
     ('이직 준비')
 ) v(name)
 WHERE m.name = '자격증 공부' AND m.level = 'MAIN';

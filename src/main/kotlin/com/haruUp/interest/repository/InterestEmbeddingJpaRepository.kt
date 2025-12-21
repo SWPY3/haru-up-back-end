@@ -254,7 +254,7 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
     @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.createdSource = :createdSource AND e.parentId = :parentId AND e.isActivated = :isActivated")
     fun findByCreatedSourceAndParentIdAndIsActivated(
         @Param("createdSource") createdSource: String,
-        @Param("parentId") parentId: String,
+        @Param("parentId") parentId: Long,
         @Param("isActivated") isActivated: Boolean
     ): List<InterestEmbeddingEntity>
 

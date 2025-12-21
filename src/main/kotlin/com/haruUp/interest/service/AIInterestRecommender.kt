@@ -2,7 +2,6 @@ package com.haruUp.interest.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.haruUp.interest.entity.InterestEmbeddingEntity
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.model.InterestPath
@@ -176,7 +175,7 @@ class AIInterestRecommender(
             val jsonResponse = objectMapper.readValue<AIRecommendationResponse>(response.trim())
 
             jsonResponse.interest.mapNotNull { name ->
-                var parentId: String? = null
+                var parentId: Long? = null
 
                 // 부모 경로 리스트 생성
                 var parentPathList: List<String>? = null
@@ -207,7 +206,7 @@ class AIInterestRecommender(
                     // parentPathList로부터 parentId 조회
                     parentPathList?.let { pPathList ->
                         embeddingRepository.findIdByFullPath(listToPostgresArray(pPathList))?.let { id ->
-                            parentId = id.toString()
+                            parentId = id
                         }
                     }
                 }

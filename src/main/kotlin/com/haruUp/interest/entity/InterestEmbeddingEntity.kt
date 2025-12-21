@@ -41,7 +41,7 @@ class InterestEmbeddingEntity(
     val fullPath: List<String>,
 
     @Column(name = "parent_id")
-    val parentId: String? = null,
+    val parentId: Long? = null,
 
     /**
      * 임베딩 벡터 (pgvector type)

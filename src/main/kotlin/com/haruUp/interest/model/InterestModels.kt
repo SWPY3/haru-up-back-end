@@ -26,7 +26,7 @@ data class InterestNode(
     val id: String,                          // 고유 ID
     var name: String,                        // 관심사 이름
     val level: InterestLevel,                // 계층 레벨
-    val parentId: String? = null,            // 부모 ID
+    val parentId: Long? = null,            // 부모 ID
     val fullPath: List<String>,              // 전체 경로 배열 (예: ["운동", "헬스", "가슴 운동"])
     var isEmbedded: Boolean = false,         // 임베딩 여부
     val isUserGenerated: Boolean = false,    // 사용자가 직접 입력했는지

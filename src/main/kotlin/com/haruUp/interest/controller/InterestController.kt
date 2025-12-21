@@ -2,19 +2,13 @@ package com.haruUp.interest.controller
 
 import com.haruUp.interest.dto.*
 
-import java.security.Principal
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.service.HybridInterestRecommendationService
-import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -270,7 +264,7 @@ class InterestController(
                 // parentId가 있으면 해당 부모 ID의 자식 조회
                 interestEmbeddingRepository.findByCreatedSourceAndParentIdAndIsActivated(
                     createdSource = "SYSTEM",
-                    parentId = parentId.toString(),
+                    parentId = parentId,
                     isActivated = true
                 )
             }
@@ -278,7 +272,7 @@ class InterestController(
             val interests = entities.map { interest ->
                 InterestDataDto(
                     id = interest.id!!,
-                    parentId = interest.parentId?.toLongOrNull(),
+                    parentId = interest.parentId,
                     level = interest.level.name,
                     name = interest.name,
                     usageCount = interest.usageCount

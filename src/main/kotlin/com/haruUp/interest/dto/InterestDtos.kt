@@ -1,6 +1,5 @@
 package com.haruUp.interest.dto
 
-import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.model.InterestNode
 import com.haruUp.interest.model.InterestPath
 import io.swagger.v3.oas.annotations.media.Schema
@@ -152,7 +151,7 @@ data class InterestNodeDto(
     val level: String,
 
     @Schema(description = "부모 관심사 ID", example = "1")
-    val parentId: String? = null,
+    val parentId: Long? = null,
 
     @Schema(description = "임베딩 여부 (RAG 데이터 존재)", example = "true")
     val isEmbedded: Boolean,
@@ -247,7 +246,7 @@ data class MemberInterestDto(
     val level: String,
 
     @Schema(description = "부모 관심사 ID", example = "1")
-    val parentId: String? = null,
+    val parentId: Long? = null,
 
     @Schema(description = "전체 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\"]")
     val fullPath: List<String>,
