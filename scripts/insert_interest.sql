@@ -19,7 +19,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'MIDDLE',
-    m.id::text,
+    m.id,
     ARRAY[m.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings m
@@ -36,7 +36,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'MIDDLE',
-    m.id::text,
+    m.id,
     ARRAY[m.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings m
@@ -53,7 +53,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'MIDDLE',
-    m.id::text,
+    m.id,
     ARRAY[m.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings m
@@ -70,7 +70,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'MIDDLE',
-    m.id::text,
+    m.id,
     ARRAY[m.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings m
@@ -89,7 +89,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'MIDDLE',
-    m.id::text,
+    m.id,
     ARRAY[m.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings m
@@ -106,7 +106,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -123,7 +123,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -140,7 +140,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -157,7 +157,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -175,7 +175,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -193,7 +193,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -211,7 +211,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -228,7 +228,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -246,7 +246,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -264,7 +264,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -282,7 +282,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -300,7 +300,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -318,7 +318,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -333,7 +333,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -351,7 +351,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -369,7 +369,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -387,7 +387,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -403,7 +403,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -419,7 +419,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -437,7 +437,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
@@ -453,7 +453,7 @@ INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, u
 SELECT
     v.name,
     'SUB',
-    mid.id::text,
+    mid.id,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
