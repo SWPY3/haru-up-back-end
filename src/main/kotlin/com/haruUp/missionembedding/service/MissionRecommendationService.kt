@@ -66,7 +66,8 @@ class MissionRecommendationService(
                 // MissionDto 리스트 생성
                 val missionDtos = missions.map { mission ->
                     MissionDto(
-                        id = mission.id,
+                        member_mission_id = null,
+                        mission_id = mission.id,
                         content = mission.content,
                         relatedInterest = mission.relatedInterest,
                         difficulty = mission.difficulty,
@@ -107,29 +108,31 @@ class MissionRecommendationService(
      *
      * @param interestPath 관심사 경로
      * @param memberProfile 멤버 프로필 (직업, 직업상세, 성별, 나이 포함)
-     * @param difficulty 난이도 (1~5, 선택)
+     * @param difficulties 추천할 난이도 목록 (1~5), null이면 전체 난이도 추천
      * @param excludeIds 제외할 미션 ID 목록
      * @return 미션 목록 (MissionDto 리스트)
      */
     suspend fun recommendTodayMissions(
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile,
-        difficulty: Int?,
+        difficulties: List<Int>? = null,
         excludeIds: List<Long> = emptyList()
     ): List<MissionDto> {
-        logger.info("오늘의 미션 추천 시작 - 관심사: ${interestPath.toPathString()}, 난이도: $difficulty, 제외 ID 개수: ${excludeIds.size}")
+        val targetDifficulties = difficulties ?: listOf(1, 2, 3, 4, 5)
+        logger.info("오늘의 미션 추천 시작 - 관심사: ${interestPath.toPathString()}, 난이도: $targetDifficulties, 제외 ID 개수: ${excludeIds.size}")
 
         try {
             val missions = recommendTodayMissionsInternal(
                 interestPath = interestPath,
                 memberProfile = memberProfile,
-                difficulty = difficulty,
+                difficulties = targetDifficulties,
                 excludeIds = excludeIds
             )
 
             val missionDtos = missions.map { mission ->
                 MissionDto(
-                    id = mission.id,
+                    member_mission_id = null,
+                    mission_id = mission.id,
                     content = mission.content,
                     relatedInterest = mission.relatedInterest,
                     difficulty = mission.difficulty,
@@ -154,29 +157,26 @@ class MissionRecommendationService(
     private suspend fun recommendTodayMissionsInternal(
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile,
-        difficulty: Int?,
+        difficulties: List<Int>,
         excludeIds: List<Long> = emptyList()
     ): List<Mission> {
         val interestPathString = interestPath.toPathString()
 
-        logger.info("오늘의 미션 LLM 생성 시작: $interestPathString, difficulty=$difficulty, excludeIds=${excludeIds.size}개")
+        logger.info("오늘의 미션 LLM 생성 시작: $interestPathString, difficulties=$difficulties, excludeIds=${excludeIds.size}개")
 
         // LLM으로 미션 생성
         val aiMissions = generateTodayMissionsWithAI(
             interestPath = interestPath,
             memberProfile = memberProfile,
-            difficulty = difficulty,
-            count = TARGET_MISSION_COUNT,
+            difficulties = difficulties,
             excludeIds = excludeIds
         )
 
         // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
         // relatedInterest는 LLM 응답이 아닌 실제 interestPath 사용
-        // difficulty는 LLM이 생성한 값 사용 (파라미터가 null인 경우)
         val actualInterestPath = interestPath.toPathList()
         val missionsWithId = aiMissions.mapNotNull { mission ->
-            // LLM이 생성한 difficulty 또는 파라미터로 받은 difficulty 사용
-            val missionDifficulty = mission.difficulty ?: difficulty
+            val missionDifficulty = mission.difficulty
             try {
                 val savedEntity = missionEmbeddingService.saveMissionWithoutEmbedding(
                     directFullPath = actualInterestPath,
@@ -201,19 +201,19 @@ class MissionRecommendationService(
         }
 
         logger.info("오늘의 미션 LLM 생성 완료: ${missionsWithId.size}개")
-        return missionsWithId.take(TARGET_MISSION_COUNT)
+        return missionsWithId.take(difficulties.size)
     }
 
     /**
      * 오늘의 미션용 AI 미션 생성
      *
      * LLM을 호출하여 미션 생성, excludeIds가 있으면 해당 미션 제외
+     * @param difficulties 추천할 난이도 목록 (예: [1, 2, 3] 또는 [2, 4, 5])
      */
     private suspend fun generateTodayMissionsWithAI(
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile,
-        difficulty: Int?,
-        count: Int,
+        difficulties: List<Int>,
         excludeIds: List<Long> = emptyList()
     ): List<Mission> {
         val userInterests = UserInterests(listOf(interestPath))
@@ -229,7 +229,7 @@ class MissionRecommendationService(
             val excludeMissions = missionEmbeddingService.findByIds(excludeIds)
             logger.info("제외할 미션 조회 결과: ${excludeMissions.size}개")
             if (excludeMissions.isNotEmpty()) {
-                val missionList = excludeMissions.mapIndexed { index, entity ->
+                val missionList = excludeMissions.mapIndexed { _, entity ->
                     "- ${entity.missionContent}"
                 }.joinToString("\n")
                 logger.info("제외할 미션 내용:\n$missionList")
@@ -257,12 +257,17 @@ $missionList
             } else ""
         } else ""
 
-        val userMessage = if (difficulty == null) {
-            """
+        // 난이도별 JSON 응답 형식 생성
+        val difficultyJsonExamples = difficulties.joinToString(",\n    ") { diff ->
+            """{"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": $diff}"""
+        }
+
+        val difficultyListStr = difficulties.joinToString(", ")
+        val userMessage = """
 $basePrompt
 
 ===== 생성 요청 =====
-난이도 1, 2, 3, 4, 5 각각 1개씩, 총 5개의 새로운 미션을 생성하세요.
+난이도 $difficultyListStr 각각 1개씩, 총 ${difficulties.size}개의 새로운 미션을 생성하세요.
 $excludeMissionsText
 ===== 난이도 기준 =====
 - 난이도 1 (매우 쉬움): 5-10분 소요, 누구나 쉽게 할 수 있는 작은 목표
@@ -287,49 +292,18 @@ $excludeMissionsText
 응답하기 전에 다음을 반드시 확인하세요:
 [ ] 각 미션이 <EXCLUDED_MISSIONS> 목록과 중복되지 않는가?
 [ ] 각 미션이 목록의 미션과 유사한 의미를 가지지 않는가?
-[ ] 5개 미션이 모두 서로 다른 새로운 활동인가?
+[ ] ${difficulties.size}개 미션이 모두 서로 다른 새로운 활동인가?
+[ ] 요청된 난이도($difficultyListStr)만 생성했는가?
 
 ===== 응답 형식 (JSON) =====
 ```json
 {
   "missions": [
-    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 1},
-    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 2},
-    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 3},
-    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 4},
-    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 5}
+    $difficultyJsonExamples
   ]
 }
 ```
-            """.trim()
-        } else {
-            val difficultyDescription = getDifficultyDescription(difficulty)
-            """
-$basePrompt
-
-**생성할 미션 개수: $count 개**
-$excludeMissionsText
-**난이도 요구사항:**
-$difficultyDescription
-
-**중요: 미션 형식 요구사항**
-반드시 검증 가능한 정량적 수치를 포함해주세요. 모호하거나 측정하기 어려운 표현은 피해주세요.
-
-**올바른 예시 (구체적이고 측정 가능):**
-- "주 3회 30분 운동하기" (O)
-- "하루 단백질 100g 섭취하기" (O)
-- "하루 10개 영단어 암기하기" (O)
-- "5km 달리기" (O)
-
-**잘못된 예시 (모호하고 측정 불가):**
-- "단백질 섭취량 챙겨먹기" (X - 몇 g인지 불명확)
-- "충분한 운동하기" (X - 얼마나?)
-- "열심히 공부하기" (X - 시간/분량 불명확)
-
-반드시 횟수, 시간, 개수, 거리, 그램(g), 페이지 등 구체적인 수치를 포함해주세요.
-난이도에 맞는 명확하고 측정 가능한 미션을 추천해주세요.
-            """.trim()
-        }
+        """.trim()
 
         logger.debug("오늘의 미션 Clova API 호출: $userMessage")
 
@@ -341,7 +315,7 @@ $difficultyDescription
 
         logger.debug("오늘의 미션 Clova API 응답: $response")
 
-        return parseMissionResponse(response).take(count)
+        return parseMissionResponse(response).take(difficulties.size)
     }
 
     /**

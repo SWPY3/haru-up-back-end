@@ -255,7 +255,8 @@ class MemberMissionController(
         try {
             val response = missionRecommendUseCase.retryRecommend(
                 memberId = principal.id,
-                memberInterestId = request.memberInterestId
+                memberInterestId = request.memberInterestId,
+                excludeMemberMissionIds = request.excludeMemberMissionIds
             )
             ResponseEntity.ok(ApiResponse.success(response))
         } catch (e: IllegalArgumentException) {

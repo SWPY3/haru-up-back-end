@@ -194,7 +194,7 @@ class MemberCurationUseCase(
                     memberMissionRepository.save(
                         MemberMission(
                             memberId = memberId,
-                            missionId = mission.id!!,
+                            missionId = mission.mission_id!!,
                             memberInterestId = it.toLong(),
                             missionStatus = MissionStatus.READY,
                             expEarned = 0

@@ -54,8 +54,11 @@ data class MissionGroupDto(
  */
 @Schema(description = "미션 정보")
 data class MissionDto(
+    @Schema(description = "member_mission 테이블 ID", example = "123")
+    val member_mission_id: Long?,
+
     @Schema(description = "mission_embeddings 테이블 ID", example = "123")
-    val id: Long?,
+    val mission_id: Long?,
 
     @Schema(description = "미션 내용", example = "주 3회 가슴 운동 루틴 완수하기")
     val content: String,
@@ -132,5 +135,12 @@ data class TodayMissionRecommendationRequest(
         example = "1",
         required = true
     )
-    val memberInterestId: Long
+    val memberInterestId: Long,
+
+    @Schema(
+        description = "제외할 member_mission ID 목록 (해당 미션의 난이도는 재추천에서 제외됨)",
+        example = "[1, 2, 3]",
+        required = false
+    )
+    val excludeMemberMissionIds: List<Long>? = null
 )
