@@ -85,13 +85,20 @@ class MissionRecommendService(
      * 재추천 (memberInterestId 기반)
      *
      * 사용자 프로필과 관심사 정보를 기반으로 미션 재추천
-     * - ACTIVE 상태인 기존 미션 자동 제외
-     * - Redis에 저장된 이전 추천 미션 자동 제외
+     * - excludeMemberMissionIds에 해당하는 미션의 난이도는 제외하고 추천
+     * - 제외된 미션은 soft delete 하지 않고 유지
+     * - 재추천된 미션만 READY 상태로 저장
      * - 추천된 미션 ID는 Redis에 캐싱 (24시간)
      * - reset_mission_count 카운트 증가
+     *
+     * @param excludeMemberMissionIds 제외할 member_mission ID 목록 (해당 난이도는 재추천에서 제외)
      */
-    suspend fun retryWithInterest(memberId: Long, memberInterestId: Long): MissionRecommendationResponse {
-        logger.info("오늘의 미션 재추천 요청 - 사용자: $memberId, memberInterestId: $memberInterestId")
+    suspend fun retryWithInterest(
+        memberId: Long,
+        memberInterestId: Long,
+        excludeMemberMissionIds: List<Long>? = null
+    ): MissionRecommendationResponse {
+        logger.info("오늘의 미션 재추천 요청 - 사용자: $memberId, memberInterestId: $memberInterestId, excludeMemberMissionIds: $excludeMemberMissionIds")
 
         // 1. DB에서 사용자 프로필 조회
         val memberProfileEntity = memberProfileRepository.findByMemberId(memberId)
@@ -131,7 +138,37 @@ class MissionRecommendService(
 
         logger.info("관심사 경로: ${interestPath.toPathString()}")
 
-        // 4. 제외할 미션 ID 수집
+        // 4. 제외할 난이도 조회 (excludeMemberMissionIds에 해당하는 미션들의 난이도)
+        val excludeDifficulties = if (!excludeMemberMissionIds.isNullOrEmpty()) {
+            val excludedMemberMissions = memberMissionRepository.findAllById(excludeMemberMissionIds)
+            val missionIds = excludedMemberMissions.map { it.missionId }
+            val difficulties = missionEmbeddingRepository.findAllById(missionIds)
+                .mapNotNull { it.difficulty }
+                .distinct()
+            logger.info("제외할 난이도: $difficulties (member_mission_ids: $excludeMemberMissionIds)")
+            difficulties
+        } else {
+            emptyList()
+        }
+
+        // 5. 추천할 난이도 결정 (1~5 중 제외할 난이도를 뺀 나머지)
+        val targetDifficulties = (1..5).filter { it !in excludeDifficulties }
+        logger.info("추천할 난이도: $targetDifficulties")
+
+        if (targetDifficulties.isEmpty()) {
+            logger.info("추천할 난이도가 없습니다. 빈 응답 반환")
+            return MissionRecommendationResponse(
+                missions = listOf(
+                    com.haruUp.missionembedding.dto.MissionGroupDto(
+                        memberInterestId = memberInterestId.toInt(),
+                        data = emptyList()
+                    )
+                ),
+                totalCount = 0
+            )
+        }
+
+        // 6. 제외할 미션 ID 수집 (ACTIVE 상태 + Redis 캐시)
         val activeMissionIds = memberMissionRepository.findMissionIdsByMemberIdAndStatus(
             memberId = memberId,
             status = MissionStatus.ACTIVE
@@ -147,26 +184,40 @@ class MissionRecommendService(
         val excludeIds = (activeMissionIds + cachedMissionIds).distinct()
         logger.info("제외할 미션 ID 총합: ${excludeIds.size}개")
 
-        // 5. 미션 추천 (난이도 1~5 각각 1개씩)
+        // 7. 미션 추천 (targetDifficulties에 해당하는 난이도만)
         val missionDtos = missionRecommendationService.recommendTodayMissions(
             interestPath = interestPath,
             memberProfile = missionMemberProfile,
-            difficulty = null,
+            difficulties = targetDifficulties,
             excludeIds = excludeIds
         )
 
-        // 5-1. 해당 관심사의 기존 READY 상태 member_mission soft delete
-        val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatus(
-            memberId = memberId,
-            memberInterestId = memberInterestId,
-            status = MissionStatus.READY,
-            deletedAt = LocalDateTime.now()
-        )
-        logger.info("기존 READY 상태 미션 soft delete 완료 (memberInterestId: $memberInterestId): ${deletedCount}개")
+        // 8. 제외된 미션을 제외한 기존 READY 상태 member_mission soft delete
+        val excludeMemberMissionIdSet = excludeMemberMissionIds?.toSet() ?: emptySet()
+        if (excludeMemberMissionIdSet.isEmpty()) {
+            // 제외할 미션이 없으면 기존처럼 전체 READY 상태 soft delete
+            val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatus(
+                memberId = memberId,
+                memberInterestId = memberInterestId,
+                status = MissionStatus.READY,
+                deletedAt = LocalDateTime.now()
+            )
+            logger.info("기존 READY 상태 미션 soft delete 완료 (memberInterestId: $memberInterestId): ${deletedCount}개")
+        } else {
+            // 제외할 미션을 제외하고 나머지 READY 상태만 soft delete
+            val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatusExcludingIds(
+                memberId = memberId,
+                memberInterestId = memberInterestId,
+                status = MissionStatus.READY,
+                excludeIds = excludeMemberMissionIdSet.toList(),
+                deletedAt = LocalDateTime.now()
+            )
+            logger.info("기존 READY 상태 미션 soft delete 완료 (제외: $excludeMemberMissionIdSet): ${deletedCount}개")
+        }
 
-        // 5-2. 추천된 미션들을 member_mission에 READY 상태로 저장
+        // 9. 추천된 미션들을 member_mission에 READY 상태로 저장
         val savedMemberMissions = missionDtos.mapNotNull { missionDto ->
-            missionDto.id?.let { missionId ->
+            missionDto.mission_id?.let { missionId ->
                 try {
                     val memberMission = MemberMission(
                         memberId = memberId,
@@ -184,8 +235,8 @@ class MissionRecommendService(
         }
         logger.info("member_mission READY 상태로 저장 완료: ${savedMemberMissions.size}개")
 
-        // 6. 추천된 미션 ID를 Redis에 저장
-        val recommendedMissionIds = missionDtos.mapNotNull { it.id }
+        // 10. 추천된 미션 ID를 Redis에 저장
+        val recommendedMissionIds = missionDtos.mapNotNull { it.mission_id }
         if (recommendedMissionIds.isNotEmpty()) {
             saveRecommendedMissionIds(
                 memberId = memberId,
@@ -194,22 +245,34 @@ class MissionRecommendService(
             )
         }
 
-        // 7. reset_mission_count 증가
+        // 11. reset_mission_count 증가
         memberInterest.incrementResetMissionCount()
         memberInterestRepository.save(memberInterest)
         logger.info("reset_mission_count 증가: ${memberInterest.resetMissionCount}")
 
-        // 8. 응답 생성
+        // 12. 응답 생성 - savedMemberMissions의 member_mission_id를 매핑
+        val missionIdToMemberMissionId = savedMemberMissions.associateBy({ it.missionId }, { it.id })
+        val missionDtosWithMemberMissionId = missionDtos.map { dto ->
+            com.haruUp.missionembedding.dto.MissionDto(
+                member_mission_id = dto.mission_id?.let { missionIdToMemberMissionId[it] },
+                mission_id = dto.mission_id,
+                content = dto.content,
+                relatedInterest = dto.relatedInterest,
+                difficulty = dto.difficulty,
+                createdType = dto.createdType
+            )
+        }
+
         val missionGroup = com.haruUp.missionembedding.dto.MissionGroupDto(
-            memberInterestId = 1,
-            data = missionDtos
+            memberInterestId = memberInterestId.toInt(),
+            data = missionDtosWithMemberMissionId
         )
 
-        logger.info("오늘의 미션 재추천 성공: ${missionDtos.size}개")
+        logger.info("오늘의 미션 재추천 성공: ${missionDtosWithMemberMissionId.size}개")
 
         return MissionRecommendationResponse(
             missions = listOf(missionGroup),
-            totalCount = missionDtos.size
+            totalCount = missionDtosWithMemberMissionId.size
         )
     }
 

@@ -179,7 +179,7 @@ class MissionembeddingController(
 
                 // 추천된 미션들을 member_mission에 READY 상태로 저장
                 for (missionDto in missionGroup.data) {
-                    val missionId = missionDto.id ?: continue
+                    val missionId = missionDto.mission_id ?: continue
                     try {
                         val memberMission = MemberMission(
                             memberId = principal.id,

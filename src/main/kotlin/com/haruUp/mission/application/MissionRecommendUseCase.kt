@@ -24,9 +24,14 @@ class MissionRecommendUseCase(
      * 오늘의 미션 재추천 (memberInterestId 기반)
      *
      * 사용자 프로필과 관심사 정보를 기반으로 미션 재추천
+     * @param excludeMemberMissionIds 제외할 member_mission ID 목록 (해당 난이도는 재추천에서 제외)
      */
-    suspend fun retryRecommend(memberId: Long, memberInterestId: Long): MissionRecommendationResponse {
-        return missionRecommendService.retryWithInterest(memberId, memberInterestId)
+    suspend fun retryRecommend(
+        memberId: Long,
+        memberInterestId: Long,
+        excludeMemberMissionIds: List<Long>? = null
+    ): MissionRecommendationResponse {
+        return missionRecommendService.retryWithInterest(memberId, memberInterestId, excludeMemberMissionIds)
     }
 
     fun memberMissionSelection(memberId: Long, memberMissionSelectionRequest: MemberMissionSelectionRequest): List<Long>{

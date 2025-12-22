@@ -84,6 +84,28 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
     ): Int
 
     /**
+     * 특정 ID를 제외하고 soft delete
+     */
+    @Transactional
+    @Modifying
+    @Query("""
+    UPDATE MemberMission m
+    SET m.deleted = true, m.deletedAt = :deletedAt
+    WHERE m.memberId = :memberId
+      AND m.memberInterestId = :memberInterestId
+      AND m.missionStatus = :status
+      AND m.deleted = false
+      AND m.id NOT IN :excludeIds
+    """)
+    fun softDeleteByMemberIdAndInterestIdAndStatusExcludingIds(
+        memberId: Long,
+        memberInterestId: Long,
+        status: MissionStatus,
+        excludeIds: List<Long>,
+        deletedAt: LocalDateTime
+    ): Int
+
+    /**
      * 오늘의 미션 조회
      * - deleted = false
      * - targetDate = 오늘
