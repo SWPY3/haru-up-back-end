@@ -22,8 +22,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @Tag(name = "멤버 미션 API", description = "멤버 미션 관리 및 추천")
@@ -74,7 +76,7 @@ class MemberMissionController(
             ```
         """
     )
-    @PostMapping("/status")
+    @PutMapping("/status")
     fun changeMissionStatus(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @RequestBody request: MissionStatusChangeRequest
@@ -175,27 +177,24 @@ class MemberMissionController(
             오늘의 미션 추천 정보를 조회합니다.
 
             **호출 예시:**
-            ```json
-            {
-              "memberInterestId": 1
-            }
+            ```
+            GET /api/member/mission/recommend?memberInterestId=1
             ```
         """
     )
-    @PostMapping("/recommend")
+    @GetMapping("/recommend")
     fun recommendMissions(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
-            description = "오늘의 미션 추천 요청 정보",
-            required = true,
-            schema = Schema(implementation = TodayMissionRecommendationRequest::class)
+            description = "멤버 관심사 ID",
+            required = true
         )
-        @RequestBody request: TodayMissionRecommendationRequest
+        @RequestParam memberInterestId: Long
     ): ResponseEntity<ApiResponse<MissionRecommendResult>> = runBlocking {
         try {
             val response = missionRecommendUseCase.recommendToday(
                 memberId = principal.id,
-                memberInterestId = request.memberInterestId
+                memberInterestId = memberInterestId
             )
             ResponseEntity.ok(ApiResponse.success(response))
         } catch (e: IllegalArgumentException) {
