@@ -104,7 +104,7 @@ class MissionRecommendService(
         excludeMemberMissionIds: List<Long>? = null
     ): MissionRecommendationResponse {
         if (getRetryCount(memberId) >= 5) {
-            throw IllegalStateException("재추천 횟수 초과: 최대 5회까지 가능합니다.")
+            throw IllegalArgumentException("재추천 횟수 초과: 최대 5회까지 가능합니다.")
         }
 
         // 1. DB에서 사용자 프로필 조회
@@ -554,6 +554,24 @@ class MissionRecommendService(
         } catch (e: Exception) {
             logger.error("재추천 횟수 조회 실패 - key: $key, error: ${e.message}")
             0L
+        }
+    }
+
+    /**
+     * 재추천 횟수 초기화
+     *
+     * @param memberId 사용자 ID
+     * @return 초기화 성공 여부
+     */
+    fun resetRetryCount(memberId: Long): Boolean {
+        val key = MissionRecommendRedisKey.retryCount(memberId)
+        return try {
+            val deleted = redisTemplate.delete(key)
+            logger.info("재추천 횟수 초기화 - memberId: $memberId, deleted: $deleted")
+            deleted
+        } catch (e: Exception) {
+            logger.error("재추천 횟수 초기화 실패 - key: $key, error: ${e.message}")
+            false
         }
     }
 }

@@ -76,4 +76,14 @@ class MissionRecommendUseCase(
             missionRecommendService.retryWithInterest(memberId, memberInterestId, excludeMemberMissionIds)
         }
     }
+
+    /**
+     * 재추천 횟수 초기화
+     *
+     * @param memberId 멤버 ID
+     * @return 초기화 성공 여부
+     */
+    fun resetRetryCount(memberId: Long): Boolean {
+        return missionRecommendService.resetRetryCount(memberId)
+    }
 }
