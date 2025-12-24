@@ -84,7 +84,7 @@ data class InterestRecommendationRequest(
             - MIDDLE 추천: [{"interestId": 1, "directFullPath": ["체력관리 및 운동"]}, {"interestId": 2, "directFullPath": ["외국어 공부"]}]
             - SUB 추천: [{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}, {"interestId": 2, "directFullPath": ["외국어 공부", "영어"]}]
         """,
-        example = """[{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}, {"interestId": 2, "directFullPath": ["외국어 공부", "영어"]}]""",
+        example = """[{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]""",
         required = false
     )
     val category: List<InterestsDto> = emptyList(),
@@ -157,7 +157,7 @@ data class InterestsDto(
     val interestId: Long,
 
     @Schema(
-        description = "전체 경로 배열 [대분류, 중분류, 소분류] (directFullPath 사용 시 mainCategory, middleCategory, subCategory 무시)",
+        description = "전체 경로 배열 [대분류, 중분류, 소분류]",
         example = """["체력관리 및 운동", "헬스", "근력 키우기"]""",
         required = true
     )
@@ -198,7 +198,7 @@ data class MemberInterestDto(
     @Schema(description = "부모 관심사 ID", example = "1")
     val parentId: String? = null,
 
-    @Schema(description = "전체 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\"]")
+    @Schema(description = "전체 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
     val fullPath: List<String>,
 
     @Schema(description = "사용 횟수", example = "15")

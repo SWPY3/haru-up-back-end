@@ -243,7 +243,8 @@ class MemberMissionController(
             **호출 예시:**
             ```json
             {
-              "memberInterestId": 1
+              "memberInterestId": 1,
+              "excludeMemberMissionIds": [10, 11, 12]
             }
             ```
         """
