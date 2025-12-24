@@ -41,6 +41,7 @@ class ApiLoggingFilter(
             filterChain.doFilter(wrappedRequest, wrappedResponse)
         } finally {
             val duration = System.currentTimeMillis() - startTime
+            wrappedResponse.setHeader("X-Response-Time", "${duration}ms")
             logApiCall(wrappedRequest, wrappedResponse, duration)
             wrappedResponse.copyBodyToResponse()
         }
