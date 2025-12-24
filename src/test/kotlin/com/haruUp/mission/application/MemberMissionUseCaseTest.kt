@@ -7,7 +7,7 @@ import com.haruUp.character.domain.MemberCharacter
 import com.haruUp.character.domain.dto.MemberCharacterDto
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
-import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
@@ -50,11 +50,11 @@ class MemberMissionUseCaseUnitTest {
         // -----------------------------------------
         val request = MissionStatusChangeRequest(
             missions = listOf(
-                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.COMPLETED)
+                MissionStatusChangeItem(memberMissionId = 1L, missionStatus = MissionStatus.COMPLETED)
             )
         )
 
-        val missionEntity = MemberMission(
+        val missionEntity = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
@@ -63,7 +63,7 @@ class MemberMissionUseCaseUnitTest {
             expEarned = 250
         )
 
-        whenever(memberMissionService.updateMission(1L, MissionStatus.COMPLETED, null)).thenReturn(missionEntity)
+        whenever(memberMissionService.updateMission(1L, MissionStatus.COMPLETED)).thenReturn(missionEntity)
 
         // 캐릭터 현재 상태
         val mc = MemberCharacter(
@@ -115,7 +115,7 @@ class MemberMissionUseCaseUnitTest {
         assertEquals(250, result.totalExp)
         assertEquals(50, result.currentExp)
 
-        verify(memberMissionService).updateMission(1L, MissionStatus.COMPLETED, null)
+        verify(memberMissionService).updateMission(1L, MissionStatus.COMPLETED)
         verify(memberCharacterService).getSelectedCharacter(10L)
         verify(levelService).getById(1L)
         verify(levelService, times(3)).getNextLevel(any())
@@ -127,7 +127,7 @@ class MemberMissionUseCaseUnitTest {
         // given
         val memberId = 10L
 
-        val mission1 = MemberMission(
+        val mission1 = MemberMissionEntity(
             id = 1L,
             memberId = memberId,
             missionId = 101L,
@@ -136,7 +136,7 @@ class MemberMissionUseCaseUnitTest {
             missionStatus = MissionStatus.ACTIVE
         )
 
-        val mission2 = MemberMission(
+        val mission2 = MemberMissionEntity(
             id = 2L,
             memberId = memberId,
             missionId = 102L,
@@ -164,11 +164,11 @@ class MemberMissionUseCaseUnitTest {
 
         val request = MissionStatusChangeRequest(
             missions = listOf(
-                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.ACTIVE)
+                MissionStatusChangeItem(memberMissionId = 1L, missionStatus = MissionStatus.ACTIVE)
             )
         )
 
-        val missionEntity = MemberMission(
+        val missionEntity = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
@@ -177,13 +177,13 @@ class MemberMissionUseCaseUnitTest {
             expEarned = 0
         )
 
-        whenever(memberMissionService.updateMission(1L, MissionStatus.ACTIVE, null))
+        whenever(memberMissionService.updateMission(1L, MissionStatus.ACTIVE))
             .thenReturn(missionEntity)
 
         val result = useCase.missionChangeStatus(request)
 
         assertNull(result)
-        verify(memberMissionService).updateMission(1L, MissionStatus.ACTIVE, null)
+        verify(memberMissionService).updateMission(1L, MissionStatus.ACTIVE)
     }
 
     @Test
@@ -191,11 +191,11 @@ class MemberMissionUseCaseUnitTest {
 
         val request = MissionStatusChangeRequest(
             missions = listOf(
-                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.POSTPONED)
+                MissionStatusChangeItem(memberMissionId = 1L, missionStatus = MissionStatus.POSTPONED)
             )
         )
 
-        val postponedMission = MemberMission(
+        val postponedMission = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
@@ -219,11 +219,11 @@ class MemberMissionUseCaseUnitTest {
 
         val request = MissionStatusChangeRequest(
             missions = listOf(
-                MissionStatusChangeItem(id = 1L, missionStatus = MissionStatus.INACTIVE)
+                MissionStatusChangeItem(memberMissionId = 1L, missionStatus = MissionStatus.INACTIVE)
             )
         )
 
-        val missionEntity = MemberMission(
+        val missionEntity = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
             missionId = 99L,
@@ -232,12 +232,12 @@ class MemberMissionUseCaseUnitTest {
             expEarned = 0
         )
 
-        whenever(memberMissionService.updateMission(1L, MissionStatus.INACTIVE, null))
+        whenever(memberMissionService.updateMission(1L, MissionStatus.INACTIVE))
             .thenReturn(missionEntity)
 
         val result = useCase.missionChangeStatus(request)
 
         assertNull(result)
-        verify(memberMissionService).updateMission(1L, MissionStatus.INACTIVE, null)
+        verify(memberMissionService).updateMission(1L, MissionStatus.INACTIVE)
     }
 }

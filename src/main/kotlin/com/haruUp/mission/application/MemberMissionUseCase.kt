@@ -6,7 +6,7 @@ import com.haruUp.character.domain.dto.MemberCharacterDto
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
 import com.haruUp.member.domain.type.MemberStatus
-import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
@@ -20,9 +20,14 @@ class MemberMissionUseCase(
     private val levelService: LevelService
 ) {
 
+    // 전체 미션 조회 (삭제되지 않은 것만)
+    fun getMemberMissions(memberId: Long): List<MemberMissionDto> {
+        return memberMissionService.getAllMissions(memberId)
+    }
+
     // 오늘의 미션 조회
     fun missionTodayList(memberId: Long): List<MemberMissionDto> {
-        val memberMissions: List<MemberMission> = memberMissionService.getTodayMissionsByMemberId(memberId)
+        val memberMissions: List<MemberMissionEntity> = memberMissionService.getTodayMissionsByMemberId(memberId)
         return memberMissions.map { it.toDto() }
     }
 
@@ -48,16 +53,16 @@ class MemberMissionUseCase(
     private fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
         // COMPLETED 상태인 경우 경험치 처리 필요
         if (item.missionStatus == MissionStatus.COMPLETED) {
-            return handleMissionCompleted(item.id)
+            return handleMissionCompleted(item.memberMissionId)
         }
 
         if (item.missionStatus == MissionStatus.POSTPONED) {
-            memberMissionService.handleMissionPostponed(item.id)
+            memberMissionService.handleMissionPostponed(item.memberMissionId)
             return null
         }
 
         // 그 외의 경우 (status 변경)
-        memberMissionService.updateMission(item.id, item.missionStatus)
+        memberMissionService.updateMission(item.memberMissionId, item.missionStatus)
         return null
     }
 
@@ -65,12 +70,12 @@ class MemberMissionUseCase(
     /**
      * 미션 완료 → 경험치 반영 → 레벨업 처리
      */
-    private fun handleMissionCompleted(missionId: Long): MemberCharacterDto {
+    private fun handleMissionCompleted(memberMissionId: Long): MemberCharacterDto {
 
         // ----------------------------------------------------------------------
         // 1) 미션 완료 처리
         // ----------------------------------------------------------------------
-        val missionCompleted = memberMissionService.updateMission(missionId, MissionStatus.COMPLETED)
+        val missionCompleted = memberMissionService.updateMission(memberMissionId, MissionStatus.COMPLETED)
 
         // ----------------------------------------------------------------------
         // 2) 선택된 캐릭터 조회

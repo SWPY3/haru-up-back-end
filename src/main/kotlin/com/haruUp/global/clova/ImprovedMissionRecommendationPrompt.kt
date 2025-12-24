@@ -1,7 +1,6 @@
 package com.haruUp.global.clova
 
-import com.haruUp.interest.model.InterestPath
-import com.haruUp.interest.model.UserInterests
+import com.haruUp.interest.dto.InterestPath
 
 object ImprovedMissionRecommendationPrompt {
 
@@ -98,7 +97,7 @@ object ImprovedMissionRecommendationPrompt {
      * 사용자 메시지 생성 - 전체 관심사 기반
      */
     fun createUserMessageForAllInterests(
-        userInterests: UserInterests,
+        interests: List<InterestPath>,
         missionMemberProfile: MissionMemberProfile
     ): String {
         val sb = StringBuilder()
@@ -107,7 +106,7 @@ object ImprovedMissionRecommendationPrompt {
         sb.append("사용자 정보: ${formatMissionMemberProfile(missionMemberProfile)}\n")
 
         // 관심사 목록
-        val pathStrings = userInterests.toPathStrings()
+        val pathStrings = interests.map { it.toPathString() }
         sb.append("관심사: [${pathStrings.joinToString(", ")}]\n")
 
         return sb.toString()

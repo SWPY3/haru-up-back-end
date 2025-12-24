@@ -7,6 +7,8 @@ import com.haruUp.global.security.JwtTokenProvider
 import com.haruUp.member.application.service.MemberProfileService
 import com.haruUp.member.application.service.MemberService
 import com.haruUp.member.application.service.MemberSettingService
+import com.haruUp.interest.service.MemberInterestService
+import com.haruUp.mission.application.MemberMissionService
 import com.haruUp.member.application.service.MemberValidator
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.type.LoginType
@@ -21,6 +23,8 @@ class MemberAccountUseCase(
     private val passwordEncoder: PasswordEncoder,
     private val memberValidator: MemberValidator,
     private val refreshTokenService: RefreshTokenService,
+    private val memberInterestService: MemberInterestService,
+    private val memberMissionService: MemberMissionService
 ){
 
     // 사용자 조회
@@ -130,7 +134,9 @@ class MemberAccountUseCase(
 
         // 5) Member soft delete
         memberService.softDelete(member)
+
+        memberInterestService.deleteMemberInterestsByMemberId(memberId)
+
+        memberMissionService.deleteMemberMissionsByMemberId(memberId)
     }
-
-
 }

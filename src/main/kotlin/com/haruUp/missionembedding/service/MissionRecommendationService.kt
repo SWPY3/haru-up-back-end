@@ -2,8 +2,7 @@ package com.haruUp.missionembedding.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.haruUp.interest.model.InterestPath
-import com.haruUp.interest.model.UserInterests
+import com.haruUp.interest.dto.InterestPath
 import com.haruUp.missionembedding.dto.MissionDto
 import com.haruUp.missionembedding.dto.MissionGroupDto
 import com.haruUp.global.clova.ClovaApiClient
@@ -216,10 +215,8 @@ class MissionRecommendationService(
         difficulties: List<Int>,
         excludeIds: List<Long> = emptyList()
     ): List<Mission> {
-        val userInterests = UserInterests(listOf(interestPath))
-
         val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
-            userInterests = userInterests,
+            interests = listOf(interestPath),
             missionMemberProfile = memberProfile
         )
 
@@ -379,9 +376,8 @@ $excludeMissionsText
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile
     ): List<Mission> {
-        val userInterests = UserInterests(listOf(interestPath))
         val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
-            userInterests = userInterests,
+            interests = listOf(interestPath),
             missionMemberProfile = memberProfile
         )
 

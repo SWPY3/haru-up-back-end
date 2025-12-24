@@ -1,10 +1,7 @@
 package com.haruUp.interest.controller
 
 import com.haruUp.interest.dto.*
-
 import java.security.Principal
-import com.haruUp.interest.model.InterestLevel
-import com.haruUp.interest.model.InterestPath
 import com.haruUp.interest.service.HybridInterestRecommendationService
 import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.ratelimit.RateLimit
@@ -187,7 +184,7 @@ class InterestController(
 
         return try {
             // member_interest 테이블에서 사용자가 선택한 관심사 조회
-            val memberInterests = memberInterestRepository.findByMemberId(principal.id)
+            val memberInterests = memberInterestRepository.findByMemberIdAndDeletedFalse(principal.id)
 
             if (memberInterests.isEmpty()) {
                 logger.info("멤버 관심사 조회 완료 - memberId: ${principal.id}, 관심사 없음")
@@ -217,6 +214,109 @@ class InterestController(
         } catch (e: Exception) {
             logger.error("멤버 관심사 조회 실패: ${e.message}", e)
             ResponseEntity.internalServerError().build()
+        }
+    }
+
+    /**
+     * 멤버 관심사 수정 API
+     *
+     * memberInterestId에 해당하는 관심사의 interestId와 directFullPath를 수정합니다.
+     */
+    @Operation(
+        summary = "멤버 관심사 수정",
+        description = """
+            멤버 관심사를 수정합니다.
+
+            **호출 예시:**
+            ```json
+            {
+              "interestId": 64,
+              "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]
+            }
+            ```
+        """
+    )
+    @PutMapping("/member/{memberInterestId}")
+    fun updateMemberInterest(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @PathVariable memberInterestId: Long,
+        @RequestBody request: MemberInterestUpdateRequest
+    ): ResponseEntity<com.haruUp.global.common.ApiResponse<String>> {
+        logger.info("멤버 관심사 수정 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
+
+        return try {
+            // 해당 관심사 조회 (소유권 확인 포함)
+            val memberInterest = memberInterestRepository.findByIdAndMemberIdAndDeletedFalse(
+                id = memberInterestId,
+                memberId = principal.id
+            ) ?: return ResponseEntity.badRequest().body(
+                com.haruUp.global.common.ApiResponse.failure("관심사를 찾을 수 없습니다. memberInterestId: $memberInterestId")
+            )
+
+            // 새로운 interestId 유효성 검증 (SUB 레벨만 허용)
+            val newInterest = interestEmbeddingRepository.findById(request.interestId).orElse(null)
+                ?: return ResponseEntity.badRequest().body(
+                    com.haruUp.global.common.ApiResponse.failure("유효하지 않은 interestId: ${request.interestId}")
+                )
+
+            if (newInterest.level != InterestLevel.SUB) {
+                return ResponseEntity.badRequest().body(
+                    com.haruUp.global.common.ApiResponse.failure("소분류(SUB) 레벨의 관심사만 등록 가능합니다.")
+                )
+            }
+
+            // 수정
+            memberInterest.update(request.interestId, request.directFullPath)
+            memberInterestRepository.save(memberInterest)
+
+            logger.info("멤버 관심사 수정 완료 - memberInterestId: $memberInterestId, newInterestId: ${request.interestId}")
+
+            ResponseEntity.ok(com.haruUp.global.common.ApiResponse.success("수정 성공"))
+
+        } catch (e: Exception) {
+            logger.error("멤버 관심사 수정 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                com.haruUp.global.common.ApiResponse.failure("수정 실패: ${e.message}")
+            )
+        }
+    }
+
+    /**
+     * 멤버 관심사 삭제 API (soft delete)
+     */
+    @Operation(
+        summary = "멤버 관심사 삭제",
+        description = "멤버 관심사를 삭제합니다. (soft delete)"
+    )
+    @DeleteMapping("/member/{memberInterestId}")
+    @org.springframework.transaction.annotation.Transactional
+    fun deleteMemberInterest(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @PathVariable memberInterestId: Long
+    ): ResponseEntity<com.haruUp.global.common.ApiResponse<String>> {
+        logger.info("멤버 관심사 삭제 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
+
+        return try {
+            val deletedCount = memberInterestRepository.softDeleteByIdAndMemberId(
+                id = memberInterestId,
+                memberId = principal.id
+            )
+
+            if (deletedCount == 0) {
+                return ResponseEntity.badRequest().body(
+                    com.haruUp.global.common.ApiResponse.failure("관심사를 찾을 수 없습니다. memberInterestId: $memberInterestId")
+                )
+            }
+
+            logger.info("멤버 관심사 삭제 완료 - memberInterestId: $memberInterestId")
+
+            ResponseEntity.ok(com.haruUp.global.common.ApiResponse.success("삭제 성공"))
+
+        } catch (e: Exception) {
+            logger.error("멤버 관심사 삭제 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                com.haruUp.global.common.ApiResponse.failure("삭제 실패: ${e.message}")
+            )
         }
     }
 

@@ -29,7 +29,7 @@ class MemberCharacterService(
 
     @Transactional
     fun getSelectedCharacter(memberId: Long): MemberCharacter? {
-        return memberCharacterRepository.findByMemberId(memberId)
+        return memberCharacterRepository.findFirstByMemberIdAndDeletedFalseOrderByIdDesc(memberId)
     }
 
     @Transactional

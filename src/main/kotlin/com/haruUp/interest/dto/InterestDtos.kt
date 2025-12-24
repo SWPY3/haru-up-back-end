@@ -1,7 +1,66 @@
 package com.haruUp.interest.dto
 
-import com.haruUp.interest.model.InterestPath
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.LocalDateTime
+
+/**
+ * ================================
+ * 관심사 모델
+ * ================================
+ */
+
+/**
+ * 관심사 계층 레벨
+ */
+enum class InterestLevel(val description: String) {
+    MAIN("대분류"),
+    MIDDLE("중분류"),
+    SUB("소분류");
+
+    fun next(): InterestLevel? = when (this) {
+        MAIN -> MIDDLE
+        MIDDLE -> SUB
+        SUB -> null
+    }
+}
+
+/**
+ * 관심사 노드
+ */
+data class InterestNode(
+    val id: String,
+    var name: String,
+    val level: InterestLevel,
+    val parentId: String? = null,
+    val fullPath: List<String>,
+    var isEmbedded: Boolean = false,
+    val isUserGenerated: Boolean = false,
+    var usageCount: Int = 0,
+    val createdBy: Long? = null,
+    val createdAt: LocalDateTime? = null,
+    var embeddedAt: LocalDateTime? = null
+)
+
+/**
+ * 관심사 경로
+ */
+data class InterestPath(
+    val mainCategory: String,
+    val middleCategory: String? = null,
+    val subCategory: String? = null
+) {
+    fun toPathString(): String = listOfNotNull(
+        mainCategory,
+        middleCategory,
+        subCategory
+    ).joinToString(" > ")
+
+    fun toPathList(): List<String> = listOfNotNull(
+        mainCategory,
+        middleCategory,
+        subCategory
+    )
+}
 
 /**
  * ================================
@@ -216,4 +275,24 @@ data class MemberInterestSaveRequest(
         required = false
     )
     val interests: List<InterestsDto> = emptyList(),
+)
+
+/**
+ * 멤버 관심사 수정 요청
+ */
+@Schema(description = "멤버 관심사 수정 요청")
+data class MemberInterestUpdateRequest(
+    @Schema(
+        description = "새로운 관심사 ID",
+        example = "64",
+        required = true
+    )
+    val interestId: Long,
+
+    @Schema(
+        description = "새로운 전체 경로 배열 [대분류, 중분류, 소분류]",
+        example = """["체력관리 및 운동", "헬스", "근력 키우기"]""",
+        required = true
+    )
+    val directFullPath: List<String>
 )

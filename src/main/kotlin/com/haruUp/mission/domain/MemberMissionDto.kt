@@ -24,7 +24,7 @@ class MemberMissionDto (
 
 ) : BaseEntity() {
 
-    fun toEntity() : MemberMission = MemberMission(
+    fun toEntity() : MemberMissionEntity = MemberMissionEntity(
         id = this.id,
         memberId = this.memberId,
         missionId = this.missionId,
@@ -59,7 +59,18 @@ data class MissionRecommendResult(
  * 개별 미션 상태 변경 항목
  */
 data class MissionStatusChangeItem(
-    val id: Long,
+    @Schema(
+        description = "member_mission ID",
+        example = "1",
+        required = true
+    )
+    val memberMissionId: Long,
+
+    @Schema(
+        description = "member_mission ID",
+        example = "COMPLETED",
+        required = false
+    )
     val missionStatus: MissionStatus? = null
 )
 
@@ -70,37 +81,15 @@ data class MissionStatusChangeRequest(
     val missions: List<MissionStatusChangeItem>
 )
 
-@Schema(description = "선택한 미션 정보")
-data class SelectedMemberMissionDto(
-    @Schema(
-        description = "멤버 관심사 ID (member_interest 테이블의 ID)",
-        example = "2",
-        required = true
-    )
-    val memberInterestId: Long,
-
-    @Schema(
-        description = "mission_embeddings 테이블의 ID",
-        example = "3",
-        required = true
-    )
-    val missionId: Long
-)
-
 /**
  * 미션 선택 요청
  */
 @Schema(description = "미션 선택 요청")
 data class MemberMissionSelectionRequest(
     @Schema(
-        description = "선택한 미션 목록",
-        example = """[
-            {
-                "memberInterestId": 2,
-                "missionId": 3
-            }
-        ]""",
+        description = "선택할 member_mission ID 목록",
+        example = "[1, 2, 3]",
         required = true
     )
-    val missions: List<SelectedMemberMissionDto>
+    val memberMissionIds: List<Long>
 )

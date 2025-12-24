@@ -16,13 +16,14 @@ import java.time.LocalDate
 @Entity
 @NoArgsConstructor
 @Table(
+    name = "member_mission",
     indexes = [
         Index(name = "idx_member_mission_member_id", columnList = "member_id"),
         Index(name = "idx_member_mission_mission_id", columnList = "mission_id"),
         Index(name = "idx_member_mission_created_at", columnList = "created_at")
     ]
 )
-class MemberMission (
+class MemberMissionEntity (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
