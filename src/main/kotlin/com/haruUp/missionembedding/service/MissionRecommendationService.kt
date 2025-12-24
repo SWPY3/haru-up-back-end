@@ -14,6 +14,19 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
+ * 관심사 정보 (미션 추천용)
+ *
+ * @param memberInterestId 멤버 관심사 ID
+ * @param directFullPath member_interest.direct_full_path (사용자가 선택한 경로)
+ * @param fullPath interest_embeddings.full_path (시스템 관심사 경로)
+ */
+data class InterestInfo(
+    val memberInterestId: Int?,
+    val directFullPath: List<String>,
+    val fullPath: List<String>?
+)
+
+/**
  * 미션 추천 서비스
  *
  * RAG + AI 하이브리드 방식으로 미션 추천
@@ -29,9 +42,15 @@ class MissionRecommendationService(
     private val logger = LoggerFactory.getLogger(javaClass)
     private val objectMapper = jacksonObjectMapper()
 
-    companion object {
-        private const val TARGET_MISSION_COUNT = 5  // 각 관심사당 목표 미션 개수
-        private const val RAG_MISSION_COUNT = 3     // RAG로 가져올 미션 개수
+    /**
+     * List<String>을 InterestPath로 변환 (내부 사용)
+     */
+    private fun toInterestPath(path: List<String>): InterestPath {
+        return InterestPath(
+            mainCategory = path.getOrNull(0) ?: "",
+            middleCategory = path.getOrNull(1),
+            subCategory = path.getOrNull(2)
+        )
     }
 
     /**
@@ -41,12 +60,12 @@ class MissionRecommendationService(
      * - RAG: 난이도별로 검색 (DB 쿼리)
      * - AI: 부족한 난이도만 모아서 LLM 1회 호출
      *
-     * @param interests 사용자가 선택한 관심사 목록 (seqNo, InterestPath)
+     * @param interests 관심사 정보 목록 (memberInterestId, directFullPath, fullPath)
      * @param memberProfile 멤버 프로필
      * @return 관심사별 그룹화된 미션 목록 (각 관심사당 5개, 난이도 1~5)
      */
     suspend fun recommendMissions(
-        interests: List<Pair<Int?, InterestPath>>,  // (seqNo, InterestPath)
+        interests: List<InterestInfo>,
         memberProfile: MissionMemberProfile
     ): List<MissionGroupDto> {
         logger.info("미션 추천 시작 - 관심사 개수: ${interests.size}")
@@ -54,13 +73,11 @@ class MissionRecommendationService(
         val missionGroups = mutableListOf<MissionGroupDto>()
 
         // 각 관심사에 대해 난이도 1~5 미션 추천
-        for ((memberInterestId, interestPath) in interests) {
-            logger.info("처리 중: seqNo=$memberInterestId, path=${interestPath.toPathString()}")
-
+        for (interestInfo in interests) {
             try {
                 // RAG + AI 하이브리드로 난이도 1~5 미션 생성
                 val missions = recommendMissionsForSingleInterest(
-                    interestPath = interestPath,
+                    directFullPath = interestInfo.directFullPath,
                     memberProfile = memberProfile
                 )
 
@@ -71,28 +88,27 @@ class MissionRecommendationService(
                         mission_id = mission.id,
                         content = mission.content,
                         directFullPath = mission.directFullPath,
-                        fullPath = mission.fullPath,
                         difficulty = mission.difficulty,
                         expEarned = MissionExpCalculator.calculateByDifficulty(mission.difficulty),
                         createdType = mission.createdType
                     )
                 }
 
-                // seqNo별 그룹으로 묶기
+                // memberInterestId별 그룹으로 묶기
                 missionGroups.add(
                     MissionGroupDto(
-                        memberInterestId = memberInterestId,
+                        memberInterestId = interestInfo.memberInterestId,
                         data = missionDtos
                     )
                 )
-                logger.info("seqNo=$memberInterestId 미션 추천 완료: ${missionDtos.size}개 (난이도 1~5)")
+                logger.info("memberInterestId=${interestInfo.memberInterestId} 미션 추천 완료: ${missionDtos.size}개 (난이도 1~5)")
 
             } catch (e: Exception) {
-                logger.error("seqNo=$memberInterestId 미션 추천 실패: ${e.message}", e)
+                logger.error("memberInterestId=${interestInfo.memberInterestId} 미션 추천 실패: ${e.message}", e)
                 // 실패한 경우 빈 그룹 추가
                 missionGroups.add(
                     MissionGroupDto(
-                        memberInterestId = memberInterestId,
+                        memberInterestId = interestInfo.memberInterestId,
                         data = emptyList()
                     )
                 )
@@ -109,24 +125,26 @@ class MissionRecommendationService(
      * 사용자 프로필(직업, 직업상세, 성별, 나이)과 단일 관심사를 기반으로 미션 추천
      * 기존 recommendMissions와 분리하여 향후 로직 변경에 유연하게 대응
      *
-     * @param interestPath 관심사 경로
+     * @param directFullPath member_interest.direct_full_path (사용자가 선택한 경로)
+     * @param fullPath interest_embeddings.full_path (시스템 관심사 경로)
      * @param memberProfile 멤버 프로필 (직업, 직업상세, 성별, 나이 포함)
      * @param difficulties 추천할 난이도 목록 (1~5), null이면 전체 난이도 추천
      * @param excludeIds 제외할 미션 ID 목록
      * @return 미션 목록 (MissionDto 리스트)
      */
     suspend fun recommendTodayMissions(
-        interestPath: InterestPath,
+        directFullPath: List<String>,
         memberProfile: MissionMemberProfile,
         difficulties: List<Int>? = null,
         excludeIds: List<Long> = emptyList()
     ): List<MissionDto> {
         val targetDifficulties = difficulties ?: listOf(1, 2, 3, 4, 5)
-        logger.info("오늘의 미션 추천 시작 - 관심사: ${interestPath.toPathString()}, 난이도: $targetDifficulties, 제외 ID 개수: ${excludeIds.size}")
+        val pathString = directFullPath.joinToString(" > ")
+        logger.info("오늘의 미션 추천 시작 - 관심사: $pathString, 난이도: $targetDifficulties, 제외 ID 개수: ${excludeIds.size}")
 
         try {
             val missions = recommendTodayMissionsInternal(
-                interestPath = interestPath,
+                directFullPath = directFullPath,
                 memberProfile = memberProfile,
                 difficulties = targetDifficulties,
                 excludeIds = excludeIds
@@ -138,7 +156,6 @@ class MissionRecommendationService(
                     mission_id = mission.id,
                     content = mission.content,
                     directFullPath = mission.directFullPath,
-                    fullPath = mission.fullPath,
                     difficulty = mission.difficulty,
                     expEarned = MissionExpCalculator.calculateByDifficulty(mission.difficulty),
                     createdType = mission.createdType
@@ -160,16 +177,17 @@ class MissionRecommendationService(
      * RAG 사용하지 않고 매번 LLM을 호출하여 미션 생성
      */
     private suspend fun recommendTodayMissionsInternal(
-        interestPath: InterestPath,
+        directFullPath: List<String>,
         memberProfile: MissionMemberProfile,
         difficulties: List<Int>,
         excludeIds: List<Long> = emptyList()
     ): List<Mission> {
-        val interestPathString = interestPath.toPathString()
+        val pathString = directFullPath.joinToString(" > ")
 
-        logger.info("오늘의 미션 LLM 생성 시작: $interestPathString, difficulties=$difficulties, excludeIds=${excludeIds.size}개")
+        logger.info("오늘의 미션 LLM 생성 시작: $pathString, difficulties=$difficulties, excludeIds=${excludeIds.size}개")
 
-        // LLM으로 미션 생성
+        // LLM으로 미션 생성 (InterestPath는 내부에서 변환)
+        val interestPath = toInterestPath(directFullPath)
         val aiMissions = generateTodayMissionsWithAI(
             interestPath = interestPath,
             memberProfile = memberProfile,
@@ -178,21 +196,18 @@ class MissionRecommendationService(
         )
 
         // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
-        // directFullPath는 LLM 응답이 아닌 실제 interestPath 사용
-        val actualInterestPath = interestPath.toPathList()
         val missionsWithId = aiMissions.mapNotNull { mission ->
             val missionDifficulty = mission.difficulty
             try {
                 val savedEntity = missionEmbeddingService.saveMissionWithoutEmbedding(
-                    directFullPath = actualInterestPath,
+                    directFullPath = directFullPath,
                     difficulty = missionDifficulty,
                     missionContent = mission.content
                 )
                 Mission(
                     id = savedEntity?.id,
                     content = mission.content,
-                    directFullPath = actualInterestPath,
-                    fullPath = actualInterestPath,
+                    directFullPath = directFullPath,
                     difficulty = savedEntity?.difficulty ?: missionDifficulty
                 )
             } catch (e: Exception) {
@@ -200,8 +215,7 @@ class MissionRecommendationService(
                 Mission(
                     id = null,
                     content = mission.content,
-                    directFullPath = actualInterestPath,
-                    fullPath = actualInterestPath,
+                    directFullPath = directFullPath,
                     difficulty = missionDifficulty
                 )
             }
@@ -328,14 +342,17 @@ $excludeMissionsText
      *
      * - RAG에서 5개 모두 조회되면 RAG 결과 반환
      * - 5개 미만이면 RAG 무시하고 LLM으로 5개 생성
+     *
+     * @param directFullPath member_interest.direct_full_path (사용자가 선택한 경로)
+     * @param fullPath interest_embeddings.full_path (시스템 관심사 경로)
      */
     private suspend fun recommendMissionsForSingleInterest(
-        interestPath: InterestPath,
+        directFullPath: List<String>,
         memberProfile: MissionMemberProfile
     ): List<Mission> {
         // 1. RAG: 난이도 1~5 각각 1개씩 검색 (1회 쿼리, API 호출 없음)
         val ragMissions = try {
-            missionEmbeddingService.findOnePerDifficulty(interestPath.toPathList())
+            missionEmbeddingService.findOnePerDifficulty(directFullPath)
         } catch (e: Exception) {
             logger.warn("RAG 검색 실패: ${e.message}")
             emptyList()
@@ -343,15 +360,16 @@ $excludeMissionsText
 
         logger.info("RAG DATA: ${ragMissions}")
 
+        val pathString = directFullPath.joinToString(" > ")
+
         // 2. RAG 5개 모두 조회되면 반환
         if (ragMissions.size == 5) {
-            logger.info("RAG로 5개 미션 조회 완료: ${interestPath.toPathString()}")
+            logger.info("RAG로 5개 미션 조회 완료: $pathString")
             return ragMissions.map { entity ->
                 Mission(
                     id = entity.id,
                     content = entity.missionContent,
-                    directFullPath = entity.directFullPath,
-                    fullPath = entity.directFullPath,
+                    directFullPath = directFullPath,
                     difficulty = entity.difficulty,
                     createdType = "EMBEDDING"
                 )
@@ -359,21 +377,22 @@ $excludeMissionsText
         }
 
         // 3. 5개 미만이면 LLM으로 전체 생성
-        logger.info("RAG ${ragMissions.size}개 조회, LLM으로 5개 생성: ${interestPath.toPathString()}")
+        logger.info("RAG ${ragMissions.size}개 조회, LLM으로 5개 생성: $pathString")
+        val interestPath = toInterestPath(directFullPath)
         val aiMissions = generateMissionsAllDifficulties(interestPath, memberProfile)
 
         // AI 미션 DB 저장 후 반환
         return aiMissions.mapNotNull { mission ->
             try {
                 val saved = missionEmbeddingService.saveMissionWithoutEmbedding(
-                    directFullPath = interestPath.toPathList(),
+                    directFullPath = directFullPath,
                     difficulty = mission.difficulty,
                     missionContent = mission.content
                 )
-                mission.copy(id = saved?.id)
+                mission.copy(id = saved?.id, directFullPath = directFullPath)
             } catch (e: Exception) {
                 logger.warn("미션 저장 실패: ${mission.content}")
-                mission
+                mission.copy(directFullPath = directFullPath)
             }
         }.sortedBy { it.difficulty }
     }
