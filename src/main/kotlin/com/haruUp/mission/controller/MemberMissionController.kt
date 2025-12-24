@@ -63,9 +63,9 @@ class MemberMissionController(
             ```json
             {
               "missions": [
-                { "id": 1, "missionStatus": "COMPLETED" },
-                { "id": 2, "missionStatus": "ACTIVE" },
-                { "id": 3, "missionStatus": "POSTPONED" }
+                { "memberMissionId": 1, "missionStatus": "COMPLETED" },
+                { "memberMissionId": 2, "missionStatus": "ACTIVE" },
+                { "memberMissionId": 3, "missionStatus": "POSTPONED" }
               ]
             }
             ```

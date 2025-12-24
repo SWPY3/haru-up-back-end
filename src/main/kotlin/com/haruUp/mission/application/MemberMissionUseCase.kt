@@ -48,16 +48,16 @@ class MemberMissionUseCase(
     private fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
         // COMPLETED 상태인 경우 경험치 처리 필요
         if (item.missionStatus == MissionStatus.COMPLETED) {
-            return handleMissionCompleted(item.id)
+            return handleMissionCompleted(item.memberMissionId)
         }
 
         if (item.missionStatus == MissionStatus.POSTPONED) {
-            memberMissionService.handleMissionPostponed(item.id)
+            memberMissionService.handleMissionPostponed(item.memberMissionId)
             return null
         }
 
         // 그 외의 경우 (status 변경)
-        memberMissionService.updateMission(item.id, item.missionStatus)
+        memberMissionService.updateMission(item.memberMissionId, item.missionStatus)
         return null
     }
 
@@ -65,12 +65,12 @@ class MemberMissionUseCase(
     /**
      * 미션 완료 → 경험치 반영 → 레벨업 처리
      */
-    private fun handleMissionCompleted(missionId: Long): MemberCharacterDto {
+    private fun handleMissionCompleted(memberMissionId: Long): MemberCharacterDto {
 
         // ----------------------------------------------------------------------
         // 1) 미션 완료 처리
         // ----------------------------------------------------------------------
-        val missionCompleted = memberMissionService.updateMission(missionId, MissionStatus.COMPLETED)
+        val missionCompleted = memberMissionService.updateMission(memberMissionId, MissionStatus.COMPLETED)
 
         // ----------------------------------------------------------------------
         // 2) 선택된 캐릭터 조회

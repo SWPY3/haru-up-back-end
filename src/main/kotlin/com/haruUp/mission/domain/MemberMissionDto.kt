@@ -59,7 +59,18 @@ data class MissionRecommendResult(
  * 개별 미션 상태 변경 항목
  */
 data class MissionStatusChangeItem(
-    val id: Long,
+    @Schema(
+        description = "member_mission ID",
+        example = "1",
+        required = true
+    )
+    val memberMissionId: Long,
+
+    @Schema(
+        description = "member_mission ID",
+        example = "COMPLETED",
+        required = false
+    )
     val missionStatus: MissionStatus? = null
 )
 

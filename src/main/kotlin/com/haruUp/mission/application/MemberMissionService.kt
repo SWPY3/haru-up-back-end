@@ -34,8 +34,8 @@ class MemberMissionService(
      * - 기존 row는 그대로 유지
      * - 새로운 row 생성: missionStatus=POSTPONED, targetDate=내일
      */
-    fun handleMissionPostponed(missionId: Long): MemberMission {
-        val stored = memberMissionRepository.findByIdOrNull(missionId)
+    fun handleMissionPostponed(memberMissionId: Long): MemberMission {
+        val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
         // 새로운 row 생성 (기존 row는 그대로 유지)
@@ -55,8 +55,8 @@ class MemberMissionService(
      * 미션 상태 변경
      * - status: 변경할 상태 (null이면 변경 안함)
      */
-    fun updateMission(missionId: Long, status: MissionStatus?): MemberMission {
-        val stored = memberMissionRepository.findByIdOrNull(missionId)
+    fun updateMission(memberMissionId: Long, status: MissionStatus?): MemberMission {
+        val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
         // 상태 변경
