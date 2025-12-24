@@ -30,7 +30,7 @@ class MemberInterestEntity(
     val memberId: Long,
 
     @Column(name = "interest_id", nullable = false)
-    val interestId: Long,
+    var interestId: Long,
 
     /**
      * 직접 저장된 전체 경로 배열 (PostgreSQL TEXT[])
@@ -38,7 +38,7 @@ class MemberInterestEntity(
      */
     @Type(ListArrayType::class)
     @Column(name = "direct_full_path", columnDefinition = "text[]")
-    val directFullPath: List<String>? = null,
+    var directFullPath: List<String>? = null,
 
     /**
      * 오늘의 미션 재추천 횟수
@@ -50,5 +50,10 @@ class MemberInterestEntity(
 ): BaseEntity() {
     fun incrementResetMissionCount() {
         this.resetMissionCount++
+    }
+
+    fun update(newInterestId: Long, newDirectFullPath: List<String>) {
+        this.interestId = newInterestId
+        this.directFullPath = newDirectFullPath
     }
 }

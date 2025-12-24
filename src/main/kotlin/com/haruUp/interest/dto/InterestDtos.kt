@@ -63,17 +63,6 @@ data class InterestPath(
 }
 
 /**
- * 사용자의 여러 관심사
- */
-data class UserInterests(
-    val interests: List<InterestPath>
-) {
-    fun toPathStrings(): List<String> {
-        return interests.map { it.toPathString() }
-    }
-}
-
-/**
  * ================================
  * 관심사 추천 요청/응답 DTO
  * ================================
@@ -286,4 +275,24 @@ data class MemberInterestSaveRequest(
         required = false
     )
     val interests: List<InterestsDto> = emptyList(),
+)
+
+/**
+ * 멤버 관심사 수정 요청
+ */
+@Schema(description = "멤버 관심사 수정 요청")
+data class MemberInterestUpdateRequest(
+    @Schema(
+        description = "새로운 관심사 ID",
+        example = "64",
+        required = true
+    )
+    val interestId: Long,
+
+    @Schema(
+        description = "새로운 전체 경로 배열 [대분류, 중분류, 소분류]",
+        example = """["체력관리 및 운동", "헬스", "근력 키우기"]""",
+        required = true
+    )
+    val directFullPath: List<String>
 )
