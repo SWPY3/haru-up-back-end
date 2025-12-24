@@ -187,7 +187,7 @@ data class InterestsDto(
 @Schema(description = "멤버가 선택한 관심사 정보")
 data class MemberInterestDto(
     @Schema(description = "멤버 관심사 ID (member_interest.id)", example = "1")
-    val id: Long,
+    val member_interest_id: Long,
 
     @Schema(description = "멤버 ID", example = "1")
     val memberId: Long,

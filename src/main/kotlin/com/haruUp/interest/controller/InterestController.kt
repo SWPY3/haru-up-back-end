@@ -195,7 +195,7 @@ class InterestController(
             val interests = memberInterests.map { memberInterest ->
                 val interestEmbedding = interestEmbeddingRepository.findById(memberInterest.interestId).orElse(null)
                 MemberInterestDto(
-                    id = memberInterest.id!!,
+                    member_interest_id = memberInterest.id!!,
                     memberId = memberInterest.memberId,
                     interestId = memberInterest.interestId,
                     directFullPath = memberInterest.directFullPath,
