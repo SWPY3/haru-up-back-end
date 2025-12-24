@@ -79,4 +79,9 @@ class MemberInterestService(
             savedCount = savedIds.size
         )
     }
+
+    fun deleteMemberInterestsByMemberId(memberId: Long) {
+        memberInterestRepository.softDeleteAllByMemberId(memberId)
+        logger.info("멤버 관심사 삭제 완료 - memberId: $memberId")
+    }
 }

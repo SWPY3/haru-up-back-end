@@ -2,6 +2,8 @@ package com.haruUp.interest.repository
 
 import com.haruUp.interest.entity.MemberInterestEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 
 /**
@@ -15,12 +17,9 @@ interface MemberInterestJpaRepository : JpaRepository<MemberInterestEntity, Long
     fun findByMemberId(memberId: Long): List<MemberInterestEntity>
 
     /**
-     * 특정 사용자의 특정 관심사 조회 (최신 1개)
+     * 특정 사용자의 모든 관심사 소프트 삭제
      */
-    fun findFirstByMemberIdAndInterestIdOrderByCreatedAtDesc(memberId: Long, interestId: Long): MemberInterestEntity?
-
-    /**
-     * 특정 사용자의 관심사 존재 여부 확인
-     */
-    fun existsByMemberIdAndInterestId(memberId: Long, interestId: Long): Boolean
+    @Modifying
+    @Query("UPDATE MemberInterestEntity m SET m.deleted = true, m.deletedAt = CURRENT_TIMESTAMP WHERE m.memberId = :memberId")
+    fun softDeleteAllByMemberId(memberId: Long): Int
 }

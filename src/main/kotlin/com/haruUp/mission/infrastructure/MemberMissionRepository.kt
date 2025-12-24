@@ -136,4 +136,17 @@ interface MemberMissionRepository : JpaRepository<MemberMission, Long> {
         memberInterestId: Long,
         missionId: Long
     ): MemberMission?
+
+    /**
+     * 특정 사용자의 모든 미션 soft delete
+     */
+    @Transactional
+    @Modifying
+    @Query("""
+    UPDATE MemberMission m
+    SET m.deleted = true, m.deletedAt = CURRENT_TIMESTAMP
+    WHERE m.memberId = :memberId
+      AND m.deleted = false
+    """)
+    fun softDeleteAllByMemberId(memberId: Long): Int
 }

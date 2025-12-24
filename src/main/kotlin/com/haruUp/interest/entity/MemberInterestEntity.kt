@@ -1,5 +1,6 @@
 package com.haruUp.interest.entity
 
+import com.haruUp.global.common.BaseEntity
 import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
 import org.hibernate.annotations.ColumnDefault
@@ -45,11 +46,8 @@ class MemberInterestEntity(
      */
     @ColumnDefault("0")
     @Column(name = "reset_mission_count", nullable = false)
-    var resetMissionCount: Int = 0,
-
-    @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now()
-) {
+    var resetMissionCount: Int = 0
+): BaseEntity() {
     fun incrementResetMissionCount() {
         this.resetMissionCount++
     }

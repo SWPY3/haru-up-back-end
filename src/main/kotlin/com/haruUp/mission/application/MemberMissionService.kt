@@ -3,7 +3,6 @@ package com.haruUp.mission.application
 import org.slf4j.LoggerFactory
 import com.haruUp.mission.domain.MemberMission
 import com.haruUp.mission.domain.MemberMissionDto
-import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
 import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
@@ -74,11 +73,6 @@ class MemberMissionService(
         return memberMissionRepository.save(stored)
     }
 
-
-    fun getMission(id : Long) : MemberMission? {
-        return memberMissionRepository.findByIdOrNull(id)
-    }
-
     fun getTodayMissionsByMemberId(memberId: Long): List<MemberMission> {
        return memberMissionRepository.getTodayMissionsByMemberId(memberId)
     }
@@ -132,5 +126,10 @@ class MemberMissionService(
         logger.info("미션 선택 완료 - 업데이트된 개수: ${updatedMemberMissionIds.size}")
 
         return updatedMemberMissionIds
+    }
+
+    fun deleteMemberMissionsByMemberId(memberId: Long) {
+        memberMissionRepository.softDeleteAllByMemberId(memberId)
+        logger.info("멤버 미션 삭제 완료 - memberId: $memberId")
     }
 }
