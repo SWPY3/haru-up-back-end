@@ -277,9 +277,153 @@ class MissionRecommendService(
     }
 
     /**
+     * 멤버 관심사 ID 목록 기반 미션 추천
+     *
+     * Controller와 Curation에서 공통으로 사용하는 미션 추천 로직
+     * - 멤버 관심사 유효성 검증
+     * - 사용자 프로필 조회
+     * - 미션 추천 (각 관심사당 난이도 1~5)
+     * - 기존 READY 상태 미션 soft delete
+     * - 추천된 미션 저장
+     *
+     * @param memberId 멤버 ID
+     * @param memberInterestIds 멤버 관심사 ID 목록
+     * @return 추천된 미션 응답
+     */
+    fun recommendByMemberInterestIds(
+        memberId: Long,
+        memberInterestIds: List<Long>
+    ): MissionRecommendationResponse {
+        // 1. memberInterestIds 유효성 검증 및 조회
+        val memberInterests = memberInterestIds.mapNotNull { memberInterestId ->
+            val memberInterest = memberInterestRepository.findById(memberInterestId).orElse(null)
+            if (memberInterest == null) {
+                logger.warn("멤버 관심사를 찾을 수 없습니다: memberInterestId=$memberInterestId")
+                return@mapNotNull null
+            }
+            if (memberInterest.memberId != memberId) {
+                logger.warn("해당 관심사에 접근 권한이 없습니다: memberInterestId=$memberInterestId")
+                return@mapNotNull null
+            }
+            memberInterest
+        }
+
+        require(memberInterests.isNotEmpty()) { "유효한 관심사가 없습니다." }
+
+        // 2. DB에서 사용자 프로필 조회
+        val memberProfileEntity = memberProfileRepository.findByMemberId(memberId)
+            ?: throw IllegalArgumentException("사용자 프로필을 찾을 수 없습니다.")
+
+        // 3. 직업 정보 조회
+        val jobName = memberProfileEntity.jobId?.let { jobId ->
+            jobRepository.findById(jobId).orElse(null)?.jobName
+        }
+        val jobDetailName = memberProfileEntity.jobDetailId?.let { jobDetailId ->
+            jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
+        }
+
+        val missionMemberProfile = MissionMemberProfile(
+            age = memberProfileEntity.birthDt?.let { calculateAge(it) },
+            gender = memberProfileEntity.gender?.name,
+            jobName = jobName,
+            jobDetailName = jobDetailName
+        )
+
+        logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}, 성별: ${missionMemberProfile.gender}, 직업: ${missionMemberProfile.jobName}")
+
+        // 4. memberInterest에서 InterestPath 추출하여 (memberInterestId, InterestPath) 튜플로 변환
+        val interestsWithDetails = memberInterests.map { memberInterest ->
+            val directFullPath = memberInterest.directFullPath
+                ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
+
+            val interestPath = InterestPath(
+                mainCategory = directFullPath.getOrNull(0) ?: "",
+                middleCategory = directFullPath.getOrNull(1),
+                subCategory = directFullPath.getOrNull(2)
+            )
+            Pair(memberInterest.id!!.toInt(), interestPath)
+        }
+
+        // 5. 미션 추천 (각 관심사당 난이도 1~5 각각 1개씩)
+        val missions = kotlinx.coroutines.runBlocking {
+            missionRecommendationService.recommendMissions(
+                interests = interestsWithDetails,
+                memberProfile = missionMemberProfile
+            )
+        }
+
+        // 6. 요청받은 관심사들의 기존 READY 상태 member_mission soft delete
+        var totalDeletedCount = 0
+        for (memberInterest in memberInterests) {
+            val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatus(
+                memberId = memberId,
+                memberInterestId = memberInterest.id!!,
+                status = MissionStatus.READY,
+                deletedAt = LocalDateTime.now()
+            )
+            totalDeletedCount += deletedCount
+        }
+        logger.info("기존 READY 상태 미션 soft delete 완료: ${totalDeletedCount}개")
+
+        // 7. 추천된 미션들을 member_mission에 READY 상태로 저장하고 ID 수집
+        val missionIdToMemberMissionId = mutableMapOf<Long, Long>()
+        var savedMissionCount = 0
+        for (memberInterest in memberInterests) {
+            val memberInterestId = memberInterest.id!!.toInt()
+
+            val missionGroup = missions.find { it.memberInterestId == memberInterestId }
+            if (missionGroup == null) {
+                logger.warn("memberInterestId=${memberInterestId}에 해당하는 미션 그룹을 찾을 수 없습니다.")
+                continue
+            }
+
+            for (missionDto in missionGroup.data) {
+                val missionId = missionDto.mission_id ?: continue
+                try {
+                    val memberMission = MemberMission(
+                        memberId = memberId,
+                        missionId = missionId,
+                        memberInterestId = memberInterest.id!!,
+                        missionStatus = MissionStatus.READY,
+                        expEarned = 0
+                    )
+                    val saved = memberMissionRepository.save(memberMission)
+                    saved.id?.let { missionIdToMemberMissionId[missionId] = it }
+                    savedMissionCount++
+                } catch (e: Exception) {
+                    logger.error("member_mission 저장 실패: missionId=$missionId, 에러: ${e.message}")
+                }
+            }
+        }
+        logger.info("member_mission READY 상태로 저장 완료: ${savedMissionCount}개")
+
+        // 8. 응답에 member_mission_id 매핑
+        val missionsWithMemberMissionId = missions.map { group ->
+            com.haruUp.missionembedding.dto.MissionGroupDto(
+                memberInterestId = group.memberInterestId,
+                data = group.data.map { dto ->
+                    com.haruUp.missionembedding.dto.MissionDto(
+                        member_mission_id = dto.mission_id?.let { missionIdToMemberMissionId[it] },
+                        mission_id = dto.mission_id,
+                        content = dto.content,
+                        relatedInterest = dto.relatedInterest,
+                        difficulty = dto.difficulty,
+                        createdType = dto.createdType
+                    )
+                }
+            )
+        }
+
+        return MissionRecommendationResponse(
+            missions = missionsWithMemberMissionId,
+            totalCount = missionsWithMemberMissionId.sumOf { it.data.size }
+        )
+    }
+
+    /**
      * 생년월일로부터 나이 계산
      */
-     fun calculateAge(birthDt: LocalDateTime): Int {
+    fun calculateAge(birthDt: LocalDateTime): Int {
         val birthDate = birthDt.toLocalDate()
         val now = LocalDateTime.now().toLocalDate()
         return Period.between(birthDate, now).years

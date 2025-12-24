@@ -9,6 +9,7 @@ import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.missionembedding.dto.TodayMissionRecommendationRequest
+import com.haruUp.missionembedding.dto.TodayMissionRetryRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import io.swagger.v3.oas.annotations.Operation
@@ -248,9 +249,9 @@ class MemberMissionController(
         @Parameter(
             description = "오늘의 미션 재추천 요청 정보",
             required = true,
-            schema = Schema(implementation = TodayMissionRecommendationRequest::class)
+            schema = Schema(implementation = TodayMissionRetryRequest::class)
         )
-        @RequestBody request: TodayMissionRecommendationRequest
+        @RequestBody request: TodayMissionRetryRequest
     ): ResponseEntity<ApiResponse<MissionRecommendationResponse>> = runBlocking {
         try {
             val response = missionRecommendUseCase.retryRecommend(
