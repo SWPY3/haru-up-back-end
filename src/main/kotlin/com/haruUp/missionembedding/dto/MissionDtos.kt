@@ -72,12 +72,6 @@ data class MissionDto(
     )
     val directFullPath: List<String> = emptyList(),
 
-    @Schema(
-        description = "관심사 전체 경로 [대분류, 중분류, 소분류]",
-        example = """["체력관리 및 운동", "헬스", "근력 키우기"]"""
-    )
-    val fullPath: List<String>? = null,
-
     @Schema(description = "난이도 (1~5, null이면 난이도 미설정)", example = "3")
     val difficulty: Int? = null,
 
