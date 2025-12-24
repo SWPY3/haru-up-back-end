@@ -135,6 +135,23 @@ data class TodayMissionRecommendationRequest(
         example = "1",
         required = true
     )
+    val memberInterestId: Long
+)
+
+/**
+ * 오늘의 미션 추천 요청
+ *
+ * member_interest 테이블의 ID를 받아서 해당 유저가 저장한 관심사 정보와 프로필을 기반으로 미션 추천
+ * - ACTIVE 상태인 기존 미션은 자동으로 제외
+ * - Redis에 저장된 이전 추천 미션도 자동으로 제외
+ */
+@Schema(description = "오늘의 미션 추천 요청")
+data class TodayMissionRetryRequest(
+    @Schema(
+        description = "멤버 관심사 ID (member_interest 테이블의 id)",
+        example = "1",
+        required = true
+    )
     val memberInterestId: Long,
 
     @Schema(

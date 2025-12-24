@@ -4,6 +4,7 @@ import com.haruUp.interest.dto.*
 
 import java.security.Principal
 import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.model.InterestPath
 import com.haruUp.interest.service.HybridInterestRecommendationService
 import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.ratelimit.RateLimit
@@ -35,7 +36,8 @@ class InterestController(
     private val recommendationService: HybridInterestRecommendationService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberInterestRepository: com.haruUp.interest.repository.MemberInterestJpaRepository,
-    private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
+    private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository,
+    private val memberInterestUseCase: com.haruUp.interest.useCase.MemberInterestUseCase
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -55,7 +57,7 @@ class InterestController(
             **호출 예시:**
             ```json
             {
-              "category": [{"seqNo": 1, "mainCategory": "운동", "middleCategory": "헬스"}],
+              "category": [{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}],
               "currentLevel": "SUB",
               "targetCount": 10
             }
@@ -92,38 +94,7 @@ class InterestController(
 
             val currentLevel = InterestLevel.valueOf(request.currentLevel)
 
-            // category가 비어있거나 seqNo가 없으면 기존 방식
-            if (request.category.isEmpty() || request.category.all { it.seqNo == null }) {
-                // 기존 로직: 모든 category를 한 번에 처리
-                val selectedInterests = request.category.map { it.toModel() }
-                logger.info("선택된 관심사 경로: ${selectedInterests.map { it.toPathString() }}")
-
-                val result = recommendationService.recommend(
-                    selectedInterests = selectedInterests,
-                    currentLevel = currentLevel,
-                    targetCount = request.targetCount,
-                    memberProfile = memberProfile,
-                    useHybridScoring = useHybridScoring
-                )
-
-                val response = InterestRecommendationResponse(
-                    interests = result.interests.map { InterestNodeDto.from(it) },
-                    ragCount = result.ragCount,
-                    aiCount = result.aiCount,
-                    totalCount = result.totalCount,
-                    ragRatio = result.ragRatio,
-                    aiRatio = result.aiRatio,
-                    usedHybridScoring = result.usedHybridScoring
-                )
-
-                logger.info("추천 성공: ${response.summary}")
-                return@runBlocking ResponseEntity.ok(response)
-            }
-
-            // 새로운 로직: category별로 추천 처리 (seqNo 추적)
-            logger.info("category별 추천 처리 시작 - ${request.category.size}개")
-
-            val allInterests = mutableListOf<InterestNodeDto>()
+            val allInterests = mutableListOf<Map<String, Any?>>()
             var totalRagCount = 0
             var totalAiCount = 0
 
@@ -131,8 +102,19 @@ class InterestController(
             val targetCountPerCategory = request.targetCount / request.category.size.coerceAtLeast(1)
 
             for (categoryDto in request.category) {
-                val selectedInterest = categoryDto.toModel()
-                logger.info("처리 중: seqNo=${categoryDto.seqNo}, path=${selectedInterest.toPathString()}")
+                // interestId로 entity 조회하여 fullPath 획득
+                val interestEntity = interestEmbeddingRepository.findEntityById(categoryDto.interestId)
+                if (interestEntity == null) {
+                    logger.warn("관심사를 찾을 수 없음: interestId=${categoryDto.interestId}")
+                    continue
+                }
+
+                val selectedInterest = InterestPath(
+                    mainCategory = interestEntity.fullPath.getOrNull(0) ?: "",
+                    middleCategory = interestEntity.fullPath.getOrNull(1),
+                    subCategory = interestEntity.fullPath.getOrNull(2)
+                )
+                logger.info("처리 중: interestId=${categoryDto.interestId}, path=${selectedInterest.toPathString()}")
 
                 val result = recommendationService.recommend(
                     selectedInterests = listOf(selectedInterest),
@@ -142,14 +124,25 @@ class InterestController(
                     useHybridScoring = useHybridScoring
                 )
 
-                // seqNo를 포함해서 DTO 변환
-                val interestsWithSeqNo = result.interests.map { InterestNodeDto.from(it, categoryDto.seqNo) }
-                allInterests.addAll(interestsWithSeqNo)
+                // 결과를 Map으로 변환
+                val interestsAsMap = result.interests.map { node ->
+                    mapOf(
+                        "id" to node.id,
+                        "name" to node.name,
+                        "level" to node.level.name,
+                        "parentId" to node.parentId,
+                        "isEmbedded" to node.isEmbedded,
+                        "usageCount" to node.usageCount,
+                        "fullPath" to node.fullPath,
+                        "interestId" to categoryDto.interestId
+                    )
+                }
+                allInterests.addAll(interestsAsMap)
 
                 totalRagCount += result.ragCount
                 totalAiCount += result.aiCount
 
-                logger.info("seqNo=${categoryDto.seqNo} 추천 완료: RAG=${result.ragCount}, AI=${result.aiCount}")
+                logger.info("interestId=${categoryDto.interestId} 추천 완료: RAG=${result.ragCount}, AI=${result.aiCount}")
             }
 
             val response = InterestRecommendationResponse(
@@ -303,8 +296,21 @@ class InterestController(
      * @return 저장 결과
      */
     @Operation(
-        summary = "멤버 관심사 저장",
-        description = "사용자가 선택한 관심사를 저장합니다."
+        summary = "멤버 관심사 등록",
+        description = """
+            사용자가 선택한 관심사를 등록합니다. 소분류(SUB) 레벨의 관심사만 등록 가능합니다.
+            **호출 예시:**
+            ```json
+            {
+              "interests": [
+                {"interestId": 10},
+                {"interestId": 15}
+              ]
+            }
+            ```
+            
+            interestId는 관심사 조회 API(/api/interests/data) 또는 관심사 추천 API(/api/interests/recommend)를 통해 획득할 수 있습니다.
+        """
     )
     @PostMapping("/member")
     fun saveMemberInterests(
@@ -313,43 +319,24 @@ class InterestController(
     ): ResponseEntity<com.haruUp.global.common.ApiResponse<String>> {
         val memberId = principal.id
 
-        try {
-            var savedCount = 0
+        return try {
+            val interestIds = request.interests.map { it.interestId }
+            val result = memberInterestUseCase.saveInterests(memberId, interestIds)
 
-            for (interestPath in request.interests) {
-                // 대분류, 중분류, 소분류 모두 입력되었는지 확인
-                if (interestPath.directFullPath.size != 3) {
-                    logger.warn("대분류, 중분류, 소분류가 모두 입력되어야 합니다: ${interestPath.directFullPath}")
-                    continue
-                }
-
-                val fullPathStr = "{${interestPath.directFullPath.joinToString(",")}}"
-                val interestId = interestEmbeddingRepository.findIdByFullPath(fullPathStr)
-
-                if (interestId != null) {
-                    // 이미 등록된 관심사인지 확인
-                    val exists = memberInterestRepository.existsByMemberIdAndInterestId(memberId, interestId)
-                    if (!exists) {
-                        val memberInterest = com.haruUp.interest.entity.MemberInterestEntity(
-                            memberId = memberId,
-                            interestId = interestId,
-                            directFullPath = interestPath.directFullPath
-                        )
-                        memberInterestRepository.save(memberInterest)
-                        savedCount++
-                    }
-                } else {
-                    logger.warn("관심사를 찾을 수 없습니다: ${interestPath.directFullPath}")
-                }
+            if (result.hasInvalidInterests) {
+                ResponseEntity.badRequest().body(
+                    com.haruUp.global.common.ApiResponse.failure(
+                        "소분류(SUB) 레벨의 관심사만 저장 가능합니다. 잘못된 interestId: ${result.invalidInterestIds}"
+                    )
+                )
+            } else {
+                ResponseEntity.ok(
+                    com.haruUp.global.common.ApiResponse.success("${result.savedCount}건 저장 성공")
+                )
             }
-
-            logger.info("멤버 관심사 저장 완료 - memberId: $memberId, savedCount: $savedCount")
-            return ResponseEntity.ok(
-                com.haruUp.global.common.ApiResponse.success("${savedCount}건 저장 성공")
-            )
         } catch (e: Exception) {
             logger.error("멤버 관심사 저장 실패: ${e.message}", e)
-            return ResponseEntity.internalServerError().body(
+            ResponseEntity.internalServerError().body(
                 com.haruUp.global.common.ApiResponse.failure("저장 실패: ${e.message}")
             )
         }

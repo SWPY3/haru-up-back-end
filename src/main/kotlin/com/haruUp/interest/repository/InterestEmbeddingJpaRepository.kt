@@ -201,6 +201,9 @@ interface InterestEmbeddingJpaRepository : JpaRepository<InterestEmbeddingEntity
     )
     fun findIdByFullPath(@Param("fullPath") fullPath: String): Long?
 
+    @Query("SELECT e FROM InterestEmbeddingEntity e WHERE e.id = :id")
+    fun findEntityById(@Param("id") id: Long): InterestEmbeddingEntity?
+
     /**
      * created_source와 isActivated로 필터링하여 조회
      */
