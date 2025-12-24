@@ -47,14 +47,23 @@ class MemberMissionEntity (
 
 ) : BaseEntity() {
 
-    fun toDto() : MemberMissionDto = MemberMissionDto(
+    fun toDto(
+        missionContent: String? = null,
+        difficulty: Int? = null,
+        fullPath: List<String>? = null,
+        directFullPath: List<String>? = null
+    ): MemberMissionDto = MemberMissionDto(
         id = this.id,
         memberId = this.memberId,
         missionId = this.missionId,
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate
+        targetDate = this.targetDate,
+        missionContent = missionContent,
+        difficulty = difficulty,
+        fullPath = fullPath,
+        directFullPath = directFullPath
     )
 
 }

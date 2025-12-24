@@ -20,9 +20,9 @@ class MemberMissionUseCase(
     private val levelService: LevelService
 ) {
 
-    // 전체 미션 조회 (삭제되지 않은 것만)
-    fun getMemberMissions(memberId: Long): List<MemberMissionDto> {
-        return memberMissionService.getAllMissions(memberId)
+    // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능)
+    fun getMemberMissions(memberId: Long, statuses: List<MissionStatus>? = null): List<MemberMissionDto> {
+        return memberMissionService.getAllMissions(memberId, statuses)
     }
 
     // 오늘의 미션 조회
@@ -120,5 +120,14 @@ class MemberMissionUseCase(
         return updatedMc.toDto()
     }
 
-
+    /**
+     * 특정 관심사에 해당하는 미션 리셋 (soft delete)
+     *
+     * @param memberId 사용자 ID
+     * @param memberInterestId 멤버 관심사 ID
+     * @return 삭제된 미션 개수
+     */
+    fun resetMissionsByMemberInterestId(memberId: Long, memberInterestId: Long): Int {
+        return memberMissionService.deleteMissionsByMemberInterestId(memberId, memberInterestId)
+    }
 }

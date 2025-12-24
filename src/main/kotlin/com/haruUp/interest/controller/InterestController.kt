@@ -191,20 +191,19 @@ class InterestController(
                 return ResponseEntity.ok(MemberInterestsResponse(emptyList(), 0))
             }
 
-            // 각 관심사에 대해 interest_embeddings에서 상세 정보 조회
-            val interests = memberInterests.mapNotNull { memberInterest ->
+            // 각 관심사에 대해 interest_embeddings에서 full_path 조회
+            val interests = memberInterests.map { memberInterest ->
                 val interestEmbedding = interestEmbeddingRepository.findById(memberInterest.interestId).orElse(null)
-                interestEmbedding?.let {
-                    MemberInterestDto(
-                        id = it.id.toString(),
-                        name = it.name,
-                        level = it.level.name,
-                        parentId = it.parentId,
-                        fullPath = it.fullPath,
-                        usageCount = it.usageCount,
-                        isActivated = it.isActivated
-                    )
-                }
+                MemberInterestDto(
+                    id = memberInterest.id!!,
+                    memberId = memberInterest.memberId,
+                    interestId = memberInterest.interestId,
+                    directFullPath = memberInterest.directFullPath,
+                    resetMissionCount = memberInterest.resetMissionCount,
+                    createdAt = memberInterest.createdAt,
+                    updatedAt = memberInterest.updatedAt,
+                    fullPath = interestEmbedding?.fullPath
+                )
             }
 
             logger.info("멤버 관심사 조회 완료 - memberId: ${principal.id}, count: ${interests.size}")

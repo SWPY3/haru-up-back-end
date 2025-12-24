@@ -6,34 +6,41 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-class MemberMissionDto (
+@Schema(description = "멤버 미션 정보")
+data class MemberMissionDto (
+    @Schema(description = "멤버 미션 ID", example = "1")
+    val id: Long? = null,
 
-    var id: Long? = null,
+    @Schema(description = "멤버 ID", example = "1")
+    val memberId: Long,
 
-    var memberId: Long,
+    @Schema(description = "미션 ID (mission_embeddings.id)", example = "100")
+    val missionId: Long,
 
-    var missionId: Long,
+    @Schema(description = "멤버 관심사 ID", example = "1")
+    val memberInterestId: Long,
 
-    var memberInterestId: Long,
+    @Schema(description = "미션 상태", example = "ACTIVE")
+    val missionStatus: MissionStatus = MissionStatus.ACTIVE,
 
-    var missionStatus : MissionStatus = MissionStatus.ACTIVE,
+    @Schema(description = "획득 경험치", example = "10")
+    val expEarned: Int,
 
-    var expEarned : Int,
+    @Schema(description = "목표 날짜", example = "2025-01-01")
+    val targetDate: LocalDate = LocalDate.now(),
 
-    var targetDate: LocalDate = LocalDate.now()
+    @Schema(description = "미션 내용 (mission_embeddings.mission_content)", example = "오늘 30분 운동하기")
+    val missionContent: String? = null,
 
-) : BaseEntity() {
+    @Schema(description = "미션 난이도 (mission_embeddings.difficulty)", example = "3")
+    val difficulty: Int? = null,
 
-    fun toEntity() : MemberMissionEntity = MemberMissionEntity(
-        id = this.id,
-        memberId = this.memberId,
-        missionId = this.missionId,
-        memberInterestId = this.memberInterestId,
-        expEarned = this.expEarned,
-        missionStatus = this.missionStatus,
-        targetDate = this.targetDate
-    )
-}
+    @Schema(description = "관심사 전체 경로 (interest_embeddings.full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val fullPath: List<String>? = null,
+
+    @Schema(description = "직접 저장된 전체 경로 (member_interest.direct_full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val directFullPath: List<String>? = null
+)
 
 data class AiMissionResult(
     val missionId: Long,
@@ -47,8 +54,8 @@ data class MissionCandidateDto(
     val content: String,
     val directFullPath: List<String>,  // 전체 경로 배열 ["대분류", "중분류", "소분류"]
     val difficulty: Int?,
-    val targetDate: LocalDate,
-    val reason: String
+    val expEarned: Int,
+    val targetDate: LocalDate
 )
 
 data class MissionRecommendResult(

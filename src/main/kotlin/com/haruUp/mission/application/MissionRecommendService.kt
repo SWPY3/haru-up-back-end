@@ -5,6 +5,7 @@ import com.haruUp.category.repository.JobDetailRepository
 import com.haruUp.category.repository.JobRepository
 import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.interest.dto.InterestPath
+import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import com.haruUp.mission.domain.MemberMissionEntity
@@ -34,31 +35,34 @@ class MissionRecommendService(
     private val memberMissionRepository: MemberMissionRepository,
     private val jobRepository: JobRepository,
     private val jobDetailRepository: JobDetailRepository,
-    private val memberInterestRepository: MemberInterestJpaRepository
+    private val memberInterestRepository: MemberInterestJpaRepository,
+    private val interestEmbeddingRepository: InterestEmbeddingJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
     private val TODAY_RETRY_TTL = Duration.ofHours(24)  // 24시간 후 자동 만료
 
     /**
-     * 오늘의 미션 추천 조회
+     * 미션 추천 조회
      *
      * member_mission에서 조건에 맞는 미션 조회:
      * - deleted = false
-     * - targetDate = 오늘
-     * - missionStatus IN (READY, ACTIVE)
+     * - targetDate = 지정된 날짜
+     * - missionStatus IN (READY, ACTIVE, POSTPONED)
+     *
+     * @param memberId 멤버 ID
+     * @param memberInterestId 멤버 관심사 ID
+     * @param targetDate 조회할 날짜
      */
-    fun recommend(memberId: Long, memberInterestId: Long): MissionRecommendResult {
-        val today = LocalDate.now()
-
-        // member_mission에서 오늘의 미션 조회
+    fun recommend(memberId: Long, memberInterestId: Long, targetDate: LocalDate): MissionRecommendResult {
+        // member_mission에서 미션 조회
         val memberMissions = memberMissionRepository.findTodayMissions(
             memberId = memberId,
             memberInterestId = memberInterestId,
-            targetDate = today,
+            targetDate = targetDate,
             statuses = listOf(MissionStatus.READY, MissionStatus.ACTIVE, MissionStatus.POSTPONED)
         )
 
-        logger.info("오늘의 미션 조회 - memberId: $memberId, memberInterestId: $memberInterestId, 결과: ${memberMissions.size}개")
+        logger.info("미션 조회 - memberId: $memberId, memberInterestId: $memberInterestId, targetDate: $targetDate, 결과: ${memberMissions.size}개")
 
         // mission_embeddings에서 상세 정보 조회하여 MissionCandidateDto로 변환
         val missions = memberMissions.mapNotNull { memberMission ->
@@ -69,8 +73,8 @@ class MissionRecommendService(
                     content = embedding.missionContent,
                     directFullPath = embedding.directFullPath,
                     difficulty = embedding.difficulty,
-                    targetDate = memberMission.targetDate,
-                    reason = "오늘의 미션"
+                    expEarned = memberMission.expEarned,
+                    targetDate = memberMission.targetDate
                 )
             }
         }
@@ -136,6 +140,10 @@ class MissionRecommendService(
         } ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다. (memberInterestId: $memberInterestId)")
 
         logger.info("관심사 경로: ${interestPath.toPathString()}")
+
+        // 3-2. interest_embeddings에서 fullPath 조회
+        val interestFullPath = interestEmbeddingRepository.findEntityById(memberInterest.interestId)?.fullPath
+        logger.info("interest_embeddings fullPath: $interestFullPath")
 
         // 4. 제외할 난이도 조회 (excludeMemberMissionIds에 해당하는 미션들의 난이도)
         val excludeDifficulties = if (!excludeMemberMissionIds.isNullOrEmpty()) {
@@ -256,8 +264,10 @@ class MissionRecommendService(
                 member_mission_id = dto.mission_id?.let { missionIdToMemberMissionId[it] },
                 mission_id = dto.mission_id,
                 content = dto.content,
-                relatedInterest = dto.relatedInterest,
+                directFullPath = dto.directFullPath,
+                fullPath = interestFullPath,
                 difficulty = dto.difficulty,
+                expEarned = 0,
                 createdType = dto.createdType
             )
         }
@@ -331,6 +341,12 @@ class MissionRecommendService(
         logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}, 성별: ${missionMemberProfile.gender}, 직업: ${missionMemberProfile.jobName}")
 
         // 4. memberInterest에서 InterestPath 추출하여 (memberInterestId, InterestPath) 튜플로 변환
+        // 4-1. interest_embeddings에서 fullPath 조회하여 맵 생성
+        val memberInterestIdToFullPath = memberInterests.associate { memberInterest ->
+            val fullPath = interestEmbeddingRepository.findEntityById(memberInterest.interestId)?.fullPath
+            memberInterest.id!!.toInt() to fullPath
+        }
+
         val interestsWithDetails = memberInterests.map { memberInterest ->
             val directFullPath = memberInterest.directFullPath
                 ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
@@ -398,6 +414,7 @@ class MissionRecommendService(
 
         // 8. 응답에 member_mission_id 매핑
         val missionsWithMemberMissionId = missions.map { group ->
+            val groupFullPath = group.memberInterestId?.let { memberInterestIdToFullPath[it] }
             com.haruUp.missionembedding.dto.MissionGroupDto(
                 memberInterestId = group.memberInterestId,
                 data = group.data.map { dto ->
@@ -405,8 +422,10 @@ class MissionRecommendService(
                         member_mission_id = dto.mission_id?.let { missionIdToMemberMissionId[it] },
                         mission_id = dto.mission_id,
                         content = dto.content,
-                        relatedInterest = dto.relatedInterest,
+                        directFullPath = dto.directFullPath,
+                        fullPath = groupFullPath,
                         difficulty = dto.difficulty,
+                        expEarned = 0,
                         createdType = dto.createdType
                     )
                 }
