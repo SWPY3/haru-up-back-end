@@ -81,7 +81,8 @@ class MissionRecommendService(
         }
 
         return MissionRecommendResult(
-            missions = missions
+            missions = missions,
+            retryCount = getRetryCount(memberId)
         )
     }
 
@@ -102,7 +103,9 @@ class MissionRecommendService(
         memberInterestId: Long,
         excludeMemberMissionIds: List<Long>? = null
     ): MissionRecommendationResponse {
-        logger.info("오늘의 미션 재추천 요청 - 사용자: $memberId, memberInterestId: $memberInterestId, excludeMemberMissionIds: $excludeMemberMissionIds")
+        if (getRetryCount(memberId) >= 5) {
+            throw IllegalStateException("재추천 횟수 초과: 최대 5회까지 가능합니다.")
+        }
 
         // 1. DB에서 사용자 프로필 조회
         val memberProfileEntity = memberProfileRepository.findByMemberId(memberId)
@@ -172,7 +175,8 @@ class MissionRecommendService(
                         data = emptyList()
                     )
                 ),
-                totalCount = 0
+                totalCount = 0,
+                retryCount = getRetryCount(memberId)
             )
         }
 
@@ -282,7 +286,8 @@ class MissionRecommendService(
 
         return MissionRecommendationResponse(
             missions = listOf(missionGroup),
-            totalCount = missionDtosWithMemberMissionId.size
+            totalCount = missionDtosWithMemberMissionId.size,
+            retryCount = incrementRetryCount(memberId)
         )
     }
 
@@ -511,10 +516,53 @@ class MissionRecommendService(
             emptyList()
         }
     }
+
+    /**
+     * 재추천 횟수 증가 (자정에 자동 만료)
+     *
+     * @param memberId 사용자 ID
+     * @return 증가 후 현재 횟수
+     */
+    fun incrementRetryCount(memberId: Long): Long {
+        val key = MissionRecommendRedisKey.retryCount(memberId)
+        return try {
+            val count = redisTemplate.opsForValue().increment(key) ?: 1L
+            // TTL이 설정되지 않은 경우에만 설정 (첫 번째 증가 시)
+            if (count == 1L) {
+                redisTemplate.expire(key, Duration.ofSeconds(secondsUntilMidnight()))
+            }
+            logger.info("재추천 횟수 증가 - memberId: $memberId, count: $count")
+            count
+        } catch (e: Exception) {
+            logger.error("재추천 횟수 증가 실패 - key: $key, error: ${e.message}")
+            0L
+        }
+    }
+
+    /**
+     * 재추천 횟수 조회
+     *
+     * @param memberId 사용자 ID
+     * @return 현재 재추천 횟수 (없으면 0)
+     */
+    fun getRetryCount(memberId: Long): Long {
+        val key = MissionRecommendRedisKey.retryCount(memberId)
+        return try {
+            val count = redisTemplate.opsForValue().get(key)?.toLongOrNull() ?: 0L
+            logger.info("재추천 횟수 조회 - memberId: $memberId, count: $count")
+            count
+        } catch (e: Exception) {
+            logger.error("재추천 횟수 조회 실패 - key: $key, error: ${e.message}")
+            0L
+        }
+    }
 }
 
 
 object MissionRecommendRedisKey {
     fun retry(memberId: Long, memberInterestId: Long, date: LocalDate) =
         "today-mission:$memberId:$memberInterestId:$date"
+
+    fun retryCount(memberId: Long) =
+        "mission:retry:count:$memberId"
 }

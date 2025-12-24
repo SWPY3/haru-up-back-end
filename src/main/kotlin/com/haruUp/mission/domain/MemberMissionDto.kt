@@ -59,7 +59,8 @@ data class MissionCandidateDto(
 )
 
 data class MissionRecommendResult(
-    val missions: List<MissionCandidateDto>
+    val missions: List<MissionCandidateDto>,
+    val retryCount: Long? = 0
 )
 
 /**

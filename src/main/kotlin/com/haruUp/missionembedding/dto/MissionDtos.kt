@@ -34,7 +34,10 @@ data class MissionRecommendationResponse(
     val missions: List<MissionGroupDto>,
 
     @Schema(description = "총 추천된 미션 개수", example = "10")
-    val totalCount: Int
+    val totalCount: Int,
+
+    @Schema(description = "미션 재추천한 개수", example = "3")
+    val retryCount: Long? = 0
 )
 
 /**
