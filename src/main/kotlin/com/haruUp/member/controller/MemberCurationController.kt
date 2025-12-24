@@ -2,6 +2,7 @@ package com.haruUp.member.controller
 
 import com.haruUp.global.security.MemberPrincipal
 import com.haruUp.interest.dto.InterestsDto
+import com.haruUp.member.application.useCase.CurationResult
 import com.haruUp.member.application.useCase.MemberCurationUseCase
 import com.haruUp.member.domain.dto.MemberProfileDto
 import com.haruUp.member.domain.type.MemberGender
@@ -62,7 +63,7 @@ class MemberCurationController(
                         jobDetailId = curationDto.jobDetailId
                     }
 
-                    memberCurationUseCase.runInitialCuration(
+                    val result = memberCurationUseCase.runInitialCuration(
                         characterId = curationDto.characterId,
                         memberProfileDto = profileDto,
                         interests = curationDto.interests
@@ -74,7 +75,7 @@ class MemberCurationController(
                         )
                     }
 
-                    emitter.send(SseEmitter.event().name("done").data("완료"))
+                    emitter.send(SseEmitter.event().name("done").data(result))
                     emitter.complete()
 
                 } catch (e: Exception) {

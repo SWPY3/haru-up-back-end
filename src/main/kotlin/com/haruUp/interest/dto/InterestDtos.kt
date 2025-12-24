@@ -182,30 +182,33 @@ data class InterestsDto(
  */
 
 /**
- * 멤버가 선택한 관심사 정보 (vector 제외)
+ * 멤버가 선택한 관심사 정보 (member_interest + interest_embeddings.full_path)
  */
 @Schema(description = "멤버가 선택한 관심사 정보")
 data class MemberInterestDto(
-    @Schema(description = "관심사 ID", example = "1")
-    val id: String,
+    @Schema(description = "멤버 관심사 ID (member_interest.id)", example = "1")
+    val id: Long,
 
-    @Schema(description = "관심사 이름", example = "헬스")
-    val name: String,
+    @Schema(description = "멤버 ID", example = "1")
+    val memberId: Long,
 
-    @Schema(description = "관심사 레벨", allowableValues = ["MAIN", "MIDDLE", "SUB"], example = "MIDDLE")
-    val level: String,
+    @Schema(description = "관심사 ID (interest_embeddings.id)", example = "64")
+    val interestId: Long,
 
-    @Schema(description = "부모 관심사 ID", example = "1")
-    val parentId: String? = null,
+    @Schema(description = "직접 저장된 전체 경로 (member_interest.direct_full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val directFullPath: List<String>?,
 
-    @Schema(description = "전체 경로 배열", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
-    val fullPath: List<String>,
+    @Schema(description = "미션 재추천 횟수", example = "0")
+    val resetMissionCount: Int,
 
-    @Schema(description = "사용 횟수", example = "15")
-    val usageCount: Int,
+    @Schema(description = "생성일시", example = "2025-01-01T00:00:00")
+    val createdAt: java.time.LocalDateTime?,
 
-    @Schema(description = "활성화 여부", example = "true")
-    val isActivated: Boolean
+    @Schema(description = "수정일시", example = "2025-01-01T00:00:00")
+    val updatedAt: java.time.LocalDateTime?,
+
+    @Schema(description = "interest_embeddings의 전체 경로", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val fullPath: List<String>?
 )
 
 /**

@@ -16,6 +16,13 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 
+/**
+ * 초기 큐레이션 결과
+ */
+data class CurationResult(
+    val memberInterestIds: List<Long>
+)
+
 @Component
 class MemberCurationUseCase(
     private val characterService: CharacterService,
@@ -35,7 +42,7 @@ class MemberCurationUseCase(
         memberProfileDto: MemberProfileDto,
         interests: List<InterestsDto>,
         onLog: suspend (CurationLogEvent) -> Unit
-    ) {
+    ): CurationResult {
         val memberId = memberProfileDto.memberId
             ?: throw IllegalArgumentException("존재하지 않는 회원입니다.")
 
@@ -85,6 +92,8 @@ class MemberCurationUseCase(
 
 
         onLog(CurationLogEvent("초기 회원 설정 완료", ""))
+
+        return CurationResult(memberInterestIds = memberInterestIds)
     }
 
     private suspend fun delaySafe() {

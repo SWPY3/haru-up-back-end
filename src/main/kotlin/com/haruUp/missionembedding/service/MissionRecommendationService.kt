@@ -1,5 +1,6 @@
 package com.haruUp.missionembedding.service
 
+import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.haruUp.interest.dto.InterestPath
@@ -68,8 +69,10 @@ class MissionRecommendationService(
                         member_mission_id = null,
                         mission_id = mission.id,
                         content = mission.content,
-                        relatedInterest = mission.relatedInterest,
+                        directFullPath = mission.directFullPath,
+                        fullPath = mission.fullPath,
                         difficulty = mission.difficulty,
+                        expEarned = 0,
                         createdType = mission.createdType
                     )
                 }
@@ -133,8 +136,10 @@ class MissionRecommendationService(
                     member_mission_id = null,
                     mission_id = mission.id,
                     content = mission.content,
-                    relatedInterest = mission.relatedInterest,
+                    directFullPath = mission.directFullPath,
+                    fullPath = mission.fullPath,
                     difficulty = mission.difficulty,
+                    expEarned = 0,
                     createdType = mission.createdType
                 )
             }
@@ -172,7 +177,7 @@ class MissionRecommendationService(
         )
 
         // AI로 생성한 미션을 DB에 저장 (embedding 없이) 후 id 포함하여 리스트에 추가
-        // relatedInterest는 LLM 응답이 아닌 실제 interestPath 사용
+        // directFullPath는 LLM 응답이 아닌 실제 interestPath 사용
         val actualInterestPath = interestPath.toPathList()
         val missionsWithId = aiMissions.mapNotNull { mission ->
             val missionDifficulty = mission.difficulty
@@ -185,7 +190,8 @@ class MissionRecommendationService(
                 Mission(
                     id = savedEntity?.id,
                     content = mission.content,
-                    relatedInterest = actualInterestPath,
+                    directFullPath = actualInterestPath,
+                    fullPath = actualInterestPath,
                     difficulty = savedEntity?.difficulty ?: missionDifficulty
                 )
             } catch (e: Exception) {
@@ -193,7 +199,8 @@ class MissionRecommendationService(
                 Mission(
                     id = null,
                     content = mission.content,
-                    relatedInterest = actualInterestPath,
+                    directFullPath = actualInterestPath,
+                    fullPath = actualInterestPath,
                     difficulty = missionDifficulty
                 )
             }
@@ -342,7 +349,8 @@ $excludeMissionsText
                 Mission(
                     id = entity.id,
                     content = entity.missionContent,
-                    relatedInterest = entity.directFullPath,
+                    directFullPath = entity.directFullPath,
+                    fullPath = entity.directFullPath,
                     difficulty = entity.difficulty,
                     createdType = "EMBEDDING"
                 )
@@ -521,7 +529,9 @@ $basePrompt
     private data class Mission(
         val id: Long? = null,
         val content: String,
-        val relatedInterest: List<String>,
+        @JsonAlias("relatedInterest")
+        val directFullPath: List<String>,
+        val fullPath: List<String>? = null,
         val difficulty: Int? = null,
         val createdType: String = "AI"  // "EMBEDDING" or "AI"
     )

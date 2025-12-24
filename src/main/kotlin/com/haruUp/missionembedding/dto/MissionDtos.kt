@@ -55,29 +55,42 @@ data class MissionGroupDto(
 @Schema(description = "미션 정보")
 data class MissionDto(
     @Schema(description = "member_mission 테이블 ID", example = "123")
-    val member_mission_id: Long?,
+    val member_mission_id: Long? = null,
 
     @Schema(description = "mission_embeddings 테이블 ID", example = "123")
-    val mission_id: Long?,
+    val mission_id: Long? = null,
 
     @Schema(description = "미션 내용", example = "주 3회 가슴 운동 루틴 완수하기")
     val content: String,
 
     @Schema(
-        description = "관련 관심사 경로 [대분류, 중분류, 소분류]",
+        description = "직접 저장된 전체 경로 [대분류, 중분류, 소분류]",
         example = """["체력관리 및 운동", "헬스", "근력 키우기"]"""
     )
-    val relatedInterest: List<String>,
+    val directFullPath: List<String> = emptyList(),
+
+    @Schema(
+        description = "관심사 전체 경로 [대분류, 중분류, 소분류]",
+        example = """["체력관리 및 운동", "헬스", "근력 키우기"]"""
+    )
+    val fullPath: List<String>? = null,
 
     @Schema(description = "난이도 (1~5, null이면 난이도 미설정)", example = "3")
-    val difficulty: Int?,
+    val difficulty: Int? = null,
+
+    @Schema(description = "획득 경험치", example = "10")
+    val expEarned: Int = 0,
 
     @Schema(
         description = "생성 타입 (EMBEDDING: RAG 조회, AI: LLM 생성)",
         example = "EMBEDDING",
         allowableValues = ["EMBEDDING", "AI"]
     )
-    val createdType: String? = null
+    val createdType: String? = null,
+
+    @Schema(description = "관련 관심사 (deprecated)", hidden = true)
+    @Deprecated("Use directFullPath instead")
+    val relatedInterest: String? = null
 )
 
 /**

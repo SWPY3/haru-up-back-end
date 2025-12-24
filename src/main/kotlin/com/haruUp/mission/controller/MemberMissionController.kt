@@ -7,6 +7,7 @@ import com.haruUp.mission.application.MemberMissionUseCase
 import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionRecommendResult
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.missionembedding.dto.TodayMissionRecommendationRequest
 import com.haruUp.missionembedding.dto.TodayMissionRetryRequest
@@ -18,15 +19,19 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 
 @Tag(name = "멤버 미션 API", description = "멤버 미션 관리 및 추천")
 @RestController
@@ -42,14 +47,35 @@ class MemberMissionController(
      */
     @Operation(
         summary = "멤버 미션 목록 조회",
-        description = "해당 멤버의 삭제되지 않은 모든 미션을 조회합니다."
+        description = """
+            해당 멤버의 삭제되지 않은 미션을 조회합니다.
+
+            **호출 예시:**
+            ```
+            GET /api/member/mission
+            GET /api/member/mission?missionStatus=ACTIVE
+            GET /api/member/mission?missionStatus=ACTIVE,INACTIVE,COMPLETED
+            ```
+        """
     )
     @GetMapping
     fun getMemberMissions(
-        @AuthenticationPrincipal principal: MemberPrincipal
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "미션 상태 필터 (콤마로 구분, 미입력시 전체 조회)",
+            example = "ACTIVE,INACTIVE"
+        )
+        @RequestParam(required = false) missionStatus: String?
     ): ApiResponse<List<MemberMissionDto>> {
+        val statuses = missionStatus?.split(",")
+            ?.map { it.trim().uppercase() }
+            ?.mapNotNull {
+                try { MissionStatus.valueOf(it) }
+                catch (e: IllegalArgumentException) { null }
+            }
+
         return ApiResponse.success(
-            memberMissionUseCase.getMemberMissions(principal.id)
+            memberMissionUseCase.getMemberMissions(principal.id, statuses)
         )
     }
 
@@ -179,6 +205,7 @@ class MemberMissionController(
             **호출 예시:**
             ```
             GET /api/member/mission/recommend?memberInterestId=1
+            GET /api/member/mission/recommend?memberInterestId=1&targetDate=2025-01-15
             ```
         """
     )
@@ -189,12 +216,20 @@ class MemberMissionController(
             description = "멤버 관심사 ID",
             required = true
         )
-        @RequestParam memberInterestId: Long
+        @RequestParam memberInterestId: Long,
+        @Parameter(
+            description = "조회할 날짜 (기본값: 오늘)",
+            required = false
+        )
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        targetDate: LocalDate?
     ): ResponseEntity<ApiResponse<MissionRecommendResult>> = runBlocking {
         try {
             val response = missionRecommendUseCase.recommendToday(
                 memberId = principal.id,
-                memberInterestId = memberInterestId
+                memberInterestId = memberInterestId,
+                targetDate = targetDate ?: LocalDate.now()
             )
             ResponseEntity.ok(ApiResponse.success(response))
         } catch (e: IllegalArgumentException) {
@@ -277,6 +312,55 @@ class MemberMissionController(
             )
         } catch (e: Exception) {
             logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
+        }
+    }
+
+    /**
+     * 미션 리셋 API
+     *
+     * 특정 관심사에 해당하는 미션을 soft delete
+     *
+     * @param memberInterestId 멤버 관심사 ID
+     * @return 삭제된 미션 개수
+     */
+    @Operation(
+        summary = "미션 리셋",
+        description = """
+            특정 관심사에 해당하는 모든 미션을 soft delete 합니다.
+
+            **호출 예시:**
+            ```
+            DELETE /api/member/mission/reset/1
+            ```
+        """
+    )
+    @DeleteMapping("/reset/{memberInterestId}")
+    fun resetMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "멤버 관심사 ID",
+            required = true
+        )
+        @PathVariable memberInterestId: Long
+    ): ResponseEntity<ApiResponse<Int>> {
+        logger.info("미션 리셋 요청 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
+
+        return try {
+            val deletedCount = memberMissionUseCase.resetMissionsByMemberInterestId(
+                memberId = principal.id,
+                memberInterestId = memberInterestId
+            )
+            logger.info("미션 리셋 완료 - 삭제된 개수: $deletedCount")
+            ResponseEntity.ok(ApiResponse.success(deletedCount))
+        } catch (e: Exception) {
+            logger.error("미션 리셋 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
                 ApiResponse(
                     success = false,
