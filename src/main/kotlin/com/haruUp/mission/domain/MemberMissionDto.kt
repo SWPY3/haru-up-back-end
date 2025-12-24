@@ -100,3 +100,27 @@ data class MemberMissionSelectionRequest(
     )
     val memberMissionIds: List<Long>
 )
+
+/**
+ * 미션 경험치 계산 유틸리티
+ */
+object MissionExpCalculator {
+    /**
+     * 난이도에 따른 경험치 계산
+     * - 난이도 1: 50
+     * - 난이도 2: 100
+     * - 난이도 3: 150
+     * - 난이도 4: 200
+     * - 난이도 5: 250
+     */
+    fun calculateByDifficulty(difficulty: Int?): Int {
+        return when (difficulty) {
+            1 -> 50
+            2 -> 100
+            3 -> 150
+            4 -> 200
+            5 -> 250
+            else -> 0
+        }
+    }
+}

@@ -10,6 +10,7 @@ import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MissionCandidateDto
+import com.haruUp.mission.domain.MissionExpCalculator
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
@@ -231,7 +232,7 @@ class MissionRecommendService(
                         missionId = missionId,
                         memberInterestId = memberInterestId,
                         missionStatus = MissionStatus.READY,
-                        expEarned = 0
+                        expEarned = MissionExpCalculator.calculateByDifficulty(missionDto.difficulty)
                     )
                     memberMissionRepository.save(memberMission)
                 } catch (e: Exception) {
@@ -267,7 +268,7 @@ class MissionRecommendService(
                 directFullPath = dto.directFullPath,
                 fullPath = interestFullPath,
                 difficulty = dto.difficulty,
-                expEarned = 0,
+                expEarned = MissionExpCalculator.calculateByDifficulty(dto.difficulty),
                 createdType = dto.createdType
             )
         }
@@ -400,7 +401,7 @@ class MissionRecommendService(
                         missionId = missionId,
                         memberInterestId = memberInterest.id!!,
                         missionStatus = MissionStatus.READY,
-                        expEarned = 0
+                        expEarned = MissionExpCalculator.calculateByDifficulty(missionDto.difficulty)
                     )
                     val saved = memberMissionRepository.save(memberMission)
                     saved.id?.let { missionIdToMemberMissionId[missionId] = it }
@@ -425,7 +426,7 @@ class MissionRecommendService(
                         directFullPath = dto.directFullPath,
                         fullPath = groupFullPath,
                         difficulty = dto.difficulty,
-                        expEarned = 0,
+                        expEarned = MissionExpCalculator.calculateByDifficulty(dto.difficulty),
                         createdType = dto.createdType
                     )
                 }

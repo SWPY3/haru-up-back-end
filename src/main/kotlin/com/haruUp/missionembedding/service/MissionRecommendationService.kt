@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.haruUp.interest.dto.InterestPath
+import com.haruUp.mission.domain.MissionExpCalculator
 import com.haruUp.missionembedding.dto.MissionDto
 import com.haruUp.missionembedding.dto.MissionGroupDto
 import com.haruUp.global.clova.ClovaApiClient
@@ -72,7 +73,7 @@ class MissionRecommendationService(
                         directFullPath = mission.directFullPath,
                         fullPath = mission.fullPath,
                         difficulty = mission.difficulty,
-                        expEarned = 0,
+                        expEarned = MissionExpCalculator.calculateByDifficulty(mission.difficulty),
                         createdType = mission.createdType
                     )
                 }
@@ -139,7 +140,7 @@ class MissionRecommendationService(
                     directFullPath = mission.directFullPath,
                     fullPath = mission.fullPath,
                     difficulty = mission.difficulty,
-                    expEarned = 0,
+                    expEarned = MissionExpCalculator.calculateByDifficulty(mission.difficulty),
                     createdType = mission.createdType
                 )
             }
