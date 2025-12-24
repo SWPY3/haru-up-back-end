@@ -93,7 +93,7 @@ class MemberMissionController(
     /**
      * 미션 선택 API
      *
-     * 사용자가 선택한 미션들을 데이터베이스에 저장
+     * 사용자가 선택한 미션들을 ACTIVE 상태로 변경
      *
      * @param request 미션 선택 요청
      * @return 저장 결과
@@ -101,23 +101,17 @@ class MemberMissionController(
     @Operation(
         summary = "미션 선택",
         description = """
-            사용자가 선택한 미션들을 저장합니다.
+            사용자가 선택한 미션들을 ACTIVE 상태로 변경합니다.
 
             **호출 예시:**
             ```json
             {
-              "missions": [
-                {
-                  "memberInterestId": 2,
-                  "missionId": 3
-                }
-              ]
+              "memberMissionIds": [1, 2, 3]
             }
             ```
 
             **필드 설명:**
-            - memberInterestId: 멤버 관심사 ID (반드시 소분류까지 입력된 memberInterestId로 입력해주세요.)
-            - missionId: 미션 번호
+            - memberMissionIds: member_mission 테이블의 ID 목록
         """
     )
     @PostMapping("/select")
@@ -130,10 +124,10 @@ class MemberMissionController(
         )
         @RequestBody request: MemberMissionSelectionRequest
     ): ResponseEntity<ApiResponse<List<Long>>> {
-        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.missions.size}")
+        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.memberMissionIds.size}")
 
         return try {
-            val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request)
+            val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request.memberMissionIds)
             logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
             ResponseEntity.ok(ApiResponse.success(savedMissionIds))
         } catch (e: IllegalArgumentException) {
@@ -143,6 +137,15 @@ class MemberMissionController(
                     success = false,
                     data = emptyList(),
                     errorMessage = e.message ?: "유효성 검증 실패"
+                )
+            )
+        } catch (e: IllegalStateException) {
+            logger.error("처리 실패: ${e.message}")
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다"
                 )
             )
         } catch (e: Exception) {

@@ -1,6 +1,5 @@
 package com.haruUp.mission.application
 
-import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import kotlinx.coroutines.runBlocking
@@ -33,14 +32,14 @@ class MissionRecommendUseCase(
      * 미션 선택
      *
      * @param memberId 멤버 ID
-     * @param request 미션 선택 요청
+     * @param memberMissionIds 선택한 member_mission ID 목록
      * @return 저장된 미션 ID 목록
      */
     fun memberMissionSelection(
         memberId: Long,
-        request: MemberMissionSelectionRequest
+        memberMissionIds: List<Long>
     ): List<Long> {
-        return memberMissionService.saveMissions(memberId, request)
+        return memberMissionService.saveMissions(memberId, memberMissionIds)
     }
 
     /**

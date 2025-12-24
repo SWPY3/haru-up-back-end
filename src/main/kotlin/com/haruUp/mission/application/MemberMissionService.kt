@@ -87,36 +87,36 @@ class MemberMissionService(
      * 사용자가 선택한 미션들을 ACTIVE 상태로 변경
      *
      * @param memberId 사용자 ID
-     * @param memberMissionSelectionRequest 미션 선택 요청
+     * @param memberMissionIds 선택한 member_mission ID 목록
      * @return 업데이트된 member_mission ID 목록
      */
     @Transactional
-    fun saveMissions(memberId: Long, memberMissionSelectionRequest: MemberMissionSelectionRequest): List<Long> {
+    fun saveMissions(memberId: Long, memberMissionIds: List<Long>): List<Long> {
         val updatedMemberMissionIds = mutableListOf<Long>()
         val today = LocalDate.now()
 
-        memberMissionSelectionRequest.missions.forEach { dto ->
+        memberMissionIds.forEach { memberMissionId ->
+            // memberMissionId로 조회
+            val memberMission = memberMissionRepository.findByIdOrNull(memberMissionId)
+                ?: throw IllegalArgumentException("등록된 미션을 찾을 수 없습니다: memberMissionId=$memberMissionId")
 
-            // missionId가 mission_embeddings 테이블에 존재하는지 확인
-            if (!missionEmbeddingRepository.existsById(dto.missionId)) {
-                throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=${dto.missionId}")
+            // 본인의 미션인지 확인
+            if (memberMission.memberId != memberId) {
+                throw IllegalArgumentException("본인의 미션만 선택할 수 있습니다: memberMissionId=$memberMissionId")
             }
 
-            runBlocking {
-                missionEmbeddingService.generateAndUpdateEmbedding(dto.missionId)
+            // missionId로 임베딩 업데이트
+            val missionId = memberMission.missionId
+            if (!missionEmbeddingRepository.existsById(missionId)) {
+                throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=$missionId")
             }
 
-            // memberId, memberInterestId, missionId로 기존 데이터 조회
-            val memberMission = memberMissionRepository.findByMemberIdAndMemberInterestIdAndMissionIdAndDeletedFalse(
-                memberId = memberId,
-                memberInterestId = dto.memberInterestId,
-                missionId = dto.missionId
-            )
-
-            if (memberMission == null) {
-                throw IllegalArgumentException(
-                    "등록된 미션을 찾을 수 없습니다: memberId=$memberId, memberInterestId=${dto.memberInterestId}, missionId=${dto.missionId}"
-                )
+            try {
+                runBlocking {
+                    missionEmbeddingService.generateAndUpdateEmbedding(missionId)
+                }
+            } catch (e: Exception) {
+                throw IllegalStateException("미션 임베딩 업데이트 실패: missionId=$missionId, error=${e.message}")
             }
 
             // missionStatus를 ACTIVE로, targetDate를 오늘로 변경
@@ -126,7 +126,7 @@ class MemberMissionService(
 
             val saved = memberMissionRepository.save(memberMission)
             saved.id?.let { updatedMemberMissionIds.add(it) }
-            logger.info("미션 활성화 완료: memberId=$memberId, memberInterestId=${dto.memberInterestId}, missionId=${dto.missionId}")
+            logger.info("미션 활성화 완료: memberId=$memberId, memberMissionId=$memberMissionId, missionId=$missionId")
         }
 
         logger.info("미션 선택 완료 - 업데이트된 개수: ${updatedMemberMissionIds.size}")
