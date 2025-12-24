@@ -1,7 +1,7 @@
 package com.haruUp.mission.application
 
 import org.slf4j.LoggerFactory
-import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
@@ -34,12 +34,12 @@ class MemberMissionService(
      * - 기존 row는 그대로 유지
      * - 새로운 row 생성: missionStatus=POSTPONED, targetDate=내일
      */
-    fun handleMissionPostponed(memberMissionId: Long): MemberMission {
+    fun handleMissionPostponed(memberMissionId: Long): MemberMissionEntity {
         val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
         // 새로운 row 생성 (기존 row는 그대로 유지)
-        val postponedMission = MemberMission(
+        val postponedMission = MemberMissionEntity(
             memberId = stored.memberId,
             missionId = stored.missionId,
             memberInterestId = stored.memberInterestId,
@@ -55,7 +55,7 @@ class MemberMissionService(
      * 미션 상태 변경
      * - status: 변경할 상태 (null이면 변경 안함)
      */
-    fun updateMission(memberMissionId: Long, status: MissionStatus?): MemberMission {
+    fun updateMission(memberMissionId: Long, status: MissionStatus?): MemberMissionEntity {
         val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
@@ -73,7 +73,7 @@ class MemberMissionService(
         return memberMissionRepository.save(stored)
     }
 
-    fun getTodayMissionsByMemberId(memberId: Long): List<MemberMission> {
+    fun getTodayMissionsByMemberId(memberId: Long): List<MemberMissionEntity> {
        return memberMissionRepository.getTodayMissionsByMemberId(memberId)
     }
 

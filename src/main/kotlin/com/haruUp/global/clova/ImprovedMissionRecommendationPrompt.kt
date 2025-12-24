@@ -1,7 +1,7 @@
 package com.haruUp.global.clova
 
-import com.haruUp.interest.model.InterestPath
-import com.haruUp.interest.model.UserInterests
+import com.haruUp.interest.dto.InterestPath
+import com.haruUp.interest.dto.UserInterests
 
 object ImprovedMissionRecommendationPrompt {
 

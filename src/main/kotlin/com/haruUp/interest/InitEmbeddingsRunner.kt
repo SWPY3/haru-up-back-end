@@ -1,7 +1,7 @@
 package com.haruUp.interest
 
 import com.haruUp.HaruUpApplication
-import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.dto.InterestLevel
 import com.haruUp.interest.service.InterestEmbeddingInitializer
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory

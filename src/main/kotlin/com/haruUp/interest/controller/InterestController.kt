@@ -1,10 +1,7 @@
 package com.haruUp.interest.controller
 
 import com.haruUp.interest.dto.*
-
 import java.security.Principal
-import com.haruUp.interest.model.InterestLevel
-import com.haruUp.interest.model.InterestPath
 import com.haruUp.interest.service.HybridInterestRecommendationService
 import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.ratelimit.RateLimit

@@ -6,7 +6,7 @@ import com.haruUp.character.domain.dto.MemberCharacterDto
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
 import com.haruUp.member.domain.type.MemberStatus
-import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
@@ -27,7 +27,7 @@ class MemberMissionUseCase(
 
     // 오늘의 미션 조회
     fun missionTodayList(memberId: Long): List<MemberMissionDto> {
-        val memberMissions: List<MemberMission> = memberMissionService.getTodayMissionsByMemberId(memberId)
+        val memberMissions: List<MemberMissionEntity> = memberMissionService.getTodayMissionsByMemberId(memberId)
         return memberMissions.map { it.toDto() }
     }
 

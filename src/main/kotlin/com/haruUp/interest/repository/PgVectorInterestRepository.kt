@@ -1,8 +1,8 @@
 package com.haruUp.interest.repository
 
 import com.haruUp.interest.entity.InterestEmbeddingEntity
-import com.haruUp.interest.model.InterestLevel
-import com.haruUp.interest.model.InterestNode
+import com.haruUp.interest.dto.InterestLevel
+import com.haruUp.interest.dto.InterestNode
 import com.haruUp.global.clova.ClovaEmbeddingClient
 import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray
 import kotlinx.coroutines.Dispatchers

@@ -1,6 +1,6 @@
 package com.haruUp.interest.service
 
-import com.haruUp.interest.model.*
+import com.haruUp.interest.dto.*
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.VectorInterestRepository
 import com.haruUp.member.domain.MemberProfile

@@ -4,7 +4,7 @@ import com.haruUp.character.domain.Level
 import com.haruUp.character.domain.MemberCharacter
 import com.haruUp.character.infrastructure.LevelRepository
 import com.haruUp.character.infrastructure.MemberCharacterRepository
-import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
@@ -54,7 +54,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
 
         // Given
         val mission = missionRepo.save(
-            MemberMission(
+            MemberMissionEntity(
                 memberId = 1L,
                 missionId = 99L,
                 memberInterestId = 1L,
@@ -65,7 +65,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
 
         val request = MissionStatusChangeRequest(
             missions = listOf(
-                MissionStatusChangeItem(id = mission.id!!, missionStatus = MissionStatus.COMPLETED)
+                MissionStatusChangeItem(memberMissionId = mission.id!!, missionStatus = MissionStatus.COMPLETED)
             )
         )
 
@@ -77,7 +77,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         assertEquals(250, result.totalExp)
         assertEquals(50, result.currentExp)
 
-        val mc = memberCharacterRepo.findByMemberId(10L)
+        val mc = memberCharacterRepo.findFirstByMemberIdAndDeletedFalseOrderByIdDesc(10L)
             ?: fail("캐릭터가 DB에 존재해야 합니다.")
 
         assertEquals(3L, mc.levelId)
@@ -90,7 +90,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
 
         // Given
         val mission = missionRepo.save(
-            MemberMission(
+            MemberMissionEntity(
                 memberId = 1L,
                 missionId = 100L,
                 memberInterestId = 1L,
@@ -101,7 +101,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
 
         val request = MissionStatusChangeRequest(
             missions = listOf(
-                MissionStatusChangeItem(id = mission.id!!, missionStatus = MissionStatus.COMPLETED)
+                MissionStatusChangeItem(memberMissionId = mission.id!!, missionStatus = MissionStatus.COMPLETED)
             )
         )
 
@@ -113,7 +113,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         assertEquals(120, result.totalExp)
         assertEquals(20, result.currentExp)
 
-        val mc = memberCharacterRepo.findByMemberId(10L)!!
+        val mc = memberCharacterRepo.findFirstByMemberIdAndDeletedFalseOrderByIdDesc(10L)!!
         assertEquals(2L, mc.levelId)
         assertEquals(20, mc.currentExp)
     }

@@ -1,7 +1,77 @@
 package com.haruUp.interest.dto
 
-import com.haruUp.interest.model.InterestPath
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.LocalDateTime
+
+/**
+ * ================================
+ * 관심사 모델
+ * ================================
+ */
+
+/**
+ * 관심사 계층 레벨
+ */
+enum class InterestLevel(val description: String) {
+    MAIN("대분류"),
+    MIDDLE("중분류"),
+    SUB("소분류");
+
+    fun next(): InterestLevel? = when (this) {
+        MAIN -> MIDDLE
+        MIDDLE -> SUB
+        SUB -> null
+    }
+}
+
+/**
+ * 관심사 노드
+ */
+data class InterestNode(
+    val id: String,
+    var name: String,
+    val level: InterestLevel,
+    val parentId: String? = null,
+    val fullPath: List<String>,
+    var isEmbedded: Boolean = false,
+    val isUserGenerated: Boolean = false,
+    var usageCount: Int = 0,
+    val createdBy: Long? = null,
+    val createdAt: LocalDateTime? = null,
+    var embeddedAt: LocalDateTime? = null
+)
+
+/**
+ * 관심사 경로
+ */
+data class InterestPath(
+    val mainCategory: String,
+    val middleCategory: String? = null,
+    val subCategory: String? = null
+) {
+    fun toPathString(): String = listOfNotNull(
+        mainCategory,
+        middleCategory,
+        subCategory
+    ).joinToString(" > ")
+
+    fun toPathList(): List<String> = listOfNotNull(
+        mainCategory,
+        middleCategory,
+        subCategory
+    )
+}
+
+/**
+ * 사용자의 여러 관심사
+ */
+data class UserInterests(
+    val interests: List<InterestPath>
+) {
+    fun toPathStrings(): List<String> {
+        return interests.map { it.toPathString() }
+    }
+}
 
 /**
  * ================================

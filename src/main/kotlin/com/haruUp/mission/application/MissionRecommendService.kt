@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.haruUp.category.repository.JobDetailRepository
 import com.haruUp.category.repository.JobRepository
 import com.haruUp.global.clova.MissionMemberProfile
-import com.haruUp.interest.model.InterestPath
+import com.haruUp.interest.dto.InterestPath
 import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.member.infrastructure.MemberProfileRepository
-import com.haruUp.mission.domain.MemberMission
+import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MissionCandidateDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
@@ -29,7 +29,6 @@ class MissionRecommendService(
     private val redisTemplate: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
     private val missionEmbeddingRepository: MissionEmbeddingRepository,
-    private val missionAiClient: MissionAiClient,
     private val missionRecommendationService: MissionRecommendationService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberMissionRepository: MemberMissionRepository,
@@ -219,7 +218,7 @@ class MissionRecommendService(
         val savedMemberMissions = missionDtos.mapNotNull { missionDto ->
             missionDto.mission_id?.let { missionId ->
                 try {
-                    val memberMission = MemberMission(
+                    val memberMission = MemberMissionEntity(
                         memberId = memberId,
                         missionId = missionId,
                         memberInterestId = memberInterestId,
@@ -380,7 +379,7 @@ class MissionRecommendService(
             for (missionDto in missionGroup.data) {
                 val missionId = missionDto.mission_id ?: continue
                 try {
-                    val memberMission = MemberMission(
+                    val memberMission = MemberMissionEntity(
                         memberId = memberId,
                         missionId = missionId,
                         memberInterestId = memberInterest.id!!,

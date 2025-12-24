@@ -24,7 +24,7 @@ class MemberMissionDto (
 
 ) : BaseEntity() {
 
-    fun toEntity() : MemberMission = MemberMission(
+    fun toEntity() : MemberMissionEntity = MemberMissionEntity(
         id = this.id,
         memberId = this.memberId,
         missionId = this.missionId,
