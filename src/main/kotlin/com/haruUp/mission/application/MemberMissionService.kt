@@ -22,9 +22,9 @@ class MemberMissionService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // 전체 미션 조회
+    // 전체 미션 조회 (삭제되지 않은 것만)
     fun getAllMissions(memberId: Long): List<MemberMissionDto> {
-        return memberMissionRepository.findByMemberId(memberId)
+        return memberMissionRepository.findByMemberIdAndDeletedFalse(memberId)
             .map { mission -> mission.toDto() }
             .toList()
     }

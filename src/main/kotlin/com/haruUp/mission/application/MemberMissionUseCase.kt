@@ -20,6 +20,11 @@ class MemberMissionUseCase(
     private val levelService: LevelService
 ) {
 
+    // 전체 미션 조회 (삭제되지 않은 것만)
+    fun getMemberMissions(memberId: Long): List<MemberMissionDto> {
+        return memberMissionService.getAllMissions(memberId)
+    }
+
     // 오늘의 미션 조회
     fun missionTodayList(memberId: Long): List<MemberMissionDto> {
         val memberMissions: List<MemberMission> = memberMissionService.getTodayMissionsByMemberId(memberId)

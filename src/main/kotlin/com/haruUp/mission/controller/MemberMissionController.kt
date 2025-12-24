@@ -36,15 +36,18 @@ class MemberMissionController(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 오늘의 미션 목록 조회
+     * 멤버 미션 목록 조회
      */
+    @Operation(
+        summary = "멤버 미션 목록 조회",
+        description = "해당 멤버의 삭제되지 않은 모든 미션을 조회합니다."
+    )
     @GetMapping
-    fun todayMissions(
+    fun getMemberMissions(
         @AuthenticationPrincipal principal: MemberPrincipal
     ): ApiResponse<List<MemberMissionDto>> {
-
         return ApiResponse.success(
-            memberMissionUseCase.missionTodayList(principal.id)
+            memberMissionUseCase.getMemberMissions(principal.id)
         )
     }
 
