@@ -75,13 +75,13 @@ class MemberMissionService(
         val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
-        // 새로운 row 생성 (기존 row는 그대로 유지)
+        // 새로운 row 생성 (기존 row는 그대로 유지, expEarned 유지)
         val postponedMission = MemberMissionEntity(
             memberId = stored.memberId,
             missionId = stored.missionId,
             memberInterestId = stored.memberInterestId,
             missionStatus = MissionStatus.POSTPONED,
-            expEarned = 0,
+            expEarned = stored.expEarned,
             targetDate = LocalDate.now().plusDays(1)
         )
 

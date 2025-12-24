@@ -370,4 +370,40 @@ class MemberMissionController(
             )
         }
     }
+
+    /**
+     * 미션 재추천 횟수 초기화 API
+     */
+    @Operation(
+        summary = "미션 재추천 횟수 초기화",
+        description = """
+            오늘의 미션 재추천 횟수를 0으로 초기화합니다.
+
+            **호출 예시:**
+            ```
+            POST /api/member/mission/retry-count/reset
+            ```
+        """
+    )
+    @PostMapping("/retry-count/reset")
+    fun resetRetryCount(
+        @AuthenticationPrincipal principal: MemberPrincipal
+    ): ResponseEntity<ApiResponse<Boolean>> {
+        logger.info("재추천 횟수 초기화 요청 - memberId: ${principal.id}")
+
+        return try {
+            val result = missionRecommendUseCase.resetRetryCount(principal.id)
+            logger.info("재추천 횟수 초기화 완료 - memberId: ${principal.id}, result: $result")
+            ResponseEntity.ok(ApiResponse.success(result))
+        } catch (e: Exception) {
+            logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
+        }
+    }
 }
