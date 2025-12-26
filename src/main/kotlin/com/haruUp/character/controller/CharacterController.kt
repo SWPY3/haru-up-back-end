@@ -43,13 +43,6 @@ class CharacterController(
     }
 
 
-
-
-
-
-
-
-
     data class SelectCharacterRequest(
         val characterId: Long
     )
