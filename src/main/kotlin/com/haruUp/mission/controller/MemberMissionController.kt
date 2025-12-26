@@ -76,7 +76,7 @@ class MemberMissionController(
             }
 
         return ApiResponse.success(
-            memberMissionUseCase.missionTodayList(principal.id)
+            memberMissionUseCase.getMemberMissions(principal.id, statuses)
         )
     }
 
