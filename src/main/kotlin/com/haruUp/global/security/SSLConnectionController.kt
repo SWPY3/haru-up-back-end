@@ -5,11 +5,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/actuator")
-class SSLConnectionController {
+class HealthController {
 
     @GetMapping("/health")
-    fun health(): String {
-        return "OK"
-    }
+    fun health(): String = "OK"
 }
