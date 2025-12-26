@@ -13,6 +13,7 @@ import com.haruUp.missionembedding.dto.TodayMissionRecommendationRequest
 import com.haruUp.missionembedding.dto.TodayMissionRetryRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import com.haruUp.mission.domain.MemberMissionSelectionRequest
+import com.haruUp.mission.domain.MissionStatusChangeItem
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
@@ -79,6 +80,9 @@ class MemberMissionController(
         )
     }
 
+
+
+
     /**
      * 미션 상태 벌크 변경 (ACTIVE / COMPLETED / INACTIVE / POSTPONED) 및 미루기
      */
@@ -120,6 +124,7 @@ class MemberMissionController(
             ApiResponse(success = false, data = null, errorMessage = "서버 오류가 발생했습니다.")
         }
     }
+
 
     /**
      * 미션 선택 API

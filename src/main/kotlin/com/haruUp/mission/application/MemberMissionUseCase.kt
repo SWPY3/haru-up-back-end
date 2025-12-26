@@ -50,7 +50,8 @@ class MemberMissionUseCase(
     /**
      * 개별 미션 상태 변경 처리
      */
-    private fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
+    fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
+
         // COMPLETED 상태인 경우 경험치 처리 필요
         if (item.missionStatus == MissionStatus.COMPLETED) {
             return handleMissionCompleted(item.memberMissionId)
@@ -65,7 +66,6 @@ class MemberMissionUseCase(
         memberMissionService.updateMission(item.memberMissionId, item.missionStatus)
         return null
     }
-
 
     /**
      * 미션 완료 → 경험치 반영 → 레벨업 처리

@@ -10,7 +10,7 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNhello112hello112S_E2E_004",
+  "snsId": "SNhello112hello112S_E2E_005",
   "email": "",
   "name": ""
 }
@@ -74,10 +74,10 @@ POST {{baseUrl}}/api/member/profile/nickName_duplicate_check
 Content-Type: application/json
 jwt-token: {{refreshToken}}
 
-{ "nickName" : "테스트3" }
+{ "nickName" : "테스트1" }
 
 ### 5. job 조회
-POST {{baseUrl}}/api/job/getJobList
+GET {{baseUrl}}/api/job/getJobList
 Content-Type: application/json
 jwt-token: {{refreshToken}}
 
@@ -90,7 +90,7 @@ jwt-token: {{refreshToken}}
 { "jobId" : 1 }
 
 ### 6 job detail 조회
-POST {{baseUrl}}/api/job/getJobList
+GET {{baseUrl}}/api/job/getJobList
 Content-Type: application/json
 jwt-token: {{refreshToken}}
 
@@ -117,7 +117,7 @@ POST {{baseUrl}}/api/member/profile/curation_profile_save
 Content-Type: application/json
 jwt-token: {{refreshToken}}
 
-{ "birthDate": "1995-07-30" }
+{ "birthDate": "19950730" }
 
 
 

@@ -39,8 +39,8 @@ class MemberCurationController(
     """
     )
     fun runInitialCuration(
-    @AuthenticationPrincipal principal: MemberPrincipal,
-    @RequestBody curationDto: CurationRequest
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @RequestBody curationDto: CurationRequest
     ): SseEmitter {
 
         val emitter = SseEmitter(0L)
@@ -88,7 +88,6 @@ class MemberCurationController(
     }
 
 
-
     @Schema(description = "초기 회원 큐레이션 요청")
     data class CurationRequest(
 
@@ -134,4 +133,4 @@ class MemberCurationController(
         @Schema(description = "관심사 경로 목록")
         val interests: List<InterestsDto>
     )
-    }
+}

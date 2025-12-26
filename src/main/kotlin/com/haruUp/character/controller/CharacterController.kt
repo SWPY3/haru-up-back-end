@@ -32,7 +32,7 @@ class CharacterController(
     @PostMapping("/selected")
     fun selectedCharacter(
         @AuthenticationPrincipal principal: MemberPrincipal,
-        @RequestBody request: SelectCharacterRequest   // ✅ DTO로 받기
+        @RequestBody request: SelectCharacterRequest   //
     ): ApiResponse<String> {
 
         characterUseCase.createInitialCharacter(

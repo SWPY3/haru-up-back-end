@@ -22,8 +22,7 @@ class MemberProfile(
     var birthDt: LocalDateTime? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
-    var gender: MemberGender? = MemberGender.MALE,
+    var gender: MemberGender? = null,
 
     @Column(length = 255)
     var imgId: Long? = null,
