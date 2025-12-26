@@ -1,5 +1,5 @@
 ### 환경 설정 (필요하면 포트/URL만 수정)
-@host = 223.130.141.179
+@host = localhost
 @port = 8080
 @baseUrl = http://{{host}}:{{port}}
 
@@ -10,7 +10,7 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNhello112hello112S_E2E_002",
+  "snsId": "SNhello112hello112S_E2E_004",
   "email": "",
   "name": ""
 }
@@ -35,6 +35,19 @@ Content-Type: application/json
     console.log("accessToken =", data.accessToken);
     console.log("refreshToken =", data.refreshToken);
 %}
+
+
+### =========================================
+### 12. 관심사 문자열 검증 (AI + 정규식)
+### =========================================
+POST {{baseUrl}}/api/interests/interest/validation
+Content-Type: application/json
+jwt-token: {{refreshToken}}
+
+{
+  "interest": "근육 키우기"
+}
+
 
 
 ### 2. 캐릭터 리스트 조회

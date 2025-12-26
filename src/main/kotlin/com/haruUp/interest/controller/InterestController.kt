@@ -1,20 +1,17 @@
 package com.haruUp.interest.controller
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.haruUp.interest.dto.*
 
 import java.security.Principal
 import com.haruUp.interest.model.InterestLevel
 import com.haruUp.interest.service.HybridInterestRecommendationService
-import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -22,6 +19,13 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import com.haruUp.global.security.MemberPrincipal
+import com.haruUp.global.util.TypoValidationCheck
+import kotlinx.coroutines.newSingleThreadContext
+import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.core.StringRedisTemplate
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.Date
 
 /**
  * 관심사 API Controller
@@ -35,9 +39,12 @@ class InterestController(
     private val recommendationService: HybridInterestRecommendationService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberInterestRepository: com.haruUp.interest.repository.MemberInterestJpaRepository,
-    private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository
+    private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository,
+    private val stringRedisTemplate: StringRedisTemplate,
+    private val typoValidationCheck: TypoValidationCheck
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
+
 
     /**
      * 관심사 추천 API
@@ -354,4 +361,64 @@ class InterestController(
             )
         }
     }
+
+
+    /* =========================
+     * 관심사 문자열 검증 API
+     * ========================= */
+    @Operation(
+        summary = "관심사 문자열 유효성 검증",
+        description = "한글 기반 관심사 문자열의 유효성과 의미를 검증합니다."
+    )
+    @PostMapping("/interest/validation")
+    fun interestValidationCheck(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @RequestBody request: InterestValidationRequest
+    ): ResponseEntity<com.haruUp.global.common.ApiResponse<InterestValidationResponse>> {
+
+        val memberId = principal.id
+
+        val checkRedisCount = typoValidationCheck.checkRedisCount(memberId);
+        if(checkRedisCount != null) {
+            val response = InterestValidationResponse(
+                isValid = false,
+                reason = "오타 발견"
+            )
+            return ResponseEntity.ok(
+                com.haruUp.global.common.ApiResponse.success(response)
+            )
+        }
+
+        val result = typoValidationCheck.validateKoreanText(request.interest)
+        val response = InterestValidationResponse(
+            isValid = result.isValid,
+            reason = result.reason
+        )
+
+        return ResponseEntity.ok(
+            com.haruUp.global.common.ApiResponse.success(response)
+        )
+    }
+
+
+    /* =========================
+     * Request / Response DTO
+     * ========================= */
+
+    data class InterestValidationRequest(
+        @Schema(
+            description = "검증할 관심사 문자열",
+            example = "근력 키우기"
+        )
+        val interest: String
+    )
+
+    data class InterestValidationResponse(
+        val isValid: Boolean,
+        val reason: String?
+    )
+
+
+
+
 }

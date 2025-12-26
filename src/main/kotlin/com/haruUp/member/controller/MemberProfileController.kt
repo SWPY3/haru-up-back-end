@@ -117,7 +117,7 @@ class MemberProfileController(
 
 
 
-    @RequestMapping("/member_job_update")
+    @PostMapping("/member_job_update")
     fun memberJobUpdate(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @RequestBody memberJob : MemberJob) : MemberProfileDto{
@@ -126,7 +126,7 @@ class MemberProfileController(
 
     }
 
-    @RequestMapping("/member_job_detaile_update")
+    @PostMapping("/member_job_detaile_update")
     fun memberJobDetailUpdate(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @RequestBody memberJob : MemberJob) : MemberProfileDto{
