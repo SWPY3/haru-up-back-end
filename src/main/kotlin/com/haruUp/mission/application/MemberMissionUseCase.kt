@@ -84,6 +84,8 @@ class MemberMissionUseCase(
         val mc = memberCharacterService.getSelectedCharacter(missionCompleted.memberId)
             ?: throw IllegalStateException("선택된 캐릭터가 없습니다.")
 
+        println("변환전 character level Id : ${mc.levelId}")
+
         // ----------------------------------------------------------------------
         // 3) 현재 레벨 정보 조회
         var currentLevel = levelService.getById(mc.levelId)
@@ -92,11 +94,12 @@ class MemberMissionUseCase(
         var newTotalExp = mc.totalExp + missionCompleted.expEarned
         var newCurrentExp = mc.currentExp + missionCompleted.expEarned
 
-        // ⭐ 5) 캐릭터 기준 레벨업 처리
-        while (newCurrentExp >= currentLevel.maxExp!!) {
+        val maxExp = requireNotNull(currentLevel.maxExp) {
+            "Level ${currentLevel.levelNumber} 의 maxExp 가 null 입니다. DB 데이터 확인 필요"
+        }
 
-            newCurrentExp -= currentLevel.maxExp!!
-
+        while (newCurrentExp >= maxExp) {
+            newCurrentExp -= maxExp
             currentLevel = levelService.getOrCreateLevel(
                 currentLevel.levelNumber + 1
             )
@@ -109,6 +112,9 @@ class MemberMissionUseCase(
             totalExp = newTotalExp,
             currentExp = newCurrentExp
         )
+
+
+        println("변환후 character level Id ${updatedMc.levelId}")
 
         return updatedMc.toDto()
     }

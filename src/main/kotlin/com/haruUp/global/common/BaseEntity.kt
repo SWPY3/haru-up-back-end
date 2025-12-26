@@ -22,7 +22,6 @@ abstract class BaseEntity(
     @Column
     var deletedAt: LocalDateTime? = null,
 
-    @Column(nullable = true)
     var deleted: Boolean = false
 )
  {

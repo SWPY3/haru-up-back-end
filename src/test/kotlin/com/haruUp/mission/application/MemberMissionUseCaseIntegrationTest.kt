@@ -14,6 +14,7 @@ import jakarta.transaction.Transactional
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -34,7 +35,7 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         memberCharacterRepo.deleteAll()
         levelRepo.deleteAll()
 
-        val level1 = levelRepo.save(Level(levelNumber = 1, requiredExp = 1000))
+        val level1 = levelRepo.save(Level(levelNumber = 1, requiredExp = 1000, maxExp = 1000))
 
         memberCharacterRepo.save(
             MemberCharacter(
@@ -91,6 +92,13 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
     fun `미션 완료 시 경험치 기준으로 자동 레벨업되어 4레벨까지 도달한다`() {
 
         // Given
+        val initialCharacter = memberCharacterRepo
+            .findFirstByMemberIdAndDeletedFalseOrderByIdDesc(1L)
+            ?: fail("초기 캐릭터가 존재해야 합니다.")
+
+        val initialLevel = levelService.getById(initialCharacter.levelId)
+        assertEquals(1, initialLevel.levelNumber) // 🔹 초기 레벨 명시
+
         val mission = missionRepo.save(
             MemberMissionEntity(
                 memberId = 1L,
@@ -110,6 +118,8 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
             )
         )
 
+        println("변환전 levelId : $")
+
         // When
         val result = useCase.missionChangeStatus(request)
             ?: fail("결과 DTO가 null이면 안 됩니다.")
@@ -117,9 +127,9 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         // Then - 반환 DTO 검증
         val resultLevel = levelService.getById(result.levelId)
 
-        assertEquals(4, resultLevel.levelNumber) // ⭐ 4레벨
+        assertEquals(4, resultLevel.levelNumber) // ⭐ 1 → 4
         assertEquals(3500, result.totalExp)
-        assertEquals(500, result.currentExp)     // 3500 - (1000 * 3)
+        assertEquals(500, result.currentExp)     // carry-over 검증
 
         // Then - DB 상태 검증
         val mc = memberCharacterRepo
@@ -131,6 +141,11 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         assertEquals(4, dbLevel.levelNumber)
         assertEquals(3500, mc.totalExp)
         assertEquals(500, mc.currentExp)
+
+        // 🔹 Level 자동 생성 검증 (보너스)
+        assertNotNull(levelService.getOrCreateLevel(2))
+        assertNotNull(levelService.getOrCreateLevel(3))
+        assertNotNull(levelService.getOrCreateLevel(4))
     }
 
     @Test

@@ -32,13 +32,17 @@ class LevelService(
         return levelRepository.save(newLevel)
     }
 
+
     @Transactional
     fun getInitialLevelId(): Long =
         getOrCreateLevel(1).id
             ?: throw IllegalStateException("Level 1 could not be created")
 
+    @Transactional
     fun getById(levelId: Long): Level =
         levelRepository.findById(levelId).orElseThrow()
+
+
 
     /**
      * 다음 레벨 조회 (없으면 생성)
@@ -52,21 +56,19 @@ class LevelService(
         return getOrCreateLevel(nextLevelNumber)
     }
 
+
+
     /**
-     * 요구 경험치 계산 규칙
-     * Level 1 → 100, 2 → 150, 3 → 200, ... (50씩 증가)
+     * 🔥 캐릭터 레벨업 기준 (구간 기준)
      */
-    @Transactional
-    public fun calculateRequiredExp(levelNumber: Int): Int {
-        return 1000 * levelNumber   // 예: 1 → 100, 2 → 150...
+    fun calculateMaxExp(levelNumber: Int): Int {
+        return 1000
     }
 
     /**
-     * maxExp 계산 규칙
-     * Level 1 → 50, 2 → 100, 3 → 150 ...
+     * 📊 다음 레벨까지 필요 경험치 (UI/밸런스용)
      */
-    @Transactional
-    public fun calculateMaxExp(levelNumber: Int): Int {
-        return 1000 * levelNumber
+    fun calculateRequiredExp(levelNumber: Int): Int {
+        return 1000
     }
 }
