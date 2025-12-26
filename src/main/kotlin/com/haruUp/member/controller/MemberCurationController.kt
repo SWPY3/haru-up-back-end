@@ -1,7 +1,8 @@
 package com.haruUp.member.controller
 
 import com.haruUp.global.security.MemberPrincipal
-import com.haruUp.interest.dto.InterestPathDto
+import com.haruUp.interest.dto.InterestsDto
+import com.haruUp.member.application.useCase.CurationResult
 import com.haruUp.member.application.useCase.MemberCurationUseCase
 import com.haruUp.member.domain.dto.MemberProfileDto
 import com.haruUp.member.domain.type.MemberGender
@@ -62,10 +63,10 @@ class MemberCurationController(
                         jobDetailId = curationDto.jobDetailId
                     }
 
-                    memberCurationUseCase.runInitialCuration(
+                    val result = memberCurationUseCase.runInitialCuration(
                         characterId = curationDto.characterId,
                         memberProfileDto = profileDto,
-                        interests = curationDto.interestPathList
+                        interests = curationDto.interests
                     ) {
                         emitter.send(
                             SseEmitter.event()
@@ -74,7 +75,7 @@ class MemberCurationController(
                         )
                     }
 
-                    emitter.send(SseEmitter.event().name("done").data("완료"))
+                    emitter.send(SseEmitter.event().name("done").data(result))
                     emitter.complete()
 
                 } catch (e: Exception) {
@@ -131,6 +132,6 @@ class MemberCurationController(
         val jobDetailId: Long?,
 
         @Schema(description = "관심사 경로 목록")
-        val interestPathList: List<InterestPathDto>
+        val interests: List<InterestsDto>
     )
     }

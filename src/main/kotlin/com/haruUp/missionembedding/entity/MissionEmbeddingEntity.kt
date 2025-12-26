@@ -1,5 +1,6 @@
 package com.haruUp.missionembedding.entity
 
+import com.haruUp.global.common.BaseEntity
 import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
 import org.hibernate.annotations.Type
@@ -55,14 +56,8 @@ class MissionEmbeddingEntity(
     var usageCount: Int = 0,  // 이 미션이 선택된 횟수
 
     @Column(name = "is_activated")
-    val isActivated: Boolean = true,
-
-    @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-
-    @Column(name = "updated_at")
-    var updatedAt: LocalDateTime? = null
-) {
+    val isActivated: Boolean = true
+) : BaseEntity() {
     /**
      * 관심사 경로 문자열 반환 (표시용)
      */

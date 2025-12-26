@@ -3,9 +3,9 @@ package com.haruUp.interest.service
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.haruUp.interest.entity.InterestEmbeddingEntity
-import com.haruUp.interest.model.InterestLevel
-import com.haruUp.interest.model.InterestNode
-import com.haruUp.interest.model.InterestPath
+import com.haruUp.interest.dto.InterestLevel
+import com.haruUp.interest.dto.InterestNode
+import com.haruUp.interest.dto.InterestPath
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.member.domain.MemberProfile
 import com.haruUp.global.util.PostgresArrayUtils.listToPostgresArray

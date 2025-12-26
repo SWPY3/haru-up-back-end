@@ -1,5 +1,6 @@
 package com.haruUp.interest.entity
 
+import com.haruUp.global.common.BaseEntity
 import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
 import org.hibernate.annotations.ColumnDefault
@@ -29,7 +30,7 @@ class MemberInterestEntity(
     val memberId: Long,
 
     @Column(name = "interest_id", nullable = false)
-    val interestId: Long,
+    var interestId: Long,
 
     /**
      * 직접 저장된 전체 경로 배열 (PostgreSQL TEXT[])
@@ -37,7 +38,7 @@ class MemberInterestEntity(
      */
     @Type(ListArrayType::class)
     @Column(name = "direct_full_path", columnDefinition = "text[]")
-    val directFullPath: List<String>? = null,
+    var directFullPath: List<String>? = null,
 
     /**
      * 오늘의 미션 재추천 횟수
@@ -45,12 +46,14 @@ class MemberInterestEntity(
      */
     @ColumnDefault("0")
     @Column(name = "reset_mission_count", nullable = false)
-    var resetMissionCount: Int = 0,
-
-    @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now()
-) {
+    var resetMissionCount: Int = 0
+): BaseEntity() {
     fun incrementResetMissionCount() {
         this.resetMissionCount++
+    }
+
+    fun update(newInterestId: Long, newDirectFullPath: List<String>) {
+        this.interestId = newInterestId
+        this.directFullPath = newDirectFullPath
     }
 }

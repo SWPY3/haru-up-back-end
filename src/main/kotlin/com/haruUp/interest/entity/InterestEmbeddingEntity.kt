@@ -1,7 +1,8 @@
 package com.haruUp.interest.entity
 
-import com.haruUp.interest.model.InterestLevel
-import com.haruUp.interest.model.InterestNode
+import com.haruUp.global.common.BaseEntity
+import com.haruUp.interest.dto.InterestLevel
+import com.haruUp.interest.dto.InterestNode
 import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
 import org.hibernate.annotations.Type
@@ -58,14 +59,8 @@ class InterestEmbeddingEntity(
     val createdSource: String = "SYSTEM",  // "SYSTEM" or "USER"
 
     @Column(name = "is_activated")
-    val isActivated: Boolean = true,
-
-    @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-
-    @Column(name = "updated_at")
-    var updatedAt: LocalDateTime? = null
-) {
+    val isActivated: Boolean = true
+) : BaseEntity() {
     /**
      * 임베딩 벡터를 Float 리스트로 변환
      */
@@ -90,8 +85,7 @@ class InterestEmbeddingEntity(
             isEmbedded = embedding != null,  // embedding이 있으면 true
             isUserGenerated = createdSource == "USER",
             usageCount = usageCount,
-            createdBy = null,
-            createdAt = createdAt
+            createdBy = null
         )
     }
 

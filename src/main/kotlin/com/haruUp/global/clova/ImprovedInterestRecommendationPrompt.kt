@@ -1,6 +1,6 @@
 package com.haruUp.global.clova
 
-import com.haruUp.interest.model.InterestPath
+import com.haruUp.interest.dto.InterestPath
 import com.haruUp.member.domain.MemberProfile
 import java.time.LocalDateTime
 import java.time.Period

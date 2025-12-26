@@ -16,13 +16,14 @@ import java.time.LocalDate
 @Entity
 @NoArgsConstructor
 @Table(
+    name = "member_mission",
     indexes = [
         Index(name = "idx_member_mission_member_id", columnList = "member_id"),
         Index(name = "idx_member_mission_mission_id", columnList = "mission_id"),
         Index(name = "idx_member_mission_created_at", columnList = "created_at")
     ]
 )
-class MemberMission (
+class MemberMissionEntity (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -46,14 +47,23 @@ class MemberMission (
 
 ) : BaseEntity() {
 
-    fun toDto() : MemberMissionDto = MemberMissionDto(
+    fun toDto(
+        missionContent: String? = null,
+        difficulty: Int? = null,
+        fullPath: List<String>? = null,
+        directFullPath: List<String>? = null
+    ): MemberMissionDto = MemberMissionDto(
         id = this.id,
         memberId = this.memberId,
         missionId = this.missionId,
         memberInterestId = this.memberInterestId,
         expEarned = this.expEarned,
         missionStatus = this.missionStatus,
-        targetDate = this.targetDate
+        targetDate = this.targetDate,
+        missionContent = missionContent,
+        difficulty = difficulty,
+        fullPath = fullPath,
+        directFullPath = directFullPath
     )
 
 }

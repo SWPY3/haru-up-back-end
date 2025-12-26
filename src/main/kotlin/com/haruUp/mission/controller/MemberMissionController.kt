@@ -7,8 +7,10 @@ import com.haruUp.mission.application.MemberMissionUseCase
 import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionRecommendResult
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.missionembedding.dto.TodayMissionRecommendationRequest
+import com.haruUp.missionembedding.dto.TodayMissionRetryRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import com.haruUp.mission.domain.MemberMissionSelectionRequest
 import io.swagger.v3.oas.annotations.Operation
@@ -17,13 +19,19 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 
 @Tag(name = "멤버 미션 API", description = "멤버 미션 관리 및 추천")
 @RestController
@@ -35,15 +43,39 @@ class MemberMissionController(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 오늘의 미션 목록 조회
+     * 멤버 미션 목록 조회
      */
+    @Operation(
+        summary = "멤버 미션 목록 조회",
+        description = """
+            해당 멤버의 삭제되지 않은 미션을 조회합니다.
+
+            **호출 예시:**
+            ```
+            GET /api/member/mission
+            GET /api/member/mission?missionStatus=ACTIVE
+            GET /api/member/mission?missionStatus=ACTIVE,INACTIVE,COMPLETED
+            ```
+        """
+    )
     @GetMapping
-    fun todayMissions(
-        @AuthenticationPrincipal principal: MemberPrincipal
+    fun getMemberMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "미션 상태 필터 (콤마로 구분, 미입력시 전체 조회)",
+            example = "ACTIVE,INACTIVE"
+        )
+        @RequestParam(required = false) missionStatus: String?
     ): ApiResponse<List<MemberMissionDto>> {
+        val statuses = missionStatus?.split(",")
+            ?.map { it.trim().uppercase() }
+            ?.mapNotNull {
+                try { MissionStatus.valueOf(it) }
+                catch (e: IllegalArgumentException) { null }
+            }
 
         return ApiResponse.success(
-            memberMissionUseCase.missionTodayList(principal.id)
+            memberMissionUseCase.getMemberMissions(principal.id, statuses)
         )
     }
 
@@ -62,15 +94,15 @@ class MemberMissionController(
             ```json
             {
               "missions": [
-                { "id": 1, "missionStatus": "COMPLETED" },
-                { "id": 2, "missionStatus": "ACTIVE" },
-                { "id": 3, "missionStatus": "POSTPONED" }
+                { "memberMissionId": 1, "missionStatus": "COMPLETED" },
+                { "memberMissionId": 2, "missionStatus": "ACTIVE" },
+                { "memberMissionId": 3, "missionStatus": "POSTPONED" }
               ]
             }
             ```
         """
     )
-    @PostMapping("/status")
+    @PutMapping("/status")
     fun changeMissionStatus(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @RequestBody request: MissionStatusChangeRequest
@@ -92,7 +124,7 @@ class MemberMissionController(
     /**
      * 미션 선택 API
      *
-     * 사용자가 선택한 미션들을 데이터베이스에 저장
+     * 사용자가 선택한 미션들을 ACTIVE 상태로 변경
      *
      * @param request 미션 선택 요청
      * @return 저장 결과
@@ -100,23 +132,17 @@ class MemberMissionController(
     @Operation(
         summary = "미션 선택",
         description = """
-            사용자가 선택한 미션들을 저장합니다.
+            사용자가 선택한 미션들을 ACTIVE 상태로 변경합니다.
 
             **호출 예시:**
             ```json
             {
-              "missions": [
-                {
-                  "memberInterestId": 2,
-                  "missionId": 3
-                }
-              ]
+              "memberMissionIds": [1, 2, 3]
             }
             ```
 
             **필드 설명:**
-            - memberInterestId: 멤버 관심사 ID (반드시 소분류까지 입력된 memberInterestId로 입력해주세요.)
-            - missionId: 미션 번호
+            - memberMissionIds: member_mission 테이블의 ID 목록
         """
     )
     @PostMapping("/select")
@@ -129,10 +155,10 @@ class MemberMissionController(
         )
         @RequestBody request: MemberMissionSelectionRequest
     ): ResponseEntity<ApiResponse<List<Long>>> {
-        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.missions.size}")
+        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.memberMissionIds.size}")
 
         return try {
-            val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request)
+            val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request.memberMissionIds)
             logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
             ResponseEntity.ok(ApiResponse.success(savedMissionIds))
         } catch (e: IllegalArgumentException) {
@@ -142,6 +168,15 @@ class MemberMissionController(
                     success = false,
                     data = emptyList(),
                     errorMessage = e.message ?: "유효성 검증 실패"
+                )
+            )
+        } catch (e: IllegalStateException) {
+            logger.error("처리 실패: ${e.message}")
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = emptyList(),
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다"
                 )
             )
         } catch (e: Exception) {
@@ -168,27 +203,33 @@ class MemberMissionController(
             오늘의 미션 추천 정보를 조회합니다.
 
             **호출 예시:**
-            ```json
-            {
-              "memberInterestId": 1
-            }
+            ```
+            GET /api/member/mission/recommend?memberInterestId=1
+            GET /api/member/mission/recommend?memberInterestId=1&targetDate=2025-01-15
             ```
         """
     )
-    @PostMapping("/recommend")
+    @GetMapping("/recommend")
     fun recommendMissions(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
-            description = "오늘의 미션 추천 요청 정보",
-            required = true,
-            schema = Schema(implementation = TodayMissionRecommendationRequest::class)
+            description = "멤버 관심사 ID",
+            required = true
         )
-        @RequestBody request: TodayMissionRecommendationRequest
+        @RequestParam memberInterestId: Long,
+        @Parameter(
+            description = "조회할 날짜 (기본값: 오늘)",
+            required = false
+        )
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        targetDate: LocalDate?
     ): ResponseEntity<ApiResponse<MissionRecommendResult>> = runBlocking {
         try {
             val response = missionRecommendUseCase.recommendToday(
                 memberId = principal.id,
-                memberInterestId = request.memberInterestId
+                memberInterestId = memberInterestId,
+                targetDate = targetDate ?: LocalDate.now()
             )
             ResponseEntity.ok(ApiResponse.success(response))
         } catch (e: IllegalArgumentException) {
@@ -236,7 +277,8 @@ class MemberMissionController(
             **호출 예시:**
             ```json
             {
-              "memberInterestId": 1
+              "memberInterestId": 1,
+              "excludeMemberMissionIds": [10, 11, 12]
             }
             ```
         """
@@ -248,14 +290,15 @@ class MemberMissionController(
         @Parameter(
             description = "오늘의 미션 재추천 요청 정보",
             required = true,
-            schema = Schema(implementation = TodayMissionRecommendationRequest::class)
+            schema = Schema(implementation = TodayMissionRetryRequest::class)
         )
-        @RequestBody request: TodayMissionRecommendationRequest
+        @RequestBody request: TodayMissionRetryRequest
     ): ResponseEntity<ApiResponse<MissionRecommendationResponse>> = runBlocking {
         try {
             val response = missionRecommendUseCase.retryRecommend(
                 memberId = principal.id,
-                memberInterestId = request.memberInterestId
+                memberInterestId = request.memberInterestId,
+                excludeMemberMissionIds = request.excludeMemberMissionIds
             )
             ResponseEntity.ok(ApiResponse.success(response))
         } catch (e: IllegalArgumentException) {
@@ -269,6 +312,91 @@ class MemberMissionController(
             )
         } catch (e: Exception) {
             logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
+        }
+    }
+
+    /**
+     * 미션 리셋 API
+     *
+     * 특정 관심사에 해당하는 미션을 soft delete
+     *
+     * @param memberInterestId 멤버 관심사 ID
+     * @return 삭제된 미션 개수
+     */
+    @Operation(
+        summary = "미션 리셋",
+        description = """
+            특정 관심사에 해당하는 모든 미션을 soft delete 합니다.
+
+            **호출 예시:**
+            ```
+            DELETE /api/member/mission/reset/1
+            ```
+        """
+    )
+    @DeleteMapping("/reset/{memberInterestId}")
+    fun resetMissions(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "멤버 관심사 ID",
+            required = true
+        )
+        @PathVariable memberInterestId: Long
+    ): ResponseEntity<ApiResponse<Int>> {
+        logger.info("미션 리셋 요청 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
+
+        return try {
+            val deletedCount = memberMissionUseCase.resetMissionsByMemberInterestId(
+                memberId = principal.id,
+                memberInterestId = memberInterestId
+            )
+            logger.info("미션 리셋 완료 - 삭제된 개수: $deletedCount")
+            ResponseEntity.ok(ApiResponse.success(deletedCount))
+        } catch (e: Exception) {
+            logger.error("미션 리셋 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
+        }
+    }
+
+    /**
+     * 미션 재추천 횟수 초기화 API
+     */
+    @Operation(
+        summary = "미션 재추천 횟수 초기화",
+        description = """
+            오늘의 미션 재추천 횟수를 0으로 초기화합니다.
+
+            **호출 예시:**
+            ```
+            POST /api/member/mission/retry-count/reset
+            ```
+        """
+    )
+    @PostMapping("/retry-count/reset")
+    fun resetRetryCount(
+        @AuthenticationPrincipal principal: MemberPrincipal
+    ): ResponseEntity<ApiResponse<Boolean>> {
+        logger.info("재추천 횟수 초기화 요청 - memberId: ${principal.id}")
+
+        return try {
+            val result = missionRecommendUseCase.resetRetryCount(principal.id)
+            logger.info("재추천 횟수 초기화 완료 - memberId: ${principal.id}, result: $result")
+            ResponseEntity.ok(ApiResponse.success(result))
+        } catch (e: Exception) {
+            logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
                 ApiResponse(
                     success = false,

@@ -6,34 +6,41 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-class MemberMissionDto (
+@Schema(description = "멤버 미션 정보")
+data class MemberMissionDto (
+    @Schema(description = "멤버 미션 ID", example = "1")
+    val id: Long? = null,
 
-    var id: Long? = null,
+    @Schema(description = "멤버 ID", example = "1")
+    val memberId: Long,
 
-    var memberId: Long,
+    @Schema(description = "미션 ID (mission_embeddings.id)", example = "100")
+    val missionId: Long,
 
-    var missionId: Long,
+    @Schema(description = "멤버 관심사 ID", example = "1")
+    val memberInterestId: Long,
 
-    var memberInterestId: Long,
+    @Schema(description = "미션 상태", example = "ACTIVE")
+    val missionStatus: MissionStatus = MissionStatus.ACTIVE,
 
-    var missionStatus : MissionStatus = MissionStatus.ACTIVE,
+    @Schema(description = "획득 경험치", example = "10")
+    val expEarned: Int,
 
-    var expEarned : Int,
+    @Schema(description = "목표 날짜", example = "2025-01-01")
+    val targetDate: LocalDate = LocalDate.now(),
 
-    var targetDate: LocalDate = LocalDate.now()
+    @Schema(description = "미션 내용 (mission_embeddings.mission_content)", example = "오늘 30분 운동하기")
+    val missionContent: String? = null,
 
-) : BaseEntity() {
+    @Schema(description = "미션 난이도 (mission_embeddings.difficulty)", example = "3")
+    val difficulty: Int? = null,
 
-    fun toEntity() : MemberMission = MemberMission(
-        id = this.id,
-        memberId = this.memberId,
-        missionId = this.missionId,
-        memberInterestId = this.memberInterestId,
-        expEarned = this.expEarned,
-        missionStatus = this.missionStatus,
-        targetDate = this.targetDate
-    )
-}
+    @Schema(description = "관심사 전체 경로 (interest_embeddings.full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val fullPath: List<String>? = null,
+
+    @Schema(description = "직접 저장된 전체 경로 (member_interest.direct_full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
+    val directFullPath: List<String>? = null
+)
 
 data class AiMissionResult(
     val missionId: Long,
@@ -47,19 +54,31 @@ data class MissionCandidateDto(
     val content: String,
     val directFullPath: List<String>,  // 전체 경로 배열 ["대분류", "중분류", "소분류"]
     val difficulty: Int?,
-    val targetDate: LocalDate,
-    val reason: String
+    val expEarned: Int,
+    val targetDate: LocalDate
 )
 
 data class MissionRecommendResult(
-    val missions: List<MissionCandidateDto>
+    val missions: List<MissionCandidateDto>,
+    val retryCount: Long? = 0
 )
 
 /**
  * 개별 미션 상태 변경 항목
  */
 data class MissionStatusChangeItem(
-    val id: Long,
+    @Schema(
+        description = "member_mission ID",
+        example = "1",
+        required = true
+    )
+    val memberMissionId: Long,
+
+    @Schema(
+        description = "member_mission ID",
+        example = "COMPLETED",
+        required = false
+    )
     val missionStatus: MissionStatus? = null
 )
 
@@ -70,37 +89,39 @@ data class MissionStatusChangeRequest(
     val missions: List<MissionStatusChangeItem>
 )
 
-@Schema(description = "선택한 미션 정보")
-data class SelectedMemberMissionDto(
-    @Schema(
-        description = "멤버 관심사 ID (member_interest 테이블의 ID)",
-        example = "2",
-        required = true
-    )
-    val memberInterestId: Long,
-
-    @Schema(
-        description = "mission_embeddings 테이블의 ID",
-        example = "3",
-        required = true
-    )
-    val missionId: Long
-)
-
 /**
  * 미션 선택 요청
  */
 @Schema(description = "미션 선택 요청")
 data class MemberMissionSelectionRequest(
     @Schema(
-        description = "선택한 미션 목록",
-        example = """[
-            {
-                "memberInterestId": 2,
-                "missionId": 3
-            }
-        ]""",
+        description = "선택할 member_mission ID 목록",
+        example = "[1, 2, 3]",
         required = true
     )
-    val missions: List<SelectedMemberMissionDto>
+    val memberMissionIds: List<Long>
 )
+
+/**
+ * 미션 경험치 계산 유틸리티
+ */
+object MissionExpCalculator {
+    /**
+     * 난이도에 따른 경험치 계산
+     * - 난이도 1: 50
+     * - 난이도 2: 100
+     * - 난이도 3: 150
+     * - 난이도 4: 200
+     * - 난이도 5: 250
+     */
+    fun calculateByDifficulty(difficulty: Int?): Int {
+        return when (difficulty) {
+            1 -> 50
+            2 -> 100
+            3 -> 150
+            4 -> 200
+            5 -> 250
+            else -> 0
+        }
+    }
+}

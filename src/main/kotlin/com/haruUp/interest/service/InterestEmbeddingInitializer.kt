@@ -1,6 +1,6 @@
 package com.haruUp.interest.service
 
-import com.haruUp.interest.model.InterestLevel
+import com.haruUp.interest.dto.InterestLevel
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.VectorInterestRepository
 import com.haruUp.global.clova.ClovaEmbeddingClient

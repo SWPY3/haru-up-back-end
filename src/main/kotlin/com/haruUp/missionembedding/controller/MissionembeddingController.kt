@@ -1,30 +1,19 @@
 package com.haruUp.missionembedding.controller
 
+import com.haruUp.global.common.ApiResponse
 import com.haruUp.global.security.MemberPrincipal
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import com.haruUp.missionembedding.dto.MissionRecommendationRequest
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
-import com.haruUp.missionembedding.service.MissionRecommendationService
-import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.global.ratelimit.RateLimit
-import com.haruUp.member.infrastructure.MemberProfileRepository
-import com.haruUp.category.repository.JobRepository
-import com.haruUp.category.repository.JobDetailRepository
-import com.haruUp.interest.model.InterestPath
-import com.haruUp.interest.repository.MemberInterestJpaRepository
-import com.haruUp.mission.domain.MemberMission
-import com.haruUp.mission.domain.MissionStatus
-import com.haruUp.mission.infrastructure.MemberMissionRepository
+import com.haruUp.mission.application.MissionRecommendUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.time.LocalDateTime
-import java.time.Period
 
 /**
  * 미션 API Controller
@@ -33,12 +22,7 @@ import java.time.Period
 @RestController
 @RequestMapping("/api/missions")
 class MissionembeddingController(
-    private val missionRecommendationService: MissionRecommendationService,
-    private val memberProfileRepository: MemberProfileRepository,
-    private val jobRepository: JobRepository,
-    private val jobDetailRepository: JobDetailRepository,
-    private val memberMissionRepository: MemberMissionRepository,
-    private val memberInterestRepository: MemberInterestJpaRepository
+    private val missionRecommendUseCase: MissionRecommendUseCase
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -87,140 +71,24 @@ class MissionembeddingController(
             schema = Schema(implementation = MissionRecommendationRequest::class)
         )
         @RequestBody request: MissionRecommendationRequest
-    ): ResponseEntity<MissionRecommendationResponse> = runBlocking {
+    ): ResponseEntity<ApiResponse<MissionRecommendationResponse>> {
         logger.info("미션 추천 요청 - 사용자: ${principal.id}, 관심사 개수: ${request.memberInterestIds.size}")
 
-        try {
-            // 1. memberInterestIds 유효성 검증 및 조회
-            val memberInterests = request.memberInterestIds.mapNotNull { memberInterestId ->
-                val memberInterest = memberInterestRepository.findById(memberInterestId).orElse(null)
-                if (memberInterest == null) {
-                    logger.warn("멤버 관심사를 찾을 수 없습니다: memberInterestId=$memberInterestId")
-                    return@mapNotNull null
-                }
-                if (memberInterest.memberId != principal.id) {
-                    logger.warn("해당 관심사에 접근 권한이 없습니다: memberInterestId=$memberInterestId")
-                    return@mapNotNull null
-                }
-                memberInterest
-            }
-
-            if (memberInterests.isEmpty()) {
-                logger.error("유효한 관심사가 없습니다.")
-                return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>()
-            }
-
-            // 2. DB에서 사용자 프로필 조회
-            val memberProfileEntity = memberProfileRepository.findByMemberId(principal.id)
-                ?: return@runBlocking ResponseEntity.badRequest().build<MissionRecommendationResponse>().also {
-                    logger.error("사용자 프로필을 찾을 수 없음: ${principal.id}")
-                }
-
-            // 3. 직업 정보 조회
-            val jobName = memberProfileEntity.jobId?.let { jobId ->
-                jobRepository.findById(jobId).orElse(null)?.jobName
-            }
-            val jobDetailName = memberProfileEntity.jobDetailId?.let { jobDetailId ->
-                jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
-            }
-
-            val missionMemberProfile = MissionMemberProfile(
-                age = memberProfileEntity.birthDt?.let { calculateAge(it) },
-                gender = memberProfileEntity.gender?.name,
-                jobName = jobName,
-                jobDetailName = jobDetailName
-            )
-
-            logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}, 성별: ${missionMemberProfile.gender}, 직업: ${missionMemberProfile.jobName}")
-
-            // 4. memberInterest에서 InterestPath 추출하여 (memberInterestId, InterestPath) 튜플로 변환
-            val interestsWithDetails = memberInterests.map { memberInterest ->
-                val directFullPath = memberInterest.directFullPath
-                    ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
-
-                val interestPath = InterestPath(
-                    mainCategory = directFullPath.getOrNull(0) ?: "",
-                    middleCategory = directFullPath.getOrNull(1),
-                    subCategory = directFullPath.getOrNull(2)
-                )
-                Pair(memberInterest.id!!.toInt(), interestPath)  // seqNo = memberInterestId
-            }
-
-            // 5. 미션 추천 (각 관심사당 난이도 1~5 각각 1개씩)
-            val missions = missionRecommendationService.recommendMissions(
-                interests = interestsWithDetails,
-                memberProfile = missionMemberProfile
-            )
-
-            // 6. 요청받은 관심사들의 기존 READY 상태 member_mission soft delete
-            var totalDeletedCount = 0
-            for (memberInterest in memberInterests) {
-                val deletedCount = memberMissionRepository.softDeleteByMemberIdAndInterestIdAndStatus(
-                    memberId = principal.id,
-                    memberInterestId = memberInterest.id!!,
-                    status = MissionStatus.READY,
-                    deletedAt = LocalDateTime.now()
-                )
-                totalDeletedCount += deletedCount
-            }
-            logger.info("기존 READY 상태 미션 soft delete 완료: ${totalDeletedCount}개")
-
-            // 7. 추천된 미션들을 member_mission에 READY 상태로 저장
-            var savedMissionCount = 0
-            for (memberInterest in memberInterests) {
-                val memberInterestId = memberInterest.id!!.toInt()
-
-                // 해당 memberInterestId의 미션 그룹 찾기
-                val missionGroup = missions.find { it.memberInterestId == memberInterestId }
-                if (missionGroup == null) {
-                    logger.warn("memberInterestId=${memberInterestId}에 해당하는 미션 그룹을 찾을 수 없습니다.")
-                    continue
-                }
-
-                // 추천된 미션들을 member_mission에 READY 상태로 저장
-                for (missionDto in missionGroup.data) {
-                    val missionId = missionDto.id ?: continue
-                    try {
-                        val memberMission = MemberMission(
-                            memberId = principal.id,
-                            missionId = missionId,
-                            memberInterestId = memberInterest.id!!,
-                            missionStatus = MissionStatus.READY,
-                            expEarned = 0
-                        )
-                        memberMissionRepository.save(memberMission)
-                        savedMissionCount++
-                    } catch (e: Exception) {
-                        logger.error("member_mission 저장 실패: missionId=$missionId, 에러: ${e.message}")
-                    }
-                }
-            }
-            logger.info("member_mission READY 상태로 저장 완료: ${savedMissionCount}개")
-
-            val response = MissionRecommendationResponse(
-                missions = missions,
-                totalCount = missions.sumOf { it.data.size }
+        return try {
+            val response = missionRecommendUseCase.recommendByMemberInterestIds(
+                memberId = principal.id,
+                memberInterestIds = request.memberInterestIds
             )
 
             logger.info("미션 추천 성공: ${response.totalCount}개")
 
-            ResponseEntity.ok(response)
-
+            ResponseEntity.ok(ApiResponse.success(response))
         } catch (e: IllegalArgumentException) {
             logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().build()
+            ResponseEntity.badRequest().body(ApiResponse.failure(e.message ?: "잘못된 요청입니다."))
         } catch (e: Exception) {
             logger.error("미션 추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().build()
+            ResponseEntity.internalServerError().body(ApiResponse.failure(e.message ?: "서버 오류가 발생했습니다."))
         }
-    }
-
-    /**
-     * 생년월일로부터 나이 계산
-     */
-    private fun calculateAge(birthDt: LocalDateTime): Int {
-        val birthDate = birthDt.toLocalDate()
-        val now = LocalDateTime.now().toLocalDate()
-        return Period.between(birthDate, now).years
     }
 }
