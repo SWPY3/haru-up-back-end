@@ -39,7 +39,7 @@ class InterestController(
     private val memberInterestRepository: com.haruUp.interest.repository.MemberInterestJpaRepository,
     private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository,
     private val stringRedisTemplate: StringRedisTemplate,
-    private val typoValidationCheck: TypoValidationCheck
+    private val typoValidationCheck: TypoValidationCheck,
     private val memberInterestUseCase: com.haruUp.interest.useCase.MemberInterestUseCase
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
