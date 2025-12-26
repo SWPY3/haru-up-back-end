@@ -12,6 +12,7 @@ import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import org.springframework.stereotype.Component
+import kotlin.let
 
 @Component
 class MemberMissionUseCase(
@@ -85,31 +86,23 @@ class MemberMissionUseCase(
 
         // ----------------------------------------------------------------------
         // 3) 현재 레벨 정보 조회
-        // ----------------------------------------------------------------------
         var currentLevel = levelService.getById(mc.levelId)
-        var nextLevel = levelService.getNextLevel(currentLevel.levelNumber)
 
-        // ----------------------------------------------------------------------
-        // 4) 경험치 누적 계산
-        // ----------------------------------------------------------------------
+        // 4) 경험치 누적
         var newTotalExp = mc.totalExp + missionCompleted.expEarned
         var newCurrentExp = mc.currentExp + missionCompleted.expEarned
 
-        // ----------------------------------------------------------------------
-        // ⭐ 5) 레벨업 반복 처리
-        // ----------------------------------------------------------------------
-        while (nextLevel != null && newCurrentExp >= currentLevel.requiredExp) {
+        // ⭐ 5) 캐릭터 기준 레벨업 처리
+        while (newCurrentExp >= currentLevel.maxExp!!) {
 
-            newCurrentExp -= currentLevel.requiredExp
-            currentLevel = nextLevel
+            newCurrentExp -= currentLevel.maxExp!!
 
-            // 다음 레벨 조회
-            nextLevel = levelService.getNextLevel(currentLevel.levelNumber)
+            currentLevel = levelService.getOrCreateLevel(
+                currentLevel.levelNumber + 1
+            )
         }
 
-        // ----------------------------------------------------------------------
-        // 6) 최종 계산 결과를 DB 반영
-        // ----------------------------------------------------------------------
+        // 6) 결과 반영
         val updatedMc = memberCharacterService.applyExpWithResolvedValues(
             mc = mc,
             newLevelId = currentLevel.id!!,

@@ -1,5 +1,6 @@
 package com.haruUp.mission.application
 
+import com.haruUp.character.application.service.LevelService
 import com.haruUp.character.domain.Level
 import com.haruUp.character.domain.MemberCharacter
 import com.haruUp.character.infrastructure.LevelRepository
@@ -23,7 +24,8 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
     private val useCase: MemberMissionUseCase,
     private val levelRepo: LevelRepository,
     private val memberCharacterRepo: MemberCharacterRepository,
-    private val missionRepo: MemberMissionRepository
+    private val missionRepo: MemberMissionRepository,
+    private val levelService : LevelService
 ) {
 
     @BeforeEach
@@ -32,17 +34,13 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         memberCharacterRepo.deleteAll()
         levelRepo.deleteAll()
 
-        // Level 생성 (1 → 3)
-        levelRepo.save(Level(levelNumber = 1, requiredExp = 100))
-        levelRepo.save(Level(levelNumber = 2, requiredExp = 100))
-        levelRepo.save(Level(levelNumber = 3, requiredExp = 100))
+        val level1 = levelRepo.save(Level(levelNumber = 1, requiredExp = 1000))
 
-        // 캐릭터 생성
         memberCharacterRepo.save(
             MemberCharacter(
                 memberId = 1L,
                 characterId = 1L,
-                levelId = 1L,
+                levelId = level1.id!!, // ✅ 실제 ID 사용
                 totalExp = 0,
                 currentExp = 0
             )
@@ -52,13 +50,14 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
     @Test
     fun `미션 완료 후 DB에서 실제로 레벨업이 일어난다`() {
 
+
         // Given
         val mission = missionRepo.save(
             MemberMissionEntity(
                 memberId = 1L,
-                missionId = 99L,
+                missionId = 11L,
                 memberInterestId = 1L,
-                expEarned = 250,
+                expEarned = 2500,
                 missionStatus = MissionStatus.COMPLETED
             )
         )
@@ -73,16 +72,65 @@ class MemberMissionUseCaseIntegrationTest @Autowired constructor(
         val result = useCase.missionChangeStatus(request)
 
         // Then
-        assertEquals(3, result!!.levelId)     // 250 exp → 2단계 레벨업
-        assertEquals(250, result.totalExp)
-        assertEquals(50, result.currentExp)
+        assertEquals(result!!.levelId, result!!.levelId)     // 250 exp → 2단계 레벨업
+        assertEquals(2500, result.totalExp)
+        assertEquals(1500, result.currentExp)
 
-        val mc = memberCharacterRepo.findFirstByMemberIdAndDeletedFalseOrderByIdDesc(10L)
+        val mc = memberCharacterRepo.findFirstByMemberIdAndDeletedFalseOrderByIdDesc(1L)
             ?: fail("캐릭터가 DB에 존재해야 합니다.")
 
-        assertEquals(3L, mc.levelId)
-        assertEquals(250, mc.totalExp)
-        assertEquals(50, mc.currentExp)
+        var currentLevel = levelService.getById(mc.levelId)
+
+        assertEquals(2, currentLevel.levelNumber)
+        assertEquals(mc.levelId, mc.levelId)
+        assertEquals(2500, mc.totalExp)
+        assertEquals(1500, mc.currentExp)
+    }
+
+    @Test
+    fun `미션 완료 시 경험치 기준으로 자동 레벨업되어 4레벨까지 도달한다`() {
+
+        // Given
+        val mission = missionRepo.save(
+            MemberMissionEntity(
+                memberId = 1L,
+                missionId = 100L,
+                memberInterestId = 1L,
+                expEarned = 3500, // 🔥 3번 레벨업
+                missionStatus = MissionStatus.COMPLETED
+            )
+        )
+
+        val request = MissionStatusChangeRequest(
+            missions = listOf(
+                MissionStatusChangeItem(
+                    memberMissionId = mission.id!!,
+                    missionStatus = MissionStatus.COMPLETED
+                )
+            )
+        )
+
+        // When
+        val result = useCase.missionChangeStatus(request)
+            ?: fail("결과 DTO가 null이면 안 됩니다.")
+
+        // Then - 반환 DTO 검증
+        val resultLevel = levelService.getById(result.levelId)
+
+        assertEquals(4, resultLevel.levelNumber) // ⭐ 4레벨
+        assertEquals(3500, result.totalExp)
+        assertEquals(500, result.currentExp)     // 3500 - (1000 * 3)
+
+        // Then - DB 상태 검증
+        val mc = memberCharacterRepo
+            .findFirstByMemberIdAndDeletedFalseOrderByIdDesc(1L)
+            ?: fail("캐릭터가 DB에 존재해야 합니다.")
+
+        val dbLevel = levelService.getById(mc.levelId)
+
+        assertEquals(4, dbLevel.levelNumber)
+        assertEquals(3500, mc.totalExp)
+        assertEquals(500, mc.currentExp)
     }
 
     @Test

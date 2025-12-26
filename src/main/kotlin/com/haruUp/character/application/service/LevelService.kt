@@ -57,8 +57,8 @@ class LevelService(
      * Level 1 → 100, 2 → 150, 3 → 200, ... (50씩 증가)
      */
     @Transactional
-    private fun calculateRequiredExp(levelNumber: Int): Int {
-        return 50 * levelNumber + 50   // 예: 1 → 100, 2 → 150...
+    public fun calculateRequiredExp(levelNumber: Int): Int {
+        return 1000 * levelNumber   // 예: 1 → 100, 2 → 150...
     }
 
     /**
@@ -66,7 +66,7 @@ class LevelService(
      * Level 1 → 50, 2 → 100, 3 → 150 ...
      */
     @Transactional
-    private fun calculateMaxExp(levelNumber: Int): Int {
-        return 50 * levelNumber
+    public fun calculateMaxExp(levelNumber: Int): Int {
+        return 1000 * levelNumber
     }
 }
