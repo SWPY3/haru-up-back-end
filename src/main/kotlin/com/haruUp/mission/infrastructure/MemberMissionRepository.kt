@@ -30,16 +30,16 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
                         ROW_NUMBER() OVER (
                             PARTITION BY e.difficulty
                             ORDER BY
-                                CASE WHEN m.postponed_at = CURRENT_DATE THEN 0 ELSE 1 END
+                                CASE WHEN m.create_at = CURRENT_DATE THEN 0 ELSE 1 END
                         ) AS rn
                     FROM member_mission m
                     JOIN mission_embeddings e ON m.mission_id = e.id
                     WHERE m.member_id = :memberId
                       AND m.mission_status <> 'COMPLETED'
                       AND (
-                            (m.postponed_at = CURRENT_DATE)
+                            (m.create_at = CURRENT_DATE)
                             OR
-                            (m.mission_status = 'READY' AND m.created_at = CURRENT_DATE AND m.postponed_at IS NULL)
+                            (m.mission_status = 'READY' AND m.created_at = CURRENT_DATE AND m.create_at IS NULL)
                           )
                 ) sub
                 WHERE sub.rn = 1
