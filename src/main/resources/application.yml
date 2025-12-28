@@ -40,6 +40,9 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD}
 
+  batch:
+    jdbc:
+      initialize-schema: always  # 최초 1회 후 never로 변경 권장
 
 logging:
   level:
@@ -60,14 +63,11 @@ clova:
     model: HCX-DASH-002              # AI 추천 모델
     embedding-model: clir-emb-dolphin # 임베딩 모델 (1024차원)
 
-# 관심사 임베딩 설정
-interest:
-  embedding:
-    min-usage-count: 3        # 최소 사용 횟수
-    delay-days: 7             # 검증 기간 (일)
-    batch-size: 100           # 배치 크기
-    batch-cron: "0 0 3 * * *" # 배치 실행 시간 (매일 새벽 3시)
-    vector-size: 1024         # Clova Embedding 벡터 차원
+ranking:
+  batch:
+    enabled: true                # 스케줄러 활성화 여부
+    cron: "0 0 2 * * *"         # 매일 새벽 2시 실행
+
 
 server:
   port: 8080

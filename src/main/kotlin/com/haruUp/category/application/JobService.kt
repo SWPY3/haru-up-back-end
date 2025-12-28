@@ -1,12 +1,12 @@
 package com.haruUp.category.application
 
 import com.haruUp.category.domain.dto.JobDto
-import com.haruUp.category.repository.JobRepository
+import com.haruUp.category.repository.JobJpaRepository
 import org.springframework.stereotype.Service
 
 @Service
 class JobService (
-    private val jobRepository : JobRepository
+    private val jobRepository : JobJpaRepository
 ) {
 
     // job 조회

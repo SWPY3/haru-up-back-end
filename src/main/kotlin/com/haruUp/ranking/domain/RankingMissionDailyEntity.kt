@@ -19,7 +19,7 @@ import java.time.LocalDate
     indexes = [
         Index(name = "idx_ranking_daily_date", columnList = "ranking_date"),
         Index(name = "idx_ranking_daily_label", columnList = "label_name"),
-        Index(name = "idx_ranking_daily_filter", columnList = "ranking_date, age_group, gender, job_id, job_detail_id")
+        Index(name = "idx_ranking_daily_filter", columnList = "ranking_date, birth_dt, gender, job_id, job_detail_id")
     ]
 )
 class RankingMissionDailyEntity(
@@ -52,9 +52,8 @@ class RankingMissionDailyEntity(
     @Column(name = "gender", length = 10)
     val gender: MemberGender? = null,
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "age_group", length = 20)
-    val ageGroup: AgeGroup? = null,
+    @Column(name = "birth_dt")
+    val birthDt: LocalDate? = null,
 
     @Column(name = "job_id")
     val jobId: Long? = null,
