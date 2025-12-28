@@ -342,12 +342,10 @@ class MissionRecommendService(
         val interestInfoList = memberInterests.map { memberInterest ->
             val directFullPath = memberInterest.directFullPath
                 ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
-            val fullPath = interestEmbeddingRepository.findEntityById(memberInterest.interestId)?.fullPath
 
             com.haruUp.missionembedding.service.InterestInfo(
                 memberInterestId = memberInterest.id!!.toInt(),
-                directFullPath = directFullPath,
-                fullPath = fullPath
+                directFullPath = directFullPath
             )
         }
 

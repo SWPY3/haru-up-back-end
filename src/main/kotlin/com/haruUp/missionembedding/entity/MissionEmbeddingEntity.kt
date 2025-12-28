@@ -4,7 +4,6 @@ import com.haruUp.global.common.BaseEntity
 import io.hypersistence.utils.hibernate.type.array.ListArrayType
 import jakarta.persistence.*
 import org.hibernate.annotations.Type
-import java.time.LocalDateTime
 
 /**
  * 미션 임베딩 Entity (pgvector)
@@ -57,28 +56,4 @@ class MissionEmbeddingEntity(
 
     @Column(name = "is_activated")
     val isActivated: Boolean = true
-) : BaseEntity() {
-    /**
-     * 관심사 경로 문자열 반환 (표시용)
-     */
-    fun getInterestPath(): String {
-        return directFullPath.joinToString(" > ")
-    }
-
-    companion object {
-        /**
-         * Float 리스트를 pgvector 문자열로 변환
-         */
-        fun vectorToString(vector: List<Float>): String {
-            return vector.joinToString(separator = ",", prefix = "[", postfix = "]")
-        }
-
-        /**
-         * 카테고리 경로 리스트를 표시용 문자열로 변환
-         * ["대분류", "중분류", "소분류"] → "대분류 > 중분류 > 소분류"
-         */
-        fun categoryPathToString(categoryPath: List<String>): String {
-            return categoryPath.filter { it.isNotBlank() }.joinToString(" > ")
-        }
-    }
-}
+) : BaseEntity()

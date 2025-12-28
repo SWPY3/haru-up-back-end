@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service
 data class InterestInfo(
     val memberInterestId: Int?,
     val directFullPath: List<String>,
-    val fullPath: List<String>?
+    val fullPath: List<String>? = null
 )
 
 /**
@@ -340,8 +340,7 @@ $excludeMissionsText
     /**
      * 단일 관심사에 대해 난이도 1~5 미션 5개 추천
      *
-     * - RAG에서 5개 모두 조회되면 RAG 결과 반환
-     * - 5개 미만이면 RAG 무시하고 LLM으로 5개 생성
+     * - AI(LLM)으로만 미션 생성
      *
      * @param directFullPath member_interest.direct_full_path (사용자가 선택한 경로)
      * @param fullPath interest_embeddings.full_path (시스템 관심사 경로)
@@ -350,34 +349,10 @@ $excludeMissionsText
         directFullPath: List<String>,
         memberProfile: MissionMemberProfile
     ): List<Mission> {
-        // 1. RAG: 난이도 1~5 각각 1개씩 검색 (1회 쿼리, API 호출 없음)
-        val ragMissions = try {
-            missionEmbeddingService.findOnePerDifficulty(directFullPath)
-        } catch (e: Exception) {
-            logger.warn("RAG 검색 실패: ${e.message}")
-            emptyList()
-        }
-
-        logger.info("RAG DATA: ${ragMissions}")
-
         val pathString = directFullPath.joinToString(" > ")
 
-        // 2. RAG 5개 모두 조회되면 반환
-        if (ragMissions.size == 5) {
-            logger.info("RAG로 5개 미션 조회 완료: $pathString")
-            return ragMissions.map { entity ->
-                Mission(
-                    id = entity.id,
-                    content = entity.missionContent,
-                    directFullPath = directFullPath,
-                    difficulty = entity.difficulty,
-                    createdType = "EMBEDDING"
-                )
-            }.sortedBy { it.difficulty }
-        }
-
-        // 3. 5개 미만이면 LLM으로 전체 생성
-        logger.info("RAG ${ragMissions.size}개 조회, LLM으로 5개 생성: $pathString")
+        // LLM으로 미션 생성
+        logger.info("AI(LLM)로 5개 미션 생성: $pathString")
         val interestPath = toInterestPath(directFullPath)
         val aiMissions = generateMissionsAllDifficulties(interestPath, memberProfile)
 
