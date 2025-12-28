@@ -42,7 +42,7 @@ spring:
 
   batch:
     jdbc:
-      initialize-schema: always  # 최초 1회 후 never로 변경 권장
+      initialize-schema: never  # 최초 1회 후 never로 변경 권장
 
 logging:
   level:
