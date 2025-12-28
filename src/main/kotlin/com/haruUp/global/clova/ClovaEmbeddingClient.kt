@@ -49,20 +49,6 @@ class ClovaEmbeddingClient(
 
         return@withContext embedding
     }
-
-    /**
-     * 배치 임베딩 (여러 텍스트를 순차적으로 처리)
-     *
-     * Clova API는 배치를 지원하지 않으므로 순차 처리
-     *
-     * @param texts 임베딩할 텍스트 목록
-     * @return 각 텍스트의 임베딩 벡터 목록
-     */
-    suspend fun createEmbeddingBatch(texts: List<String>): List<List<Float>> {
-        return texts.map { text ->
-            createEmbedding(text)
-        }
-    }
 }
 
 /**

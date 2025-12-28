@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service
 data class InterestInfo(
     val memberInterestId: Int?,
     val directFullPath: List<String>,
-    val fullPath: List<String>?
+    val fullPath: List<String>? = null
 )
 
 /**
@@ -51,72 +51,6 @@ class MissionRecommendationService(
             middleCategory = path.getOrNull(1),
             subCategory = path.getOrNull(2)
         )
-    }
-
-    /**
-     * 관심사별로 미션 5개씩 추천 (그룹화된 형태로 반환)
-     *
-     * 각 관심사에 대해 난이도 1~5 각각 1개씩 미션을 추천
-     * - RAG: 난이도별로 검색 (DB 쿼리)
-     * - AI: 부족한 난이도만 모아서 LLM 1회 호출
-     *
-     * @param interests 관심사 정보 목록 (memberInterestId, directFullPath, fullPath)
-     * @param memberProfile 멤버 프로필
-     * @return 관심사별 그룹화된 미션 목록 (각 관심사당 5개, 난이도 1~5)
-     */
-    suspend fun recommendMissions(
-        interests: List<InterestInfo>,
-        memberProfile: MissionMemberProfile
-    ): List<MissionGroupDto> {
-        logger.info("미션 추천 시작 - 관심사 개수: ${interests.size}")
-
-        val missionGroups = mutableListOf<MissionGroupDto>()
-
-        // 각 관심사에 대해 난이도 1~5 미션 추천
-        for (interestInfo in interests) {
-            try {
-                // RAG + AI 하이브리드로 난이도 1~5 미션 생성
-                val missions = recommendMissionsForSingleInterest(
-                    directFullPath = interestInfo.directFullPath,
-                    memberProfile = memberProfile
-                )
-
-                // MissionDto 리스트 생성
-                val missionDtos = missions.map { mission ->
-                    MissionDto(
-                        member_mission_id = null,
-                        mission_id = mission.id,
-                        content = mission.content,
-                        directFullPath = mission.directFullPath,
-                        difficulty = mission.difficulty,
-                        expEarned = MissionExpCalculator.calculateByDifficulty(mission.difficulty),
-                        createdType = mission.createdType
-                    )
-                }
-
-                // memberInterestId별 그룹으로 묶기
-                missionGroups.add(
-                    MissionGroupDto(
-                        memberInterestId = interestInfo.memberInterestId,
-                        data = missionDtos
-                    )
-                )
-                logger.info("memberInterestId=${interestInfo.memberInterestId} 미션 추천 완료: ${missionDtos.size}개 (난이도 1~5)")
-
-            } catch (e: Exception) {
-                logger.error("memberInterestId=${interestInfo.memberInterestId} 미션 추천 실패: ${e.message}", e)
-                // 실패한 경우 빈 그룹 추가
-                missionGroups.add(
-                    MissionGroupDto(
-                        memberInterestId = interestInfo.memberInterestId,
-                        data = emptyList()
-                    )
-                )
-            }
-        }
-
-        logger.info("전체 미션 추천 완료: ${missionGroups.sumOf { it.data.size }}개")
-        return missionGroups
     }
 
     /**
@@ -335,111 +269,6 @@ $excludeMissionsText
         logger.debug("오늘의 미션 Clova API 응답: $response")
 
         return parseMissionResponse(response).take(difficulties.size)
-    }
-
-    /**
-     * 단일 관심사에 대해 난이도 1~5 미션 5개 추천
-     *
-     * - RAG에서 5개 모두 조회되면 RAG 결과 반환
-     * - 5개 미만이면 RAG 무시하고 LLM으로 5개 생성
-     *
-     * @param directFullPath member_interest.direct_full_path (사용자가 선택한 경로)
-     * @param fullPath interest_embeddings.full_path (시스템 관심사 경로)
-     */
-    private suspend fun recommendMissionsForSingleInterest(
-        directFullPath: List<String>,
-        memberProfile: MissionMemberProfile
-    ): List<Mission> {
-        // 1. RAG: 난이도 1~5 각각 1개씩 검색 (1회 쿼리, API 호출 없음)
-        val ragMissions = try {
-            missionEmbeddingService.findOnePerDifficulty(directFullPath)
-        } catch (e: Exception) {
-            logger.warn("RAG 검색 실패: ${e.message}")
-            emptyList()
-        }
-
-        logger.info("RAG DATA: ${ragMissions}")
-
-        val pathString = directFullPath.joinToString(" > ")
-
-        // 2. RAG 5개 모두 조회되면 반환
-        if (ragMissions.size == 5) {
-            logger.info("RAG로 5개 미션 조회 완료: $pathString")
-            return ragMissions.map { entity ->
-                Mission(
-                    id = entity.id,
-                    content = entity.missionContent,
-                    directFullPath = directFullPath,
-                    difficulty = entity.difficulty,
-                    createdType = "EMBEDDING"
-                )
-            }.sortedBy { it.difficulty }
-        }
-
-        // 3. 5개 미만이면 LLM으로 전체 생성
-        logger.info("RAG ${ragMissions.size}개 조회, LLM으로 5개 생성: $pathString")
-        val interestPath = toInterestPath(directFullPath)
-        val aiMissions = generateMissionsAllDifficulties(interestPath, memberProfile)
-
-        // AI 미션 DB 저장 후 반환
-        return aiMissions.mapNotNull { mission ->
-            try {
-                val saved = missionEmbeddingService.saveMissionWithoutEmbedding(
-                    directFullPath = directFullPath,
-                    difficulty = mission.difficulty,
-                    missionContent = mission.content
-                )
-                mission.copy(id = saved?.id, directFullPath = directFullPath)
-            } catch (e: Exception) {
-                logger.warn("미션 저장 실패: ${mission.content}")
-                mission.copy(directFullPath = directFullPath)
-            }
-        }.sortedBy { it.difficulty }
-    }
-
-    /**
-     * LLM으로 난이도 1~5 미션 5개 생성
-     */
-    private suspend fun generateMissionsAllDifficulties(
-        interestPath: InterestPath,
-        memberProfile: MissionMemberProfile
-    ): List<Mission> {
-        val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
-            interests = listOf(interestPath),
-            missionMemberProfile = memberProfile
-        )
-
-        val userMessage = """
-$basePrompt
-
-**생성할 미션: 난이도 1, 2, 3, 4, 5 각각 1개씩, 총 5개**
-
-각 난이도별 기준:
-- 난이도 1 (중학생 수준): 5-10분 소요, 작은 목표
-- 난이도 2 (고등학생 수준): 15-20분 소요, 중간 목표
-- 난이도 3 (대학생 수준): 30분-1시간 소요, 상당한 목표
-- 난이도 4 (직장인 수준): 1-2시간 소요, 높은 목표
-- 난이도 5 (전문가 수준): 2시간 이상 소요, 전문가 목표
-
-**중요:** 반드시 검증 가능한 정량적 수치를 포함해주세요.
-
-**응답 형식 (JSON):**
-```json
-{
-  "missions": [
-    {"content": "미션내용", "relatedInterest": ["대분류", "중분류", "소분류"], "difficulty": 난이도숫자}
-  ]
-}
-```
-        """.trim()
-
-        val response = clovaApiClient.generateText(
-            userMessage = userMessage,
-            systemMessage = ImprovedMissionRecommendationPrompt.SYSTEM_PROMPT,
-            temperature = 0.8  // 다양성 증가를 위해 temperature 높임, seed는 자동 랜덤
-        )
-
-        return parseMissionResponseWithDifficulty(response)
     }
 
     /**

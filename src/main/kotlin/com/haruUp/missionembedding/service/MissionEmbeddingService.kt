@@ -16,8 +16,7 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class MissionEmbeddingService(
-    private val missionEmbeddingRepository: MissionEmbeddingRepository,
-    private val clovaEmbeddingClient: ClovaEmbeddingClient
+    private val missionEmbeddingRepository: MissionEmbeddingRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -82,115 +81,5 @@ class MissionEmbeddingService(
      */
     fun findByIds(ids: List<Long>): List<MissionEmbeddingEntity> {
         return missionEmbeddingRepository.findAllById(ids)
-    }
-
-    /**
-     * 난이도별 미션 1개씩 조회 (대분류 필터 + 임베딩 유사도 + usage_count 우선)
-     *
-     * 1. 대분류(directFullPath[0])로 먼저 필터링
-     * 2. 관심사 경로로 쿼리 임베딩 생성
-     * 3. 유사한 미션 중 usage_count 높은 순으로 난이도별 1개씩 반환
-     *
-     * @param directFullPath 전체 경로 배열 (예: ["체력관리 및 운동", "헬스", "근력 키우기"])
-     * @return 난이도별 미션 목록 (최대 5개)
-     */
-    suspend fun findOnePerDifficulty(directFullPath: List<String>): List<MissionEmbeddingEntity> {
-        if (directFullPath.isEmpty()) {
-            logger.warn("RAG 조회 - directFullPath가 비어있음")
-            return emptyList()
-        }
-
-        val majorCategory = directFullPath[0]  // 대분류
-        val interestPath = MissionEmbeddingEntity.categoryPathToString(directFullPath)
-        logger.info("RAG 조회 - majorCategory: $majorCategory, interestPath: $interestPath")
-
-        // 쿼리 임베딩 생성
-        val queryEmbedding = clovaEmbeddingClient.createEmbedding(interestPath)
-        val embeddingString = MissionEmbeddingEntity.vectorToString(queryEmbedding)
-
-        val result = missionEmbeddingRepository.findOnePerDifficulty(embeddingString, majorCategory)
-        logger.info("RAG 조회 - 결과: ${result.size}개, IDs: ${result.map { it.id }}")
-        return result
-    }
-
-    /**
-     * 미션 선택 시 임베딩 생성 및 업데이트
-     *
-     * @param missionId mission_embeddings 테이블의 ID
-     * @return 업데이트된 엔티티 (없으면 null)
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    suspend fun generateAndUpdateEmbedding(missionId: Long): MissionEmbeddingEntity? {
-        // 1. 미션 조회
-        val missionEntity = missionEmbeddingRepository.findById(missionId).orElse(null)
-            ?: run {
-                logger.error("미션을 찾을 수 없음: missionId=$missionId")
-                return null
-            }
-
-        // 2. 이미 embedding이 있으면 usage_count만 증가
-        if (missionEntity.embedding != null) {
-            logger.info("이미 embedding 존재, usage_count만 증가: missionId=$missionId")
-            missionEmbeddingRepository.incrementUsageCount(
-                id = missionId,
-                updatedAt = java.time.LocalDateTime.now()
-            )
-            return missionEmbeddingRepository.findById(missionId).orElse(null)
-        }
-
-        // 3. 임베딩 생성
-        val interestPath = missionEntity.getInterestPath()
-        val embeddingText = buildEmbeddingText(
-            interestPath = interestPath,
-            difficulty = missionEntity.difficulty,
-            missionContent = missionEntity.missionContent
-        )
-        val embeddingVector = clovaEmbeddingClient.createEmbedding(embeddingText)
-        val embeddingString = MissionEmbeddingEntity.vectorToString(embeddingVector)
-
-        // 4. 임베딩 업데이트
-        missionEmbeddingRepository.updateEmbedding(
-            id = missionId,
-            embedding = embeddingString,
-            updatedAt = java.time.LocalDateTime.now()
-        )
-
-        logger.info("미션 임베딩 생성 및 업데이트 완료: missionId=$missionId")
-
-        return missionEmbeddingRepository.findById(missionId).orElse(null)
-    }
-
-    /**
-     * 임베딩용 텍스트 생성
-     */
-    private fun buildEmbeddingText(
-        interestPath: String,
-        difficulty: Int?,
-        missionContent: String
-    ): String {
-        val difficultyText = difficulty?.let { "난이도 $it" } ?: "난이도 지정 없음"
-        return "$interestPath - $difficultyText: $missionContent"
-    }
-
-    /**
-     * 검색 쿼리 생성
-     */
-    private fun buildSearchQuery(
-        interestPath: String,
-        difficulty: Int?,
-        memberProfile: String?
-    ): String {
-        val parts = mutableListOf<String>()
-        parts.add(interestPath)
-
-        difficulty?.let {
-            parts.add("난이도 $it")
-        }
-
-        memberProfile?.let {
-            parts.add(it)
-        }
-
-        return parts.joinToString(" ")
     }
 }

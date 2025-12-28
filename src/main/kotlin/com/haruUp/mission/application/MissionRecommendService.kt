@@ -338,24 +338,37 @@ class MissionRecommendService(
 
         logger.info("사용자 프로필 조회 완료 - 나이: ${missionMemberProfile.age}, 성별: ${missionMemberProfile.gender}, 직업: ${missionMemberProfile.jobName}")
 
-        // 4. memberInterest에서 InterestInfo 생성
-        val interestInfoList = memberInterests.map { memberInterest ->
+        // 4. 각 관심사별로 미션 추천 (오늘 추천된 미션 제외)
+        val today = LocalDate.now()
+        val missions = mutableListOf<com.haruUp.missionembedding.dto.MissionGroupDto>()
+
+        for (memberInterest in memberInterests) {
             val directFullPath = memberInterest.directFullPath
                 ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
-            val fullPath = interestEmbeddingRepository.findEntityById(memberInterest.interestId)?.fullPath
 
-            com.haruUp.missionembedding.service.InterestInfo(
-                memberInterestId = memberInterest.id!!.toInt(),
-                directFullPath = directFullPath,
-                fullPath = fullPath
+            // 오늘 이미 추천된 미션 ID 조회 (제외할 미션)
+            val todayMemberMissions = memberMissionRepository.findByMemberIdAndMemberInterestIdAndTargetDate(
+                memberId = memberId,
+                memberInterestId = memberInterest.id!!,
+                targetDate = today
             )
-        }
+            val excludeMissionIds = todayMemberMissions.map { it.missionId }
+            logger.info("오늘 추천된 미션 제외 - memberInterestId: ${memberInterest.id}, excludeIds: ${excludeMissionIds.size}개")
 
-        // 5. 미션 추천 (각 관심사당 난이도 1~5 각각 1개씩)
-        val missions = kotlinx.coroutines.runBlocking {
-            missionRecommendationService.recommendMissions(
-                interests = interestInfoList,
-                memberProfile = missionMemberProfile
+            // 미션 추천 (제외할 미션 ID 전달)
+            val missionDtos = kotlinx.coroutines.runBlocking {
+                missionRecommendationService.recommendTodayMissions(
+                    directFullPath = directFullPath,
+                    memberProfile = missionMemberProfile,
+                    excludeIds = excludeMissionIds
+                )
+            }
+
+            missions.add(
+                com.haruUp.missionembedding.dto.MissionGroupDto(
+                    memberInterestId = memberInterest.id!!.toInt(),
+                    data = missionDtos
+                )
             )
         }
 
@@ -435,17 +448,6 @@ class MissionRecommendService(
         val birthDate = birthDt.toLocalDate()
         val now = LocalDateTime.now().toLocalDate()
         return Period.between(birthDate, now).years
-    }
-
-    /**
-     * Redis 캐시
-     */
-     fun cache(key: String, value: MissionRecommendResult) {
-        redisTemplate.opsForValue().set(
-            key,
-            objectMapper.writeValueAsString(value),
-            Duration.ofSeconds(secondsUntilMidnight())
-        )
     }
 
      fun secondsUntilMidnight(): Long {

@@ -136,18 +136,10 @@ class MemberMissionService(
                 throw IllegalArgumentException("본인의 미션만 선택할 수 있습니다: memberMissionId=$memberMissionId")
             }
 
-            // missionId로 임베딩 업데이트
+            // missionId로 미션 존재 확인
             val missionId = memberMission.missionId
             if (!missionEmbeddingRepository.existsById(missionId)) {
                 throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=$missionId")
-            }
-
-            try {
-                runBlocking {
-                    missionEmbeddingService.generateAndUpdateEmbedding(missionId)
-                }
-            } catch (e: Exception) {
-                throw IllegalStateException("미션 임베딩 업데이트 실패: missionId=$missionId, error=${e.message}")
             }
 
             // missionStatus를 ACTIVE로, targetDate를 오늘로 변경
