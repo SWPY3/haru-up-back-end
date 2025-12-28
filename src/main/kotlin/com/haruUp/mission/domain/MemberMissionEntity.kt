@@ -43,7 +43,10 @@ class MemberMissionEntity (
     var expEarned : Int,
 
     @Column(name = "target_date", nullable = false)
-    var targetDate: LocalDate = LocalDate.now()
+    var targetDate: LocalDate = LocalDate.now(),
+
+    @Column(name = "is_selected", nullable = false)
+    var isSelected: Boolean = false
 
 ) : BaseEntity() {
 

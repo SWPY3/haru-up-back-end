@@ -142,9 +142,10 @@ class MemberMissionService(
                 throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=$missionId")
             }
 
-            // missionStatus를 ACTIVE로, targetDate를 오늘로 변경
+            // missionStatus를 ACTIVE로, targetDate를 오늘로, isSelected를 true로 변경
             memberMission.missionStatus = MissionStatus.ACTIVE
             memberMission.targetDate = today
+            memberMission.isSelected = true
             memberMission.updatedAt = LocalDateTime.now()
 
             val saved = memberMissionRepository.save(memberMission)

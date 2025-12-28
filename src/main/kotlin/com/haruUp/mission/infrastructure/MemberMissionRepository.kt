@@ -180,4 +180,18 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
         memberInterestId: Long,
         deletedAt: LocalDateTime
     ): Int
+
+    /**
+     * 선택된 미션 조회 (랭킹 배치용)
+     * - is_selected = true
+     * - target_date = 지정된 날짜
+     * - deleted = false
+     */
+    @Query("""
+    SELECT m FROM MemberMissionEntity m
+    WHERE m.isSelected = true
+      AND m.targetDate = :targetDate
+      AND m.deleted = false
+    """)
+    fun findSelectedMissionsByTargetDate(targetDate: LocalDate): List<MemberMissionEntity>
 }
