@@ -25,10 +25,10 @@ class RankingBatchScheduler(
     private var batchEnabled: Boolean = true
 
     /**
-     * 매일 새벽 2시에 실행 (전날 데이터 수집)
+     * 매일 00시에 실행 (전날 데이터 수집)
      * cron: 초 분 시 일 월 요일
      */
-    @Scheduled(cron = "\${ranking.batch.cron:0 0 2 * * *}")
+    @Scheduled(cron = "\${ranking.batch.cron:0 0 0 * * *}")
     fun executeRankingBatchJob() {
         if (!batchEnabled) {
             logger.info("랭킹 배치 스케줄러가 비활성화되어 있습니다.")

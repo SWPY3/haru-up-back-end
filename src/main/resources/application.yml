@@ -63,12 +63,6 @@ clova:
     model: HCX-DASH-002              # AI 추천 모델
     embedding-model: clir-emb-dolphin # 임베딩 모델 (1024차원)
 
-ranking:
-  batch:
-    enabled: true                # 스케줄러 활성화 여부
-    cron: "0 0 2 * * *"         # 매일 새벽 2시 실행
-
-
 server:
   port: 8080
   compression:

@@ -57,10 +57,10 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
     ): List<MissionEmbeddingEntity>
 
     /**
-     * 난이도별 미션 1개씩 조회 (대분류 필터 + 임베딩 유사도 + usage_count 우선)
+     * 난이도별 미션 1개씩 조회 (대분류 필터 + 임베딩 유사도)
      *
      * 대분류(direct_full_path[1])로 먼저 필터링 후,
-     * 임베딩 유사도로 관련 미션 검색, usage_count 높은 순 우선
+     * 임베딩 유사도로 관련 미션 검색
      * 코사인 거리 임계값: 0.8 (0=동일, 1=직교, 2=반대)
      */
     @Query(
@@ -69,7 +69,7 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
                 SELECT *,
                        ROW_NUMBER() OVER (
                            PARTITION BY difficulty
-                           ORDER BY usage_count DESC, embedding <=> CAST(:embedding AS vector)
+                           ORDER BY embedding <=> CAST(:embedding AS vector)
                        ) as rn
                 FROM mission_embeddings
                 WHERE is_activated = true
@@ -95,8 +95,8 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
     @Query(
         value = """
             INSERT INTO mission_embeddings
-            (direct_full_path, difficulty, mission_content, embedding, usage_count, is_activated, created_at)
-            VALUES (CAST(:directFullPath AS TEXT[]), :difficulty, :missionContent, CAST(:embedding AS vector), :usageCount, :isActivated, :createdAt)
+            (direct_full_path, difficulty, mission_content, embedding, is_activated, created_at)
+            VALUES (CAST(:directFullPath AS TEXT[]), :difficulty, :missionContent, CAST(:embedding AS vector), :isActivated, :createdAt)
         """,
         nativeQuery = true
     )
@@ -105,38 +105,18 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
         @Param("difficulty") difficulty: Int?,
         @Param("missionContent") missionContent: String,
         @Param("embedding") embedding: String?,
-        @Param("usageCount") usageCount: Int,
         @Param("isActivated") isActivated: Boolean,
         @Param("createdAt") createdAt: java.time.LocalDateTime
     )
 
     /**
-     * 사용 횟수 증가 (UPDATE without touching embedding field)
-     */
-    @Modifying
-    @Query(
-        value = """
-            UPDATE mission_embeddings
-            SET usage_count = usage_count + 1,
-                updated_at = :updatedAt
-            WHERE id = :id
-        """,
-        nativeQuery = true
-    )
-    fun incrementUsageCount(
-        @Param("id") id: Long,
-        @Param("updatedAt") updatedAt: java.time.LocalDateTime
-    )
-
-    /**
-     * 임베딩 벡터 업데이트 (미션 선택 시 호출)
+     * 임베딩 벡터 업데이트
      */
     @Modifying
     @Query(
         value = """
             UPDATE mission_embeddings
             SET embedding = CAST(:embedding AS vector),
-                usage_count = usage_count + 1,
                 updated_at = :updatedAt
             WHERE id = :id
         """,
