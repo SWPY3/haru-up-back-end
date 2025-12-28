@@ -51,9 +51,6 @@ class MissionEmbeddingEntity(
     @Column(name = "embedding", columnDefinition = "vector(1024)")
     val embedding: String? = null,  // "[0.1, 0.2, ...]" 형태의 문자열
 
-    @Column(name = "usage_count")
-    var usageCount: Int = 0,  // 이 미션이 선택된 횟수
-
     @Column(name = "is_activated")
     val isActivated: Boolean = true,
 

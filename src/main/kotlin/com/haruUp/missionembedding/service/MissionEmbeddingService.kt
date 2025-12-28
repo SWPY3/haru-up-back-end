@@ -43,14 +43,9 @@ class MissionEmbeddingService(
         )
 
         if (existing != null) {
-            // 이미 존재하면 사용 횟수만 증가
-            missionEmbeddingRepository.incrementUsageCount(
-                id = existing.id!!,
-                updatedAt = java.time.LocalDateTime.now()
-            )
-            logger.info("기존 미션 발견, usage_count 증가: $missionContent")
-            return missionEmbeddingRepository.findById(existing.id!!)
-                .orElse(null)
+            // 이미 존재하면 기존 미션 반환
+            logger.info("기존 미션 발견: $missionContent")
+            return existing
         }
 
         // 새로운 미션 저장 (embedding = null)
@@ -59,7 +54,6 @@ class MissionEmbeddingService(
             difficulty = difficulty,
             missionContent = missionContent,
             embedding = null,
-            usageCount = 0,
             isActivated = true,
             createdAt = java.time.LocalDateTime.now()
         )
