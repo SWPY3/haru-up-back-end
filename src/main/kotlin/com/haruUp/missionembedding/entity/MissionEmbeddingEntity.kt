@@ -55,5 +55,13 @@ class MissionEmbeddingEntity(
     var usageCount: Int = 0,  // 이 미션이 선택된 횟수
 
     @Column(name = "is_activated")
-    val isActivated: Boolean = true
+    val isActivated: Boolean = true,
+
+    /**
+     * 미션 라벨 (그룹핑용)
+     * 예: "영어 단어 20개 외우기" → "영어 단어 외우기"
+     * 배치에서 LLM 또는 임베딩 유사도로 생성
+     */
+    @Column(name = "label_name", length = 100)
+    var labelName: String? = null
 ) : BaseEntity()

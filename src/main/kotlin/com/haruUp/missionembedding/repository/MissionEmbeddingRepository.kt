@@ -147,4 +147,43 @@ interface MissionEmbeddingRepository : JpaRepository<MissionEmbeddingEntity, Lon
         @Param("embedding") embedding: String,
         @Param("updatedAt") updatedAt: java.time.LocalDateTime
     )
+
+    /**
+     * 임베딩 유사도로 라벨이 있는 미션 검색 (코사인 거리)
+     * 유사도 threshold 이내의 가장 유사한 미션 1개 반환
+     */
+    @Query(
+        value = """
+            SELECT * FROM mission_embeddings
+            WHERE label_name IS NOT NULL
+              AND embedding IS NOT NULL
+              AND (embedding <=> CAST(:embedding AS vector)) < :threshold
+            ORDER BY embedding <=> CAST(:embedding AS vector)
+            LIMIT 1
+        """,
+        nativeQuery = true
+    )
+    fun findSimilarMissionWithLabel(
+        @Param("embedding") embedding: String,
+        @Param("threshold") threshold: Double
+    ): MissionEmbeddingEntity?
+
+    /**
+     * 라벨 업데이트
+     */
+    @Modifying
+    @Query(
+        value = """
+            UPDATE mission_embeddings
+            SET label_name = :labelName,
+                updated_at = :updatedAt
+            WHERE id = :id
+        """,
+        nativeQuery = true
+    )
+    fun updateLabelName(
+        @Param("id") id: Long,
+        @Param("labelName") labelName: String,
+        @Param("updatedAt") updatedAt: java.time.LocalDateTime
+    )
 }

@@ -2,7 +2,7 @@ package com.haruUp.mission.application
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.haruUp.category.repository.JobDetailRepository
-import com.haruUp.category.repository.JobRepository
+import com.haruUp.category.repository.JobJpaRepository
 import com.haruUp.global.clova.MissionMemberProfile
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.MemberInterestJpaRepository
@@ -33,7 +33,7 @@ class MissionRecommendService(
     private val missionRecommendationService: MissionRecommendationService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberMissionRepository: MemberMissionRepository,
-    private val jobRepository: JobRepository,
+    private val jobRepository: JobJpaRepository,
     private val jobDetailRepository: JobDetailRepository,
     private val memberInterestRepository: MemberInterestJpaRepository,
     private val interestEmbeddingRepository: InterestEmbeddingJpaRepository
