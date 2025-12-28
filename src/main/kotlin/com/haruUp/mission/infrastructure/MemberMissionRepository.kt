@@ -141,6 +141,15 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     ): MemberMissionEntity?
 
     /**
+     * 특정 날짜에 추천된 미션 조회 (제외할 미션 조회용)
+     */
+    fun findByMemberIdAndMemberInterestIdAndTargetDate(
+        memberId: Long,
+        memberInterestId: Long,
+        targetDate: LocalDate
+    ): List<MemberMissionEntity>
+
+    /**
      * 특정 사용자의 모든 미션 soft delete
      */
     @Transactional
