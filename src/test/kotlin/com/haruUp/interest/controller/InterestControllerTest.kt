@@ -3,8 +3,8 @@ package com.haruUp.interest.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.ClovaApiResponse
-import com.haruUp.global.clova.Message
-import com.haruUp.global.clova.Result
+import com.haruUp.global.clova.ClovaMessage
+import com.haruUp.global.clova.ClovaResult
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -46,14 +46,12 @@ class InterestValidationIntegrationTest {
             topK = any(),
             topP = any(),
             repeatPenalty = any(),
-            stopBefore = any(),
-            includeAiFilters = any(),
             seed = any()
         )).willReturn(
             ClovaApiResponse(
                 status = null,
-                result = Result(
-                    message = Message(
+                result = ClovaResult(
+                    message = ClovaMessage(
                         role = "assistant",
                         content = "true"
                     )
@@ -140,14 +138,12 @@ class InterestValidationIntegrationTest {
             topK = any(),
             topP = any(),
             repeatPenalty = any(),
-            stopBefore = any(),
-            includeAiFilters = any(),
             seed = any()
         )).willReturn(
             ClovaApiResponse(
                 status = null,
-                result = Result(
-                    message = Message(
+                result = ClovaResult(
+                    message = ClovaMessage(
                         role = "assistant",
                         content = "false"
                     )

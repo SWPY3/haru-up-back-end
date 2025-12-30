@@ -1,70 +1,59 @@
 package com.haruUp.global.clova
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
-import org.springframework.web.client.body
 
 @Component
 class ClovaApiClient(
     private val clovaRestClient: RestClient,
     private val generateRequestId: () -> String
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * Clova API에 채팅 완성 요청을 보냅니다.
-     *
-     * @param messages 대화 메시지 리스트
-     * @param maxTokens 최대 토큰 수 (기본값: 1000)
-     * @param temperature 온도 파라미터 (기본값: 0.5)
-     * @param topK Top-K 샘플링 파라미터 (기본값: 0)
-     * @param topP Top-P 샘플링 파라미터 (기본값: 0.8)
-     * @param repeatPenalty 반복 패널티 (기본값: 1.0)
-     * @param stopBefore 중단 전 시퀀스 리스트
-     * @param includeAiFilters AI 필터 포함 여부 (기본값: true)
-     * @param seed 시드 값 (null이면 랜덤 시드 사용)
-     * @return Clova API 응답
+     * Clova HCX-007 API에 채팅 완성 요청을 보냅니다.
      */
     fun chatCompletion(
         messages: List<ChatMessage>,
-        maxTokens: Int = 1000,
+        maxTokens: Int = 2048,
         temperature: Double = 0.5,
         topK: Int = 0,
         topP: Double = 0.8,
-        repeatPenalty: Double = 1.0,
-        stopBefore: List<String> = emptyList(),
-        includeAiFilters: Boolean = true,
+        repeatPenalty: Double = 1.1,
         seed: Int? = null
     ): ClovaApiResponse {
-        val actualSeed = seed ?: (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
-        val request = ClovaApiRequest(
+        val request = ClovaRequest(
             messages = messages,
             topP = topP,
             topK = topK,
-            maxTokens = maxTokens,
+            maxCompletionTokens = maxTokens,
             temperature = temperature,
             repetitionPenalty = repeatPenalty,
-            stop = stopBefore,
-            includeAiFilters = includeAiFilters,
-            seed = actualSeed
+            seed = seed ?: 0,
+            thinking = ThinkingConfig()
         )
 
-        return clovaRestClient.post()
-            .uri("/v1/chat-completions/HCX-003")
+        logger.debug("HCX-007 API 요청: messages=${messages.size}개, temp=$temperature")
+
+        val response = clovaRestClient.post()
+            .uri("/v3/chat-completions/HCX-007")
             .header("X-NCP-CLOVASTUDIO-REQUEST-ID", generateRequestId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
             .body(request)
             .retrieve()
-            .body<ClovaApiResponse>()
-            ?: throw RuntimeException("Clova API 응답이 null입니다.")
+            .body(ClovaApiResponse::class.java)
+            ?: throw ClovaApiException("Clova API 응답이 null입니다.")
+
+        logger.debug("HCX-007 응답: content length = ${response.result?.message?.content?.length ?: 0}")
+        return response
     }
 
     /**
      * 간단한 텍스트 생성 요청
-     *
-     * @param userMessage 사용자 메시지
-     * @param systemMessage 시스템 메시지 (선택)
-     * @param temperature 온도 파라미터 (높을수록 다양한 출력, 기본값: 0.5)
-     * @param seed 시드 값 (null이면 랜덤, 기본값: null)
-     * @return 생성된 텍스트
      */
     fun generateText(
         userMessage: String,
@@ -72,66 +61,69 @@ class ClovaApiClient(
         temperature: Double = 0.5,
         seed: Int? = null
     ): String {
-        val messages = mutableListOf<ChatMessage>()
-
-        systemMessage?.let {
-            messages.add(ChatMessage(role = "system", content = it))
+        val messages = buildList {
+            systemMessage?.let { add(ChatMessage(role = "system", content = it)) }
+            add(ChatMessage(role = "user", content = userMessage))
         }
-
-        messages.add(ChatMessage(role = "user", content = userMessage))
 
         val response = chatCompletion(
             messages = messages,
             temperature = temperature,
             seed = seed
         )
-        return response.result?.message?.content ?: throw RuntimeException("Clova API 응답에 content가 없습니다.")
+
+        return response.result?.message?.content
+            ?: throw ClovaApiException("Clova API 응답에 content가 없습니다.")
     }
 }
+
+// Request DTOs
+data class ClovaRequest(
+    val messages: List<ChatMessage>,
+    val topP: Double,
+    val topK: Int,
+    val maxCompletionTokens: Int,
+    val temperature: Double,
+    val repetitionPenalty: Double,
+    val seed: Int,
+    val thinking: ThinkingConfig
+)
+
+data class ThinkingConfig(
+    val effort: String = "low"
+)
 
 data class ChatMessage(
     val role: String,
     val content: String
 )
 
-data class ClovaApiRequest(
-    val messages: List<ChatMessage>,
-    val topP: Double,
-    val topK: Int,
-    val maxTokens: Int,
-    val temperature: Double,
-    val repetitionPenalty: Double,
-    val stop: List<String>,
-    val includeAiFilters: Boolean,
-    val seed: Int = 0
-)
-
+// Response DTOs
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class ClovaApiResponse(
-    val status: Status?,
-    val result: Result?
+    val status: ClovaStatus?,
+    val result: ClovaResult?
 )
 
-data class Status(
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ClovaStatus(
     val code: String,
     val message: String
 )
 
-data class Result(
-    val message: Message,
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ClovaResult(
+    val message: ClovaMessage,
     val stopReason: String? = null,
     val inputLength: Int? = null,
-    val outputLength: Int? = null,
-    val aiFilter: List<AiFilter>? = null
+    val outputLength: Int? = null
 )
 
-data class Message(
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ClovaMessage(
     val role: String,
     val content: String
 )
 
-data class AiFilter(
-    val groupName: String,
-    val name: String,
-    val score: String,
-    val result: String
-)
+// Exception
+class ClovaApiException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

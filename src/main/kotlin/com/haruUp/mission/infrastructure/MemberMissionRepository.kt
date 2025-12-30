@@ -141,6 +141,15 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     ): MemberMissionEntity?
 
     /**
+     * memberId, memberInterestId로 삭제되지 않은 미션 조회
+     * 제외할 미션 유효성 검증에 사용
+     */
+    fun findByMemberIdAndMemberInterestIdAndDeletedFalse(
+        memberId: Long,
+        memberInterestId: Long
+    ): List<MemberMissionEntity>
+
+    /**
      * 특정 날짜에 추천된 미션 조회 (제외할 미션 조회용)
      */
     fun findByMemberIdAndMemberInterestIdAndTargetDate(

@@ -54,11 +54,11 @@ class MissionembeddingController(
             ```
 
             **응답 예시 (각 관심사당 난이도 1~5):**
-            - difficulty 1: 중학생 수준 (하루 5개, 10분)
-            - difficulty 2: 고등학생 수준 (하루 10개, 20분)
-            - difficulty 3: 대학생 수준 (하루 20개, 30분)
-            - difficulty 4: 직장인 수준 (하루 50개, 1시간)
-            - difficulty 5: 전문가 수준 (하루 100개, 2시간)
+            - difficulty 1: 초등학생 수준
+            - difficulty 2: 중학생 수준
+            - difficulty 3: 고등학생 수준
+            - difficulty 4: 대학생 수준
+            - difficulty 5: 직장인 수준
         """
     )
     @RateLimit(key = "api:missions:recommend", limit = 50)
@@ -86,6 +86,9 @@ class MissionembeddingController(
         } catch (e: IllegalArgumentException) {
             logger.error("잘못된 요청: ${e.message}")
             ResponseEntity.badRequest().body(ApiResponse.failure(e.message ?: "잘못된 요청입니다."))
+        } catch (e: IllegalStateException) {
+            logger.error("미션 추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(ApiResponse.failure(e.message ?: "서버 오류가 발생했습니다."))
         } catch (e: Exception) {
             logger.error("미션 추천 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(ApiResponse.failure(e.message ?: "서버 오류가 발생했습니다."))

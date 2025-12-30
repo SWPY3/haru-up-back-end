@@ -246,8 +246,17 @@ class MemberMissionController(
                     errorMessage = e.message ?: "잘못된 요청입니다."
                 )
             )
+        } catch (e: IllegalStateException) {
+            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
-            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
                 ApiResponse(
                     success = false,
@@ -315,6 +324,15 @@ class MemberMissionController(
                     errorMessage = e.message ?: "잘못된 요청입니다."
                 )
             )
+        } catch (e: IllegalStateException) {
+            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
@@ -364,6 +382,24 @@ class MemberMissionController(
             )
             logger.info("미션 리셋 완료 - 삭제된 개수: $deletedCount")
             ResponseEntity.ok(ApiResponse.success(deletedCount))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "잘못된 요청입니다."
+                )
+            )
+        } catch (e: IllegalStateException) {
+            logger.error("미션 리셋 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("미션 리셋 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
@@ -400,6 +436,24 @@ class MemberMissionController(
             val result = missionRecommendUseCase.resetRetryCount(principal.id)
             logger.info("재추천 횟수 초기화 완료 - memberId: ${principal.id}, result: $result")
             ResponseEntity.ok(ApiResponse.success(result))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "잘못된 요청입니다."
+                )
+            )
+        } catch (e: IllegalStateException) {
+            logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
