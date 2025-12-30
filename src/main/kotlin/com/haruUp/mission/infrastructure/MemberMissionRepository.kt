@@ -159,6 +159,24 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     ): List<MemberMissionEntity>
 
     /**
+     * 날짜 범위 내에서 COMPLETED 상태인 미션의 targetDate 목록 조회
+     * - 중복 제거 (DISTINCT)
+     */
+    @Query("""
+    SELECT DISTINCT m.targetDate FROM MemberMissionEntity m
+    WHERE m.memberId = :memberId
+      AND m.targetDate >= :startDate
+      AND m.targetDate <= :endDate
+      AND m.missionStatus = 'COMPLETED'
+      AND m.deleted = false
+    """)
+    fun findCompletedDatesByMemberIdAndDateRange(
+        memberId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<LocalDate>
+
+    /**
      * 특정 사용자의 모든 미션 soft delete
      */
     @Transactional

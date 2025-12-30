@@ -103,6 +103,18 @@ data class MemberMissionSelectionRequest(
 )
 
 /**
+ * 일별 미션 완료 상태
+ */
+@Schema(description = "일별 미션 완료 상태")
+data class DailyCompletionStatus(
+    @Schema(description = "날짜", example = "2025-01-01")
+    val targetDate: LocalDate,
+
+    @Schema(description = "해당 날짜에 미션 완료 여부", example = "true")
+    val isCompleted: Boolean
+)
+
+/**
  * 미션 경험치 계산 유틸리티
  */
 object MissionExpCalculator {

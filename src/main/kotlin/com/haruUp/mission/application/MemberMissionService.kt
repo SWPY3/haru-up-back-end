@@ -3,6 +3,7 @@ package com.haruUp.mission.application
 import org.slf4j.LoggerFactory
 import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
+import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
@@ -179,5 +180,40 @@ class MemberMissionService(
         )
         logger.info("멤버 미션 삭제 완료 - memberId: $memberId, memberInterestId: $memberInterestId, deletedCount: $deletedCount")
         return deletedCount
+    }
+
+    /**
+     * 연속 미션 달성 여부 조회
+     *
+     * @param memberId 사용자 ID
+     * @param startDate 시작 날짜
+     * @param endDate 종료 날짜
+     * @return 날짜별 미션 완료 상태 목록
+     */
+    fun getCompletionStatusByDateRange(
+        memberId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<DailyCompletionStatus> {
+        // COMPLETED 상태인 미션들의 targetDate 조회
+        val completedDates = memberMissionRepository.findCompletedDatesByMemberIdAndDateRange(
+            memberId = memberId,
+            startDate = startDate,
+            endDate = endDate
+        ).toSet()
+
+        // startDate부터 endDate까지 각 날짜별로 완료 여부 생성
+        val result = mutableListOf<DailyCompletionStatus>()
+        var currentDate = startDate
+        while (!currentDate.isAfter(endDate)) {
+            result.add(
+                DailyCompletionStatus(
+                    targetDate = currentDate,
+                    isCompleted = currentDate in completedDates
+                )
+            )
+            currentDate = currentDate.plusDays(1)
+        }
+        return result
     }
 }
