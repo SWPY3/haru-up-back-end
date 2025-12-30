@@ -142,8 +142,19 @@ class MissionRecommendService(
         val directFullPath = memberInterest.directFullPath
             ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다. (memberInterestId: $memberInterestId)")
 
-        // 4. 제외할 난이도 조회 (excludeMemberMissionIds에 해당하는 미션들의 난이도)
+        // 4. 제외할 미션 유효성 검증 및 난이도 조회
         val excludeDifficulties = if (!excludeMemberMissionIds.isNullOrEmpty()) {
+            // 유효성 검증: 현재 memberId, memberInterestId, deleted=false, READY 상태인 미션만 제외 가능
+            val validMemberMissions = memberMissionRepository.findByMemberIdAndMemberInterestIdAndDeletedFalse(
+                memberId = memberId,
+                memberInterestId = memberInterestId
+            ).filter { it.missionStatus == MissionStatus.READY }
+            val validMemberMissionIds = validMemberMissions.map { it.id }
+            val invalidIds = excludeMemberMissionIds.filter { it !in validMemberMissionIds }
+            if (invalidIds.isNotEmpty()) {
+                throw IllegalArgumentException("제외할 미션이 유효하지 않습니다. (invalidIds: $invalidIds)")
+            }
+
             val excludedMemberMissions = memberMissionRepository.findAllById(excludeMemberMissionIds)
             val missionIds = excludedMemberMissions.map { it.missionId }
             val difficulties = missionEmbeddingRepository.findAllById(missionIds)

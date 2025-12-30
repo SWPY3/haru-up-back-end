@@ -11,7 +11,9 @@ import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
+import com.haruUp.mission.domain.DailyCompletionStatus
 import org.springframework.stereotype.Component
+import java.time.LocalDate
 import kotlin.let
 
 @Component
@@ -128,5 +130,21 @@ class MemberMissionUseCase(
      */
     fun resetMissionsByMemberInterestId(memberId: Long, memberInterestId: Long): Int {
         return memberMissionService.deleteMissionsByMemberInterestId(memberId, memberInterestId)
+    }
+
+    /**
+     * 연속 미션 달성 여부 조회
+     *
+     * @param memberId 사용자 ID
+     * @param startDate 시작 날짜
+     * @param endDate 종료 날짜
+     * @return 날짜별 미션 완료 상태 목록
+     */
+    fun getCompletionStatusByDateRange(
+        memberId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<DailyCompletionStatus> {
+        return memberMissionService.getCompletionStatusByDateRange(memberId, startDate, endDate)
     }
 }

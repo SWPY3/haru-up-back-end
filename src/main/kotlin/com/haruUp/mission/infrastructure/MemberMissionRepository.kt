@@ -141,6 +141,15 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     ): MemberMissionEntity?
 
     /**
+     * memberId, memberInterestId로 삭제되지 않은 미션 조회
+     * 제외할 미션 유효성 검증에 사용
+     */
+    fun findByMemberIdAndMemberInterestIdAndDeletedFalse(
+        memberId: Long,
+        memberInterestId: Long
+    ): List<MemberMissionEntity>
+
+    /**
      * 특정 날짜에 추천된 미션 조회 (제외할 미션 조회용)
      */
     fun findByMemberIdAndMemberInterestIdAndTargetDate(
@@ -148,6 +157,24 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
         memberInterestId: Long,
         targetDate: LocalDate
     ): List<MemberMissionEntity>
+
+    /**
+     * 날짜 범위 내에서 COMPLETED 상태인 미션의 targetDate 목록 조회
+     * - 중복 제거 (DISTINCT)
+     */
+    @Query("""
+    SELECT DISTINCT m.targetDate FROM MemberMissionEntity m
+    WHERE m.memberId = :memberId
+      AND m.targetDate >= :startDate
+      AND m.targetDate <= :endDate
+      AND m.missionStatus = 'COMPLETED'
+      AND m.deleted = false
+    """)
+    fun findCompletedDatesByMemberIdAndDateRange(
+        memberId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<LocalDate>
 
     /**
      * 특정 사용자의 모든 미션 soft delete

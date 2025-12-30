@@ -5,6 +5,7 @@ import com.haruUp.global.security.MemberPrincipal
 import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.mission.application.MemberMissionUseCase
 import com.haruUp.mission.application.MissionRecommendUseCase
+import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
@@ -78,6 +79,85 @@ class MemberMissionController(
         return ApiResponse.success(
             memberMissionUseCase.getMemberMissions(principal.id, statuses)
         )
+    }
+
+    /**
+     * 연속 미션 달성 여부 조회
+     */
+    @Operation(
+        summary = "연속 미션 달성 여부 조회",
+        description = """
+            시작 날짜와 종료 날짜 사이의 각 날짜별 미션 완료 여부를 조회합니다.
+            해당 날짜에 COMPLETED 상태의 미션이 1개 이상 있으면 isCompleted: true
+
+            **호출 예시:**
+            ```
+            GET /api/member/mission/completion-status?startDate=2025-01-01&endDate=2025-01-07
+            ```
+
+            **응답 예시:**
+            ```json
+            {
+              "success": true,
+              "data": [
+                { "targetDate": "2025-01-01", "isCompleted": true },
+                { "targetDate": "2025-01-02", "isCompleted": false },
+                { "targetDate": "2025-01-03", "isCompleted": true }
+              ]
+            }
+            ```
+        """
+    )
+    @GetMapping("/completion-status")
+    fun getCompletionStatus(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "시작 날짜 (yyyy-MM-dd)",
+            required = true,
+            example = "2025-01-01"
+        )
+        @RequestParam
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        startDate: LocalDate,
+        @Parameter(
+            description = "종료 날짜 (yyyy-MM-dd)",
+            required = true,
+            example = "2025-01-31"
+        )
+        @RequestParam
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        endDate: LocalDate
+    ): ResponseEntity<ApiResponse<List<DailyCompletionStatus>>> {
+        logger.info("연속 미션 달성 여부 조회 - memberId: ${principal.id}, startDate: $startDate, endDate: $endDate")
+
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "시작 날짜가 종료 날짜보다 이후일 수 없습니다."
+                )
+            )
+        }
+
+        return try {
+            val result = memberMissionUseCase.getCompletionStatusByDateRange(
+                memberId = principal.id,
+                startDate = startDate,
+                endDate = endDate
+            )
+            logger.info("연속 미션 달성 여부 조회 완료 - 조회된 날짜 수: ${result.size}")
+            ResponseEntity.ok(ApiResponse.success(result))
+        } catch (e: Exception) {
+            logger.error("연속 미션 달성 여부 조회 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = "서버 오류가 발생했습니다."
+                )
+            )
+        }
     }
 
 
@@ -246,8 +326,17 @@ class MemberMissionController(
                     errorMessage = e.message ?: "잘못된 요청입니다."
                 )
             )
+        } catch (e: IllegalStateException) {
+            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
-            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
                 ApiResponse(
                     success = false,
@@ -315,6 +404,15 @@ class MemberMissionController(
                     errorMessage = e.message ?: "잘못된 요청입니다."
                 )
             )
+        } catch (e: IllegalStateException) {
+            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
@@ -364,6 +462,24 @@ class MemberMissionController(
             )
             logger.info("미션 리셋 완료 - 삭제된 개수: $deletedCount")
             ResponseEntity.ok(ApiResponse.success(deletedCount))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "잘못된 요청입니다."
+                )
+            )
+        } catch (e: IllegalStateException) {
+            logger.error("미션 리셋 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("미션 리셋 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
@@ -400,6 +516,24 @@ class MemberMissionController(
             val result = missionRecommendUseCase.resetRetryCount(principal.id)
             logger.info("재추천 횟수 초기화 완료 - memberId: ${principal.id}, result: $result")
             ResponseEntity.ok(ApiResponse.success(result))
+        } catch (e: IllegalArgumentException) {
+            logger.error("잘못된 요청: ${e.message}")
+            ResponseEntity.badRequest().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "잘못된 요청입니다."
+                )
+            )
+        } catch (e: IllegalStateException) {
+            logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
+            ResponseEntity.internalServerError().body(
+                ApiResponse(
+                    success = false,
+                    data = null,
+                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
+                )
+            )
         } catch (e: Exception) {
             logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
