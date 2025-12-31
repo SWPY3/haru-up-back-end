@@ -28,22 +28,34 @@ class MemberMissionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능)
+     * 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
      * - mission_embeddings에서 mission_content, difficulty 조회
      * - member_interest에서 direct_full_path 조회
      * - interest_embeddings에서 full_path 조회
      *
      * @param memberId 멤버 ID
      * @param statuses 조회할 미션 상태 목록 (null이면 전체 조회)
+     * @param targetDate 조회할 날짜
+     * @param memberInterestId 멤버 관심사 ID (null이면 전체 조회)
      */
-    fun getAllMissions(memberId: Long, statuses: List<MissionStatus>? = null): List<MemberMissionDto> {
+    fun getAllMissions(memberId: Long, statuses: List<MissionStatus>? = null, targetDate: LocalDate, memberInterestId: Long? = null): List<MemberMissionDto> {
         val allMissions = memberMissionRepository.findByMemberIdAndDeletedFalse(memberId)
+
+        // 날짜 필터링
+        val dateFiltered = allMissions.filter { it.targetDate == targetDate }
+
+        // 관심사 필터링
+        val interestFiltered = if (memberInterestId != null) {
+            dateFiltered.filter { it.memberInterestId == memberInterestId }
+        } else {
+            dateFiltered
+        }
 
         // 상태 필터링
         val missions = if (statuses.isNullOrEmpty()) {
-            allMissions
+            interestFiltered
         } else {
-            allMissions.filter { it.missionStatus in statuses }
+            interestFiltered.filter { it.missionStatus in statuses }
         }
 
         return missions.map { mission ->
