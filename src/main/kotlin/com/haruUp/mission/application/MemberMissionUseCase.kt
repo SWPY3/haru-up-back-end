@@ -23,9 +23,9 @@ class MemberMissionUseCase(
     private val levelService: LevelService
 ) {
 
-    // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능)
-    fun getMemberMissions(memberId: Long, statuses: List<MissionStatus>? = null): List<MemberMissionDto> {
-        return memberMissionService.getAllMissions(memberId, statuses)
+    // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
+    fun getMemberMissions(memberId: Long, statuses: List<MissionStatus>? = null, targetDate: LocalDate, memberInterestId: Long? = null): List<MemberMissionDto> {
+        return memberMissionService.getAllMissions(memberId, statuses, targetDate, memberInterestId)
     }
 
     // 오늘의 미션 조회

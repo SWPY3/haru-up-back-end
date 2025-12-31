@@ -57,6 +57,9 @@ class MemberMissionController(
             GET /api/member/mission
             GET /api/member/mission?missionStatus=ACTIVE
             GET /api/member/mission?missionStatus=ACTIVE,INACTIVE,COMPLETED
+            GET /api/member/mission?targetDate=2025-01-15
+            GET /api/member/mission?memberInterestId=1
+            GET /api/member/mission?missionStatus=ACTIVE&targetDate=2025-01-15&memberInterestId=1
             ```
         """
     )
@@ -67,7 +70,19 @@ class MemberMissionController(
             description = "미션 상태 필터 (콤마로 구분, 미입력시 전체 조회)",
             example = "ACTIVE,INACTIVE"
         )
-        @RequestParam(required = false) missionStatus: String?
+        @RequestParam(required = false) missionStatus: String?,
+        @Parameter(
+            description = "조회할 날짜 (yyyy-MM-dd, 기본값: 오늘)",
+            example = ""
+        )
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        targetDate: LocalDate?,
+        @Parameter(
+            description = "멤버 관심사 ID (미입력시 전체 조회)",
+            example = "1"
+        )
+        @RequestParam(required = false) memberInterestId: Long?
     ): ApiResponse<List<MemberMissionDto>> {
         val statuses = missionStatus?.split(",")
             ?.map { it.trim().uppercase() }
@@ -77,7 +92,7 @@ class MemberMissionController(
             }
 
         return ApiResponse.success(
-            memberMissionUseCase.getMemberMissions(principal.id, statuses)
+            memberMissionUseCase.getMemberMissions(principal.id, statuses, targetDate ?: LocalDate.now(), memberInterestId)
         )
     }
 
