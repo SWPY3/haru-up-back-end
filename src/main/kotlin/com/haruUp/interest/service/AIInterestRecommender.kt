@@ -36,16 +36,20 @@ class AIInterestRecommender(
         currentLevel: InterestLevel,
         excludeNames: List<String>,
         count: Int,
-        memberProfile: MemberProfile
+        memberProfile: MemberProfile,
+        jobName: String? = null,
+        jobDetailName: String? = null
     ): List<InterestNode> {
-        logger.info("AI 추천 시작 - 레벨: $currentLevel, 개수: $count")
+        logger.info("AI 추천 시작 - 레벨: $currentLevel, 개수: $count, 직업: $jobName, 직업상세: $jobDetailName")
 
         val prompt = buildPrompt(
             selectedInterests = selectedInterests,
             currentLevel = currentLevel,
             excludeNames = excludeNames,
             count = count,
-            memberProfile = memberProfile
+            memberProfile = memberProfile,
+            jobName = jobName,
+            jobDetailName = jobDetailName
         )
 
         try {
@@ -77,12 +81,21 @@ class AIInterestRecommender(
         currentLevel: InterestLevel,
         excludeNames: List<String>,
         count: Int,
-        memberProfile: MemberProfile
+        memberProfile: MemberProfile,
+        jobName: String? = null,
+        jobDetailName: String? = null
     ): String {
         val sb = StringBuilder()
 
         // 사용자 정보
         sb.appendLine("사용자 정보: ${formatMemberProfile(memberProfile)}")
+
+        // 직업 정보 (있는 경우)
+        if (jobName != null || jobDetailName != null) {
+            val jobInfo = listOfNotNull(jobName, jobDetailName).joinToString(" - ")
+            sb.appendLine("직업 정보: $jobInfo")
+            sb.appendLine("(직업과 관련된 관심사를 우선적으로 추천해주세요)")
+        }
 
         // 계층 구조 설명 및 컨텍스트
         if (selectedInterests.isNotEmpty()) {
@@ -260,11 +273,12 @@ class AIInterestRecommender(
 
 ## 추천 규칙
 1. **사용자 맞춤형**: 사용자의 나이, 성별, 직업에 적합한 관심사를 추천합니다.
-2. **연관성**: 제공된 관심사와 명확한 연관성이 있어야 합니다.
-3. **중복 제거**: 제외 목록에 있는 항목은 절대 추천하지 않습니다.
-4. **정확한 개수**: 요청된 개수만큼 정확히 추천합니다.
-5. **명확성**: 각 추천 항목은 간결하고 명확해야 합니다 (2-10자).
-6. **다양성**: 비슷한 항목은 피하고 다양하게 추천합니다.
+2. **직업 연관성**: 직업 정보가 제공된 경우, 해당 직업에 도움이 되는 관심사를 우선적으로 추천합니다.
+3. **연관성**: 제공된 관심사와 명확한 연관성이 있어야 합니다.
+4. **중복 제거**: 제외 목록에 있는 항목은 절대 추천하지 않습니다.
+5. **정확한 개수**: 요청된 개수만큼 정확히 추천합니다.
+6. **명확성**: 각 추천 항목은 간결하고 명확해야 합니다 (2-10자).
+7. **다양성**: 비슷한 항목은 피하고 다양하게 추천합니다.
 
 ## 응답 형식
 반드시 JSON 객체 형식으로만 응답하세요.

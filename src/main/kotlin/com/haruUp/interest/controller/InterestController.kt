@@ -40,7 +40,9 @@ class InterestController(
     private val interestEmbeddingRepository: com.haruUp.interest.repository.InterestEmbeddingJpaRepository,
     private val stringRedisTemplate: StringRedisTemplate,
     private val typoValidationCheck: TypoValidationCheck,
-    private val memberInterestUseCase: com.haruUp.interest.useCase.MemberInterestUseCase
+    private val memberInterestUseCase: com.haruUp.interest.useCase.MemberInterestUseCase,
+    private val jobRepository: com.haruUp.category.repository.JobJpaRepository,
+    private val jobDetailRepository: com.haruUp.category.repository.JobDetailRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -56,16 +58,18 @@ class InterestController(
     @Operation(
         summary = "관심사 추천",
         description = """
-            RAG + AI 하이브리드 방식으로 관심사를 추천합니다.
+            AI 기반으로 관심사를 추천합니다.
 
             **호출 예시:**
             ```json
             {
-              "category": [{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}],
+              "category": [{"interestId": 18, "directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}],
               "currentLevel": "SUB",
               "targetCount": 10
             }
             ```
+
+            - job_id, job_detail_id는 선택사항이며, 있으면 해당 직업에 맞는 관심사를 추천합니다.
         """
     )
     @RateLimit(key = "api:interests:recommend", limit = 50)
@@ -77,15 +81,9 @@ class InterestController(
             required = true,
             schema = Schema(implementation = InterestRecommendationRequest::class)
         )
-        @RequestBody request: InterestRecommendationRequest,
-        @Parameter(
-            description = "하이브리드 스코어링 사용 여부 (false: 유사도만, true: 유사도+인기도)",
-            required = false
-        )
-        @RequestParam(defaultValue = "false") useHybridScoring: Boolean
+        @RequestBody request: InterestRecommendationRequest
     ): ResponseEntity<InterestRecommendationResponse> = runBlocking {
-        val scoringMode = if (useHybridScoring) "하이브리드(유사도+인기도)" else "유사도만"
-        logger.info("관심사 추천 요청 - 사용자: ${principal.id}, 레벨: ${request.currentLevel}, 목표: ${request.targetCount}개, 스코어링: $scoringMode")
+        logger.info("관심사 추천 요청 - 사용자: ${principal.id}, 레벨: ${request.currentLevel}, 목표: ${request.targetCount}개")
 
         try {
             // DB에서 사용자 프로필 조회
@@ -99,33 +97,35 @@ class InterestController(
             val currentLevel = InterestLevel.valueOf(request.currentLevel)
 
             val allInterests = mutableListOf<Map<String, Any?>>()
-            var totalRagCount = 0
-            var totalAiCount = 0
 
             // 각 category에 대해 개별적으로 추천
             val targetCountPerCategory = request.targetCount / request.category.size.coerceAtLeast(1)
 
             for (categoryDto in request.category) {
-                // interestId로 entity 조회하여 fullPath 획득
-                val interestEntity = interestEmbeddingRepository.findEntityById(categoryDto.interestId)
-                if (interestEntity == null) {
-                    logger.warn("관심사를 찾을 수 없음: interestId=${categoryDto.interestId}")
-                    continue
+                // directFullPath 기반으로 InterestPath 생성
+                val selectedInterest = InterestPath(
+                    mainCategory = categoryDto.directFullPath.getOrNull(0) ?: "",
+                    middleCategory = categoryDto.directFullPath.getOrNull(1),
+                    subCategory = categoryDto.directFullPath.getOrNull(2)
+                )
+
+                // job 정보 조회 (있는 경우에만)
+                val jobName = categoryDto.jobId?.let { jobId ->
+                    jobRepository.findById(jobId).orElse(null)?.jobName
+                }
+                val jobDetailName = categoryDto.jobDetailId?.let { jobDetailId ->
+                    jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
                 }
 
-                val selectedInterest = InterestPath(
-                    mainCategory = interestEntity.fullPath.getOrNull(0) ?: "",
-                    middleCategory = interestEntity.fullPath.getOrNull(1),
-                    subCategory = interestEntity.fullPath.getOrNull(2)
-                )
-                logger.info("처리 중: interestId=${categoryDto.interestId}, path=${selectedInterest.toPathString()}")
+                logger.info("처리 중: interestId=${categoryDto.interestId}, directFullPath=${categoryDto.directFullPath}, job=$jobName, jobDetail=$jobDetailName")
 
                 val result = recommendationService.recommend(
                     selectedInterests = listOf(selectedInterest),
                     currentLevel = currentLevel,
                     targetCount = targetCountPerCategory,
                     memberProfile = memberProfile,
-                    useHybridScoring = useHybridScoring
+                    jobName = jobName,
+                    jobDetailName = jobDetailName
                 )
 
                 // 결과를 Map으로 변환
@@ -135,31 +135,21 @@ class InterestController(
                         "name" to node.name,
                         "level" to node.level.name,
                         "parentId" to node.parentId,
-                        "isEmbedded" to node.isEmbedded,
-                        "usageCount" to node.usageCount,
                         "fullPath" to node.fullPath,
                         "interestId" to categoryDto.interestId
                     )
                 }
                 allInterests.addAll(interestsAsMap)
 
-                totalRagCount += result.ragCount
-                totalAiCount += result.aiCount
-
-                logger.info("interestId=${categoryDto.interestId} 추천 완료: RAG=${result.ragCount}, AI=${result.aiCount}")
+                logger.info("interestId=${categoryDto.interestId} 추천 완료: ${result.interests.size}개")
             }
 
             val response = InterestRecommendationResponse(
                 interests = allInterests,
-                ragCount = totalRagCount,
-                aiCount = totalAiCount,
-                totalCount = allInterests.size,
-                ragRatio = if (allInterests.isNotEmpty()) totalRagCount.toDouble() / allInterests.size else 0.0,
-                aiRatio = if (allInterests.isNotEmpty()) totalAiCount.toDouble() / allInterests.size else 0.0,
-                usedHybridScoring = useHybridScoring
+                totalCount = allInterests.size
             )
 
-            logger.info("전체 추천 성공: ${response.summary}")
+            logger.info("전체 추천 성공: ${allInterests.size}개")
 
             ResponseEntity.ok(response)
 

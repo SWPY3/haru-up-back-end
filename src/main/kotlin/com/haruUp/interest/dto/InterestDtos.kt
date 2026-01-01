@@ -79,12 +79,12 @@ data class InterestRecommendationRequest(
             - 빈 배열: 처음 시작 (인기 관심사 추천)
             - 1개 이상: 선택한 관심사들을 기반으로 추천
             - interestId: 프론트엔드 추적용 관심사 ID
+            - job_id, job_detail_id: 직업 정보 (선택, 있으면 직업 관련 추천)
 
             예시:
-            - MIDDLE 추천: [{"interestId": 1, "directFullPath": ["체력관리 및 운동"]}, {"interestId": 2, "directFullPath": ["외국어 공부"]}]
-            - SUB 추천: [{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스"]}, {"interestId": 2, "directFullPath": ["외국어 공부", "영어"]}]
+            - SUB 추천: [{"interestId": 18, "directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}]
         """,
-        example = """[{"interestId": 1, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]""",
+        example = """[{"interestId": 18, "directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}]""",
         required = false
     )
     val category: List<InterestsDto> = emptyList(),
@@ -113,30 +113,9 @@ data class InterestRecommendationResponse(
     @Schema(description = "추천된 관심사 목록")
     val interests: List<Map<String, Any?>>,
 
-    @Schema(description = "RAG(Vector DB 검색)로 추천한 개수", example = "7")
-    val ragCount: Int,
-
-    @Schema(description = "AI(Clova API)로 추천한 개수", example = "3")
-    val aiCount: Int,
-
     @Schema(description = "총 추천 개수", example = "10")
-    val totalCount: Int,
-
-    @Schema(description = "RAG 추천 비율 (0.0 ~ 1.0)", example = "0.7")
-    val ragRatio: Double,
-
-    @Schema(description = "AI 추천 비율 (0.0 ~ 1.0)", example = "0.3")
-    val aiRatio: Double,
-
-    @Schema(description = "하이브리드 스코어링 사용 여부 (유사도 + 인기도)", example = "false")
-    val usedHybridScoring: Boolean = false
-) {
-    val summary: String
-        get() {
-            val scoringMode = if (usedHybridScoring) "하이브리드 스코어링" else "유사도 스코어링"
-            return "총 ${totalCount}개 (RAG: ${ragCount}개 ${(ragRatio * 100).toInt()}%, AI: ${aiCount}개 ${(aiRatio * 100).toInt()}%) [$scoringMode]"
-        }
-}
+    val totalCount: Int
+)
 
 /**
  * ================================
@@ -161,7 +140,23 @@ data class InterestsDto(
         example = """["체력관리 및 운동", "헬스", "근력 키우기"]""",
         required = true
     )
-    val directFullPath: List<String>
+    val directFullPath: List<String>,
+
+    @Schema(
+        description = "직업 ID (선택)",
+        example = "1",
+        required = false
+    )
+    @com.fasterxml.jackson.annotation.JsonProperty("job_id")
+    val jobId: Long? = null,
+
+    @Schema(
+        description = "직업 상세 ID (선택)",
+        example = "2",
+        required = false
+    )
+    @com.fasterxml.jackson.annotation.JsonProperty("job_detail_id")
+    val jobDetailId: Long? = null
 ) {
     /**
      * directFullPath를 InterestPath 모델로 변환

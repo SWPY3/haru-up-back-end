@@ -33,13 +33,14 @@ class HybridInterestRecommendationService(
     }
 
     /**
-     * 하이브리드 추천
+     * AI 기반 추천
      *
      * @param selectedInterests 사용자가 이미 선택한 관심사들
      * @param currentLevel 추천받을 레벨 (MAIN, MIDDLE, SUB)
      * @param targetCount 추천받을 개수 (기본 10개)
      * @param memberProfile 멤버 프로필
-     * @param useHybridScoring true: 유사도 + 인기도 결합 점수 사용, false: 유사도만 사용 (기본값)
+     * @param jobName 직업명 (선택)
+     * @param jobDetailName 직업 상세명 (선택)
      * @return 추천 결과
      */
     suspend fun recommend(
@@ -47,33 +48,36 @@ class HybridInterestRecommendationService(
         currentLevel: InterestLevel,
         targetCount: Int = 10,
         memberProfile: MemberProfile,
-        useHybridScoring: Boolean = false
+        jobName: String? = null,
+        jobDetailName: String? = null
     ): RecommendationResult {
-        val scoringMode = if (useHybridScoring) "하이브리드(유사도+인기도)" else "유사도만"
-        logger.info("추천 요청 - 레벨: $currentLevel, 목표: ${targetCount}개, 스코어링: $scoringMode")
+        logger.info("추천 요청 - 레벨: $currentLevel, 목표: ${targetCount}개, 직업: $jobName, 직업상세: $jobDetailName")
 
-        // Step 1: RAG 기반 추천 (70% 목표)
-        val ragTargetCount = (targetCount * RAG_RATIO).toInt()
-        val ragResults = searchFromVectorDB(
-            selectedInterests = selectedInterests,
-            level = currentLevel,
-            topK = ragTargetCount,
-            useHybridScoring = useHybridScoring
-        )
+        // Step 1: RAG 기반 추천 (70% 목표) - 비활성화 (AI 추천만 사용)
+        // val ragTargetCount = (targetCount * RAG_RATIO).toInt()
+        // val ragResults = searchFromVectorDB(
+        //     selectedInterests = selectedInterests,
+        //     level = currentLevel,
+        //     topK = ragTargetCount,
+        //     useHybridScoring = useHybridScoring
+        // )
+        val ragResults = emptyList<InterestNode>()
 
-        logger.info("RAG 추천: ${ragResults.size}개 (목표: ${ragTargetCount}개)")
+        logger.info("RAG 추천: ${ragResults.size}개 (RAG 비활성화됨)")
 
-        // Step 2: 부족하면 AI로 보완
+        // Step 2: AI로 추천 (RAG 비활성화로 전체 개수 AI로 추천)
         val aiResults = if (ragResults.size < targetCount) {
             val aiTargetCount = targetCount - ragResults.size
-            logger.info("AI 추가 추천 필요: ${aiTargetCount}개")
+            logger.info("AI 추천 요청: ${aiTargetCount}개")
 
             recommendFromAI(
                 selectedInterests = selectedInterests,
                 currentLevel = currentLevel,
                 excludeNames = ragResults.map { it.name },
                 count = aiTargetCount,
-                memberProfile = memberProfile
+                memberProfile = memberProfile,
+                jobName = jobName,
+                jobDetailName = jobDetailName
             )
         } else {
             emptyList()
@@ -90,8 +94,7 @@ class HybridInterestRecommendationService(
             interests = combined,
             ragCount = ragResults.size,
             aiCount = aiResults.size,
-            totalCount = combined.size,
-            usedHybridScoring = useHybridScoring
+            totalCount = combined.size
         )
     }
 
@@ -143,7 +146,9 @@ class HybridInterestRecommendationService(
         currentLevel: InterestLevel,
         excludeNames: List<String>,
         count: Int,
-        memberProfile: MemberProfile
+        memberProfile: MemberProfile,
+        jobName: String? = null,
+        jobDetailName: String? = null
     ): List<InterestNode> {
         return try {
             aiRecommender.recommend(
@@ -151,7 +156,9 @@ class HybridInterestRecommendationService(
                 currentLevel = currentLevel,
                 excludeNames = excludeNames,
                 count = count,
-                memberProfile = memberProfile
+                memberProfile = memberProfile,
+                jobName = jobName,
+                jobDetailName = jobDetailName
             )
         } catch (e: Exception) {
             logger.error("AI 추천 실패: ${e.message}", e)
@@ -260,15 +267,13 @@ data class RecommendationResult(
     val interests: List<InterestNode>,
     val ragCount: Int,
     val aiCount: Int,
-    val totalCount: Int,
-    val usedHybridScoring: Boolean = false
+    val totalCount: Int
 ) {
     val ragRatio: Double = if (totalCount > 0) ragCount.toDouble() / totalCount else 0.0
     val aiRatio: Double = if (totalCount > 0) aiCount.toDouble() / totalCount else 0.0
 
     fun summary(): String {
-        val scoringMode = if (usedHybridScoring) "하이브리드 스코어링" else "유사도 스코어링"
-        return "총 ${totalCount}개 (RAG: ${ragCount}개 ${(ragRatio * 100).toInt()}%, AI: ${aiCount}개 ${(aiRatio * 100).toInt()}%) [$scoringMode]"
+        return "총 ${totalCount}개 (RAG: ${ragCount}개 ${(ragRatio * 100).toInt()}%, AI: ${aiCount}개 ${(aiRatio * 100).toInt()}%)"
     }
 }
 
