@@ -57,7 +57,8 @@ class ApiLoggingFilter(
         return uri.startsWith("/actuator") ||
                 uri.startsWith("/swagger") ||
                 uri.startsWith("/v3/api-docs") ||
-                uri.startsWith("/favicon.ico")
+                uri.startsWith("/favicon.ico") ||
+                uri == "/health"
     }
 
     private fun logApiCall(
