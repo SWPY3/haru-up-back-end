@@ -5,23 +5,23 @@
 -- TRUNCATE interest_embeddings RESTART IDENTITY CASCADE;
 
 -- 1. 대분류 (MAIN) INSERT
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 VALUES
-    ('외국어 공부', 'MAIN', NULL, ARRAY['외국어 공부'], NULL, 0, 'SYSTEM', true, NOW(), NOW()),
-    ('재테크/투자 공부', 'MAIN', NULL, ARRAY['재테크/투자 공부'], NULL, 0, 'SYSTEM', true, NOW(), NOW()),
-    ('체력관리 및 운동', 'MAIN', NULL, ARRAY['체력관리 및 운동'], NULL, 0, 'SYSTEM', true, NOW(), NOW()),
-    ('자격증 공부', 'MAIN', NULL, ARRAY['자격증 공부'], NULL, 0, 'SYSTEM', true, NOW(), NOW()),
-    ('직무 관련 역량 개발', 'MAIN', NULL, ARRAY['직무 관련 역량 개발'], NULL, 0, 'SYSTEM', true, NOW(), NOW());
+    ('외국어 공부', 'MAIN', NULL, ARRAY['외국어 공부'], NULL, 0, 'SYSTEM', true, false, NOW(), NOW()),
+    ('재테크/투자 공부', 'MAIN', NULL, ARRAY['재테크/투자 공부'], NULL, 0, 'SYSTEM', true, false, NOW(), NOW()),
+    ('체력관리 및 운동', 'MAIN', NULL, ARRAY['체력관리 및 운동'], NULL, 0, 'SYSTEM', true, false, NOW(), NOW()),
+    ('자격증 공부', 'MAIN', NULL, ARRAY['자격증 공부'], NULL, 0, 'SYSTEM', true, false, NOW(), NOW()),
+    ('직무 관련 역량 개발', 'MAIN', NULL, ARRAY['직무 관련 역량 개발'], NULL, 0, 'SYSTEM', true, false, NOW(), NOW());
 
 -- 2. 중분류 (MIDDLE) INSERT
 -- 외국어 공부 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'MIDDLE',
     m.id::text,
     ARRAY[m.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
     ('영어'),
@@ -32,13 +32,13 @@ CROSS JOIN (VALUES
 WHERE m.name = '외국어 공부' AND m.level = 'MAIN';
 
 -- 재테크/투자 공부 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'MIDDLE',
     m.id::text,
     ARRAY[m.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
     ('지출 관리·예산 세우기'),
@@ -49,13 +49,13 @@ CROSS JOIN (VALUES
 WHERE m.name = '재테크/투자 공부' AND m.level = 'MAIN';
 
 -- 체력관리 및 운동 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'MIDDLE',
     m.id::text,
     ARRAY[m.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
     ('헬스'),
@@ -66,13 +66,13 @@ CROSS JOIN (VALUES
 WHERE m.name = '체력관리 및 운동' AND m.level = 'MAIN';
 
 -- 자격증 공부 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'MIDDLE',
     m.id::text,
     ARRAY[m.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
     ('직무 전문 분야'),
@@ -85,13 +85,13 @@ CROSS JOIN (VALUES
 WHERE m.name = '자격증 공부' AND m.level = 'MAIN';
 
 -- 직무 관련 역량 개발 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'MIDDLE',
     m.id::text,
     ARRAY[m.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
     ('이직 준비'),
@@ -102,13 +102,13 @@ WHERE m.name = '직무 관련 역량 개발' AND m.level = 'MAIN';
 
 -- 3. 소분류 (SUB) INSERT
 -- 영어 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('단어 학습'),
@@ -119,13 +119,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '영어' AND mid.level = 'MIDDLE';
 
 -- 일본어 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('단어 학습'),
@@ -136,13 +136,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '일본어' AND mid.level = 'MIDDLE';
 
 -- 중국어 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('단어 학습'),
@@ -153,13 +153,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '중국어' AND mid.level = 'MIDDLE';
 
 -- 기타 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('단어 학습'),
@@ -171,13 +171,13 @@ WHERE mid.name = '기타' AND mid.level = 'MIDDLE'
   AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '외국어 공부' AND level = 'MAIN');
 
 -- 지출 관리·예산 세우기 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('지출 점검하기'),
@@ -189,13 +189,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '지출 관리·예산 세우기' AND mid.level = 'MIDDLE';
 
 -- 저축·적금하기 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('단기, 장기 저축 계획 세우기'),
@@ -207,13 +207,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '저축·적금하기' AND mid.level = 'MIDDLE';
 
 -- 금융지식 쌓기 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('금융 상품 종류 익히기'),
@@ -224,13 +224,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '금융지식 쌓기' AND mid.level = 'MIDDLE';
 
 -- 투자 시작하기 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('소액 투자 시작하기'),
@@ -242,13 +242,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '투자 시작하기' AND mid.level = 'MIDDLE';
 
 -- 헬스 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('체력 증진'),
@@ -260,13 +260,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '헬스' AND mid.level = 'MIDDLE';
 
 -- 러닝 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('체력 증진'),
@@ -278,13 +278,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '러닝' AND mid.level = 'MIDDLE';
 
 -- 필라테스/요가 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('체력 증진'),
@@ -296,13 +296,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '필라테스/요가' AND mid.level = 'MIDDLE';
 
 -- 자전거 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('체력 증진'),
@@ -314,13 +314,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '자전거' AND mid.level = 'MIDDLE';
 
 -- 직무 전문 분야 하위 (자격증 공부)
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('직무 목표'),
@@ -329,13 +329,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '직무 전문 분야' AND mid.level = 'MIDDLE';
 
 -- 국가자격 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('정보처리기사'),
@@ -347,13 +347,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '국가자격' AND mid.level = 'MIDDLE';
 
 -- 어학 자격 능력 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('토익'),
@@ -365,13 +365,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '어학 자격 능력' AND mid.level = 'MIDDLE';
 
 -- 기술 분야 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('직업상담사'),
@@ -383,13 +383,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '기술 분야' AND mid.level = 'MIDDLE';
 
 -- AI 툴 사용역량 강화 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('AI 프롬프트 학습'),
@@ -399,13 +399,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = 'AI 툴 사용역량 강화' AND mid.level = 'MIDDLE';
 
 -- 이직 준비 하위 (자격증 공부)
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('포트폴리오 제작'),
@@ -415,13 +415,13 @@ WHERE mid.name = '이직 준비' AND mid.level = 'MIDDLE'
   AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '자격증 공부' AND level = 'MAIN');
 
 -- 이직 준비 하위 (직무 관련 역량 개발)
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('이력서•경력기술서 관리'),
@@ -433,13 +433,13 @@ WHERE mid.name = '이직 준비' AND mid.level = 'MIDDLE'
   AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '직무 관련 역량 개발' AND level = 'MAIN');
 
 -- 리더쉽 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('비전 설정 및 방향제시'),
@@ -449,13 +449,13 @@ CROSS JOIN (VALUES
 WHERE mid.name = '리더쉽' AND mid.level = 'MIDDLE';
 
 -- 업무 능력 향상 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, created_at, updated_at)
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
     v.name,
     'SUB',
     mid.id::text,
     ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, NOW(), NOW()
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
     ('업무 효율 높이기'),
