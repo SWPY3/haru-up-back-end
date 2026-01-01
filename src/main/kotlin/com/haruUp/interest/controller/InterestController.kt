@@ -63,7 +63,7 @@ class InterestController(
             **호출 예시:**
             ```json
             {
-              "category": [{"interestId": 18, "directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}],
+              "category": [{"directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}],
               "currentLevel": "SUB",
               "targetCount": 10
             }
@@ -117,9 +117,9 @@ class InterestController(
                     jobDetailRepository.findById(jobDetailId).orElse(null)?.jobDetailName
                 }
 
-                logger.info("처리 중: interestId=${categoryDto.interestId}, directFullPath=${categoryDto.directFullPath}, job=$jobName, jobDetail=$jobDetailName")
+                logger.info("처리 중: directFullPath=${categoryDto.directFullPath}, job=$jobName, jobDetail=$jobDetailName")
 
-                val result = recommendationService.recommend(
+                val interests = recommendationService.recommend(
                     selectedInterests = listOf(selectedInterest),
                     currentLevel = currentLevel,
                     targetCount = targetCountPerCategory,
@@ -129,19 +129,18 @@ class InterestController(
                 )
 
                 // 결과를 Map으로 변환
-                val interestsAsMap = result.interests.map { node ->
+                val interestsAsMap = interests.map { node ->
                     mapOf(
                         "id" to node.id,
                         "name" to node.name,
                         "level" to node.level.name,
                         "parentId" to node.parentId,
-                        "fullPath" to node.fullPath,
-                        "interestId" to categoryDto.interestId
+                        "fullPath" to node.fullPath
                     )
                 }
                 allInterests.addAll(interestsAsMap)
 
-                logger.info("interestId=${categoryDto.interestId} 추천 완료: ${result.interests.size}개")
+                logger.info("추천 완료: ${interests.size}개")
             }
 
             val response = InterestRecommendationResponse(
@@ -416,7 +415,7 @@ class InterestController(
         val memberId = principal.id
 
         return try {
-            val interestIds = request.interests.map { it.interestId }
+            val interestIds = request.interests.mapNotNull { it.interestId }
             val result = memberInterestUseCase.saveInterests(memberId, interestIds)
 
             if (result.hasInvalidInterests) {

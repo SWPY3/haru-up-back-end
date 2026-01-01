@@ -41,7 +41,7 @@ class HybridInterestRecommendationService(
      * @param memberProfile 멤버 프로필
      * @param jobName 직업명 (선택)
      * @param jobDetailName 직업 상세명 (선택)
-     * @return 추천 결과
+     * @return 추천된 관심사 목록
      */
     suspend fun recommend(
         selectedInterests: List<InterestPath>,
@@ -50,52 +50,24 @@ class HybridInterestRecommendationService(
         memberProfile: MemberProfile,
         jobName: String? = null,
         jobDetailName: String? = null
-    ): RecommendationResult {
+    ): List<InterestNode> {
         logger.info("추천 요청 - 레벨: $currentLevel, 목표: ${targetCount}개, 직업: $jobName, 직업상세: $jobDetailName")
 
-        // Step 1: RAG 기반 추천 (70% 목표) - 비활성화 (AI 추천만 사용)
-        // val ragTargetCount = (targetCount * RAG_RATIO).toInt()
-        // val ragResults = searchFromVectorDB(
-        //     selectedInterests = selectedInterests,
-        //     level = currentLevel,
-        //     topK = ragTargetCount,
-        //     useHybridScoring = useHybridScoring
-        // )
-        val ragResults = emptyList<InterestNode>()
+        val aiResults = recommendFromAI(
+            selectedInterests = selectedInterests,
+            currentLevel = currentLevel,
+            excludeNames = emptyList(),
+            count = targetCount,
+            memberProfile = memberProfile,
+            jobName = jobName,
+            jobDetailName = jobDetailName
+        )
 
-        logger.info("RAG 추천: ${ragResults.size}개 (RAG 비활성화됨)")
+        logger.info("AI 추천 완료: ${aiResults.size}개")
 
-        // Step 2: AI로 추천 (RAG 비활성화로 전체 개수 AI로 추천)
-        val aiResults = if (ragResults.size < targetCount) {
-            val aiTargetCount = targetCount - ragResults.size
-            logger.info("AI 추천 요청: ${aiTargetCount}개")
-
-            recommendFromAI(
-                selectedInterests = selectedInterests,
-                currentLevel = currentLevel,
-                excludeNames = ragResults.map { it.name },
-                count = aiTargetCount,
-                memberProfile = memberProfile,
-                jobName = jobName,
-                jobDetailName = jobDetailName
-            )
-        } else {
-            emptyList()
-        }
-
-        logger.info("AI 추천: ${aiResults.size}개")
-
-        // Step 3: 결과 통합 및 중복 제거
-        val combined = (ragResults + aiResults)
+        return aiResults
             .distinctBy { it.name.lowercase().trim() }
             .take(targetCount)
-
-        return RecommendationResult(
-            interests = combined,
-            ragCount = ragResults.size,
-            aiCount = aiResults.size,
-            totalCount = combined.size
-        )
     }
 
     /**
@@ -166,122 +138,4 @@ class HybridInterestRecommendationService(
         }
     }
 
-    /**
-     * 직접 입력 처리
-     *
-     * 사용자가 직접 입력한 관심사를 처리하고, 유사한 관심사를 추천
-     */
-    suspend fun handleDirectInput(
-        userInput: String,
-        level: InterestLevel,
-        parentId: String? = null,
-        userId: Long
-    ): DirectInputResult {
-        logger.info("직접 입력 처리: '$userInput' (레벨: $level)")
-
-        // 1. 기존에 있는지 확인 (대소문자 무시)
-        val existingEntity = embeddingRepository.findByNameAndLevelAndIsActivated(
-            name = userInput.trim(),
-            level = level.name,
-            isActivated = true
-        )
-
-        if (existingEntity != null) {
-            logger.info("기존 관심사 발견: ${existingEntity.name}")
-            // 사용 횟수 증가는 interest_embeddings 테이블의 usage_count 업데이트로 처리
-            embeddingRepository.incrementUsageCountByFullPath(
-                fullPath = listToPostgresArray(existingEntity.fullPath),
-                updatedAt = LocalDateTime.now()
-            )
-
-            return DirectInputResult(
-                interest = existingEntity.toInterestNode(),
-                isNew = false,
-                similarInterests = emptyList()
-            )
-        }
-
-        // 2. 새로운 관심사 생성 (미임베딩 상태)
-        // fullPath 계산: 부모가 있으면 부모의 fullPath + name, 없으면 name만
-        val parentEntity = parentId?.toLongOrNull()?.let { embeddingRepository.findById(it).orElse(null) }
-        val fullPath: List<String> = if (parentEntity != null) {
-            parentEntity.fullPath + userInput.trim()
-        } else {
-            listOf(userInput.trim())
-        }
-
-        val newInterest = InterestNode(
-            id = UUID.randomUUID().toString(),
-            name = userInput.trim(),
-            level = level,
-            parentId = parentId,
-            fullPath = fullPath,
-            isEmbedded = false,
-            isUserGenerated = true,
-            usageCount = 1,
-            createdBy = userId,
-            createdAt = LocalDateTime.now()
-        )
-
-        // interest_embeddings 테이블에 저장
-        embeddingRepository.insertEmbedding(
-            name = newInterest.name,
-            level = level.name,
-            parentId = parentId,
-            fullPath = listToPostgresArray(newInterest.fullPath),
-            embedding = null,
-            usageCount = 1,
-            createdSource = "USER",
-            isActivated = true,
-            createdAt = LocalDateTime.now()
-        )
-        logger.info("새로운 관심사 생성: ${newInterest.name}")
-
-        // 3. 유사 관심사 검색 (사용자에게 제안)
-        val similarInterests = try {
-            vectorRepository.searchSimilar(
-                query = userInput,
-                level = level,
-                topK = 5,
-                minScore = 0.75f
-            )
-        } catch (e: Exception) {
-            logger.warn("유사 관심사 검색 실패: ${e.message}")
-            emptyList()
-        }
-
-        logger.info("유사 관심사 ${similarInterests.size}개 발견: ${similarInterests.map { it.name }}")
-
-        return DirectInputResult(
-            interest = newInterest,
-            isNew = true,
-            similarInterests = similarInterests
-        )
-    }
 }
-
-/**
- * 추천 결과
- */
-data class RecommendationResult(
-    val interests: List<InterestNode>,
-    val ragCount: Int,
-    val aiCount: Int,
-    val totalCount: Int
-) {
-    val ragRatio: Double = if (totalCount > 0) ragCount.toDouble() / totalCount else 0.0
-    val aiRatio: Double = if (totalCount > 0) aiCount.toDouble() / totalCount else 0.0
-
-    fun summary(): String {
-        return "총 ${totalCount}개 (RAG: ${ragCount}개 ${(ragRatio * 100).toInt()}%, AI: ${aiCount}개 ${(aiRatio * 100).toInt()}%)"
-    }
-}
-
-/**
- * 직접 입력 결과
- */
-data class DirectInputResult(
-    val interest: InterestNode,
-    val isNew: Boolean,
-    val similarInterests: List<InterestNode>
-)
