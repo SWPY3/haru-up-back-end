@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
+import io.swagger.v3.oas.models.servers.Server
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -27,6 +28,12 @@ class SwaggerConfig {
                     .title("Haru Up API")
                     .description("Haru Up 백엔드 API 문서")
                     .version("1.0.0")
+            )
+            .servers(
+                listOf(
+                    Server().url("https://haru.jinuk.dev").description("Production"),
+                    Server().url("http://localhost:8080").description("Local")
+                )
             )
             .addSecurityItem(
                 SecurityRequirement().addList(securitySchemeName)
