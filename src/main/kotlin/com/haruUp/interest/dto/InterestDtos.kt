@@ -78,13 +78,12 @@ data class InterestRecommendationRequest(
             선택한 관심사 경로 목록
             - 빈 배열: 처음 시작 (인기 관심사 추천)
             - 1개 이상: 선택한 관심사들을 기반으로 추천
-            - interestId: 프론트엔드 추적용 관심사 ID
             - job_id, job_detail_id: 직업 정보 (선택, 있으면 직업 관련 추천)
 
             예시:
-            - SUB 추천: [{"interestId": 18, "directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}]
+            - SUB 추천: [{"directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}]
         """,
-        example = """[{"interestId": 18, "directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}]""",
+        example = """[{"directFullPath": ["자격증 공부", "직무 전문 분야"], "job_id": 1, "job_detail_id": 17}]""",
         required = false
     )
     val category: List<InterestsDto> = emptyList(),
@@ -129,18 +128,18 @@ data class InterestRecommendationResponse(
 @Schema(description = "관심사 선택 경로")
 data class InterestsDto(
     @Schema(
-        description = "관심사 ID",
-        example = "1",
-        required = true
-    )
-    val interestId: Long,
-
-    @Schema(
         description = "전체 경로 배열 [대분류, 중분류, 소분류]",
         example = """["체력관리 및 운동", "헬스", "근력 키우기"]""",
         required = true
     )
     val directFullPath: List<String>,
+
+    @Schema(
+        description = "관심사 ID (멤버 관심사 저장 시 필수)",
+        example = "64",
+        required = false
+    )
+    val interestId: Long? = null,
 
     @Schema(
         description = "직업 ID (선택)",
