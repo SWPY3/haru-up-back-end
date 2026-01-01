@@ -79,7 +79,7 @@ CROSS JOIN (VALUES
     ('국가자격'),
     ('어학 자격 능력'),
     ('기술 분야'),
-    ('AI 툴 사용역량 강화'),
+    ('AI 사용역량 강화'),
     ('이직 준비')
 ) v(name)
 WHERE m.name = '자격증 공부' AND m.level = 'MAIN';
@@ -323,7 +323,7 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('(온보딩 시 입력한 개인정보 기반)'),
+    ('직무 목표'),
     ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '직무 전문 분야' AND mid.level = 'MIDDLE';
@@ -458,10 +458,10 @@ SELECT
     NULL, 0, 'SYSTEM', true, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
-    ('업무 효율 높이기 (우선순위 설정/시간관리)'),
+    ('업무 효율 높이기'),
     ('커뮤니케이션·협업 능력 키우기'),
     ('문제 해결능력 향상'),
-    ('문서·기획·정리 스킬 향상(PPT·보고서)'),
+    ('문서·기획·정리 스킬 향상'),
     ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '업무 능력 향상' AND mid.level = 'MIDDLE';
