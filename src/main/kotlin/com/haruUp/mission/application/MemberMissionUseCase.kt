@@ -3,18 +3,16 @@ package com.haruUp.mission.application
 import com.haruUp.character.application.service.LevelService
 import com.haruUp.character.application.service.MemberCharacterService
 import com.haruUp.character.domain.dto.MemberCharacterDto
-import com.haruUp.global.error.BusinessException
-import com.haruUp.global.error.ErrorCode
-import com.haruUp.member.domain.type.MemberStatus
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.domain.DailyCompletionStatus
+import com.haruUp.mission.domain.DailyMissionCountDto
 import org.springframework.stereotype.Component
 import java.time.LocalDate
-import kotlin.let
+import java.time.LocalDateTime
 
 @Component
 class MemberMissionUseCase(
@@ -24,7 +22,12 @@ class MemberMissionUseCase(
 ) {
 
     // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
-    fun getMemberMissions(memberId: Long, statuses: List<MissionStatus>? = null, targetDate: LocalDate, memberInterestId: Long? = null): List<MemberMissionDto> {
+    fun getMemberMissions(
+        memberId: Long,
+        statuses: List<MissionStatus>? = null,
+        targetDate: LocalDate,
+        memberInterestId: Long? = null
+    ): List<MemberMissionDto> {
         return memberMissionService.getAllMissions(memberId, statuses, targetDate, memberInterestId)
     }
 
@@ -147,4 +150,27 @@ class MemberMissionUseCase(
     ): List<DailyCompletionStatus> {
         return memberMissionService.getCompletionStatusByDateRange(memberId, startDate, endDate)
     }
+
+    fun continueMissionMonth(
+        memberId: Long,
+        targetMonth: String   // "YYYY-MM"
+    ): List<DailyMissionCountDto> {
+
+        val yearMonth = try {
+            java.time.YearMonth.parse(targetMonth)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
+        }
+
+        val targetStartDate: LocalDate = yearMonth.atDay(1)
+        val targetEndDate: LocalDate = yearMonth.atEndOfMonth()
+
+        return memberMissionService.findDailyCompletedMissionCount(
+            memberId,
+            targetStartDate,
+            targetEndDate
+        )
+    }
+
+
 }

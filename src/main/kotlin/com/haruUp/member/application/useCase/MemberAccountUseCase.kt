@@ -141,7 +141,6 @@ class MemberAccountUseCase(
         memberMissionService.deleteMemberMissionsByMemberId(memberId)
     }
 
-
     fun homeMemberInfo(memberId: Long): List<HomeMemberInfoDto> {
         // 회원 기본 정보
         val homeMemberInfo = memberService.homeMemberInfo(memberId)
