@@ -1,8 +1,10 @@
 package com.haruUp.interest.service
 
+import com.haruUp.interest.dto.MemberInterestDto
 import com.haruUp.interest.entity.MemberInterestEntity
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.MemberInterestJpaRepository
+import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -80,8 +82,23 @@ class MemberInterestService(
         )
     }
 
+    @Transactional
     fun deleteMemberInterestsByMemberId(memberId: Long) {
         memberInterestRepository.softDeleteAllByMemberId(memberId)
         logger.info("멤버 관심사 삭제 완료 - memberId: $memberId")
+    }
+
+    @Transactional
+    fun selectMemberInterestsByMemberId(memberId : Long) : List<List<String>?> {
+        val memberInterests = memberInterestRepository.findAllByMemberIdAndDeletedFalse(memberId)
+
+        val fullPathList = memberInterests
+            .stream()
+            .map { it.directFullPath }
+            .toList()
+
+        println("fullPathList: $fullPathList")
+
+        return fullPathList
     }
 }

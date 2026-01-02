@@ -15,7 +15,7 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNhello112hello112S_E2E_002",
+  "snsId": "SNhello112hello112S_E2E_005",
   "email": "",
   "name": ""
 }
@@ -30,6 +30,14 @@ Content-Type: application/json
     console.log("=== SNS 로그인 성공 ===");
     console.log("memberId =", data.id);
 %}
+
+###
+# @name HomeMemberInfo
+POST {{baseUrl}}/api/member/account/home/memberInfo
+Content-Type: application/json
+jwt-token: {{accessToken}}
+
+
 
 ### ============================================
 ### 2. 초기 큐레이션 실행 (SSE)
@@ -48,9 +56,6 @@ jwt-token: {{accessToken}}
   "jobId": 1,
   "jobDetailId": 1
 }
-
-eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwibmFtZSI6IiIsInR5cGUiOiJBQ0NFU1MiLCJpYXQiOjE3NjYwNjA0NDAsImV4cCI6MTc3NDcwMDQ0MH0.tFvwkE5Ul_YtpHve51KiioMfymqPwz2yWq82oHHs-6Q
-
 ###
  curl -N  \
   -H "Accept: text/event-stream"  \
