@@ -75,7 +75,6 @@ SELECT
     NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
-    ('직무 전문 분야'),
     ('국가자격'),
     ('어학 자격 능력'),
     ('기술 분야'),
@@ -312,21 +311,6 @@ CROSS JOIN (VALUES
     ('직접 입력하기')
 ) v(name)
 WHERE mid.name = '자전거' AND mid.level = 'MIDDLE';
-
--- 직무 전문 분야 하위 (자격증 공부)
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
-SELECT
-    v.name,
-    'SUB',
-    mid.id::text,
-    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
-FROM interest_embeddings mid
-CROSS JOIN (VALUES
-    ('직무 목표'),
-    ('직접 입력하기')
-) v(name)
-WHERE mid.name = '직무 전문 분야' AND mid.level = 'MIDDLE';
 
 -- 국가자격 하위
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
