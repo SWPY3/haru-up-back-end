@@ -32,7 +32,7 @@ spring:
         jdbc.time_zone: Asia/Seoul
         hbm2ddl.halt_on_error: false
     hibernate:
-      ddl-auto: update
+      ddl-auto:
     open-in-view: true
   data:
     redis:
@@ -42,7 +42,7 @@ spring:
 
   batch:
     jdbc:
-      initialize-schema: never  # 최초 1회 후 never로 변경 권장
+      initialize-schema: always  # 최초 1회 후 never로 변경 권장
 
 logging:
   level:

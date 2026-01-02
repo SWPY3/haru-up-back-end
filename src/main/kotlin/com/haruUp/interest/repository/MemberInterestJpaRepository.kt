@@ -34,4 +34,7 @@ interface MemberInterestJpaRepository : JpaRepository<MemberInterestEntity, Long
     @Modifying
     @Query("UPDATE MemberInterestEntity m SET m.deleted = true, m.deletedAt = CURRENT_TIMESTAMP WHERE m.id = :id AND m.memberId = :memberId")
     fun softDeleteByIdAndMemberId(id: Long, memberId: Long): Int
+
+
+    fun findAllByMemberIdAndDeletedFalse(memberId: Long) : List<MemberInterestEntity>
 }

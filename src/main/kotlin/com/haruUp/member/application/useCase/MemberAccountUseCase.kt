@@ -10,6 +10,7 @@ import com.haruUp.member.application.service.MemberSettingService
 import com.haruUp.interest.service.MemberInterestService
 import com.haruUp.mission.application.MemberMissionService
 import com.haruUp.member.application.service.MemberValidator
+import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.type.LoginType
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -25,7 +26,7 @@ class MemberAccountUseCase(
     private val refreshTokenService: RefreshTokenService,
     private val memberInterestService: MemberInterestService,
     private val memberMissionService: MemberMissionService
-){
+) {
 
     // 사용자 조회
     @Transactional(readOnly = true)
@@ -46,7 +47,7 @@ class MemberAccountUseCase(
 
     // 이메일 변경
     @Transactional
-    fun changeEmail(memberId: Long, newEmail: String) : MemberDto {
+    fun changeEmail(memberId: Long, newEmail: String): MemberDto {
         // 1) 회원 조회
         val member = memberService.getFindMemberId(memberId)
             .orElseThrow {
@@ -138,5 +139,23 @@ class MemberAccountUseCase(
         memberInterestService.deleteMemberInterestsByMemberId(memberId)
 
         memberMissionService.deleteMemberMissionsByMemberId(memberId)
+    }
+
+
+    fun homeMemberInfo(memberId: Long): List<HomeMemberInfoDto> {
+        // 회원 기본 정보
+        val homeMemberInfo = memberService.homeMemberInfo(memberId)
+
+        // 관심사 fullPath 리스트
+        val interests: List<List<String>?> =
+            memberInterestService
+                .selectMemberInterestsByMemberId(memberId)
+                .map { it }
+
+        return homeMemberInfo.map { dto ->
+            dto.copy(
+                interests = interests
+            )
+        }
     }
 }
