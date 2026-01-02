@@ -1,6 +1,5 @@
 package com.haruUp.mission.infrastructure
 
-import com.haruUp.missionembedding.entity.MissionEmbeddingEntity
 import com.haruUp.mission.domain.AiMissionResult
 import org.springframework.aot.hint.TypeReference.listOf
 import org.springframework.stereotype.Component

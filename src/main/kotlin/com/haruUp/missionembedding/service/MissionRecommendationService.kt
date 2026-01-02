@@ -18,12 +18,11 @@ import org.springframework.stereotype.Service
  * LLM 기반 미션 추천
  * 1. Clova API로 미션 생성
  * 2. 난이도 검증 (중복/누락 체크)
- * 3. 모든 미션이 정상 생성되면 DB에 일괄 저장
+ * 3. DTO 반환 (DB 저장은 호출자에서 처리)
  */
 @Service
 class MissionRecommendationService(
-    private val clovaApiClient: ClovaApiClient,
-    private val missionEmbeddingService: MissionEmbeddingService
+    private val clovaApiClient: ClovaApiClient
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
     private val objectMapper = jacksonObjectMapper()
@@ -38,14 +37,14 @@ class MissionRecommendationService(
      * @param directFullPath 관심사 경로 (예: ["체력관리 및 운동", "헬스", "근력 키우기"])
      * @param memberProfile 멤버 프로필
      * @param difficulties 추천할 난이도 목록 (기본: 1~5)
-     * @param excludeIds 제외할 미션 ID 목록
+     * @param excludeContents 제외할 미션 내용 목록
      * @return 미션 목록
      */
     suspend fun recommendTodayMissions(
         directFullPath: List<String>,
         memberProfile: MissionMemberProfile,
         difficulties: List<Int>? = null,
-        excludeIds: List<Long> = emptyList()
+        excludeContents: List<String> = emptyList()
     ): List<MissionDto> {
         val targetDifficulties = difficulties ?: listOf(1, 2, 3, 4, 5)
         val pathString = directFullPath.joinToString(" > ")
@@ -57,17 +56,13 @@ class MissionRecommendationService(
                 directFullPath = directFullPath,
                 memberProfile = memberProfile,
                 difficulties = targetDifficulties,
-                excludeIds = excludeIds
+                excludeContents = excludeContents
             )
 
-            // 2. 모든 미션이 정상 생성되면 DB에 일괄 저장
-            val savedMissions = saveMissionsToDB(missions, directFullPath)
-
-            // 3. DTO 변환
-            savedMissions.map { mission ->
+            // 2. DTO 변환 (DB 저장은 호출자에서 처리)
+            missions.map { mission ->
                 MissionDto(
                     member_mission_id = null,
-                    mission_id = mission.id,
                     content = mission.content,
                     directFullPath = mission.directFullPath,
                     difficulty = mission.difficulty,
@@ -90,7 +85,7 @@ class MissionRecommendationService(
         directFullPath: List<String>,
         memberProfile: MissionMemberProfile,
         difficulties: List<Int>,
-        excludeIds: List<Long>
+        excludeContents: List<String>
     ): List<Mission> {
         val interestPath = InterestPath(
             mainCategory = directFullPath.getOrNull(0) ?: "",
@@ -104,7 +99,7 @@ class MissionRecommendationService(
                     interestPath = interestPath,
                     memberProfile = memberProfile,
                     difficulties = difficulties,
-                    excludeIds = excludeIds,
+                    excludeContents = excludeContents,
                     attempt = attempt + 1
                 )
 
@@ -138,10 +133,10 @@ class MissionRecommendationService(
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile,
         difficulties: List<Int>,
-        excludeIds: List<Long>,
+        excludeContents: List<String>,
         attempt: Int
     ): List<Mission> {
-        val userMessage = buildPrompt(interestPath, memberProfile, difficulties, excludeIds, attempt)
+        val userMessage = buildPrompt(interestPath, memberProfile, difficulties, excludeContents, attempt)
 
         logger.debug("LLM 요청 (시도 $attempt)")
 
@@ -161,7 +156,7 @@ class MissionRecommendationService(
         interestPath: InterestPath,
         memberProfile: MissionMemberProfile,
         difficulties: List<Int>,
-        excludeIds: List<Long>,
+        excludeContents: List<String>,
         attempt: Int
     ): String {
         val basePrompt = ImprovedMissionRecommendationPrompt.createUserMessageForAllInterests(
@@ -169,7 +164,7 @@ class MissionRecommendationService(
             missionMemberProfile = memberProfile
         )
 
-        val excludeSection = buildExcludeSection(excludeIds)
+        val excludeSection = buildExcludeSection(excludeContents)
         val retryWarning = if (attempt > 1) "\n⚠️ 이전 시도에서 난이도가 중복되었습니다. 각 난이도가 정확히 1번씩만 나오도록 하세요!\n" else ""
         val difficultyList = difficulties.joinToString(", ")
         val jsonExample = difficulties.joinToString(",\n    ") {
@@ -214,13 +209,10 @@ $retryWarning$excludeSection
     /**
      * 제외 미션 섹션 생성
      */
-    private fun buildExcludeSection(excludeIds: List<Long>): String {
-        if (excludeIds.isEmpty()) return ""
+    private fun buildExcludeSection(excludeContents: List<String>): String {
+        if (excludeContents.isEmpty()) return ""
 
-        val excludeMissions = missionEmbeddingService.findByIds(excludeIds)
-        if (excludeMissions.isEmpty()) return ""
-
-        val missionList = excludeMissions.joinToString("\n") { "- ${it.missionContent}" }
+        val missionList = excludeContents.joinToString("\n") { "- $it" }
 
         return """
 
@@ -281,30 +273,10 @@ $missionList
         return withoutCodeBlock
     }
 
-    /**
-     * 미션 일괄 DB 저장
-     */
-    private fun saveMissionsToDB(missions: List<Mission>, directFullPath: List<String>): List<Mission> {
-        return missions.mapNotNull { mission ->
-            try {
-                val saved = missionEmbeddingService.saveMissionWithoutEmbedding(
-                    directFullPath = directFullPath,
-                    difficulty = mission.difficulty ?: return@mapNotNull null,
-                    missionContent = mission.content
-                )
-                mission.copy(id = saved?.id)
-            } catch (e: Exception) {
-                logger.warn("미션 저장 실패: ${mission.content}, 에러: ${e.message}")
-                mission // 저장 실패해도 미션은 반환
-            }
-        }
-    }
-
     // DTO 클래스
     private data class MissionResponse(val missions: List<Mission>)
 
     private data class Mission(
-        val id: Long? = null,
         val content: String,
         @JsonAlias("relatedInterest")
         val directFullPath: List<String> = emptyList(),

@@ -1,12 +1,10 @@
 package com.haruUp.ranking.batch
 
-import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.member.infrastructure.MemberProfileRepository
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.infrastructure.MemberMissionRepository
-import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.ranking.domain.RankingMissionDailyEntity
 import com.haruUp.ranking.repository.RankingMissionDailyRepository
 import org.slf4j.LoggerFactory
@@ -27,17 +25,15 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.transaction.PlatformTransactionManager
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Configuration
 class RankingBatchConfig(
     private val memberMissionRepository: MemberMissionRepository,
-    private val missionEmbeddingRepository: MissionEmbeddingRepository,
     private val memberInterestRepository: MemberInterestJpaRepository,
     private val interestEmbeddingRepository: InterestEmbeddingJpaRepository,
     private val memberProfileRepository: MemberProfileRepository,
     private val rankingMissionDailyRepository: RankingMissionDailyRepository,
-    private val clovaApiClient: ClovaApiClient
+    private val rankingLabelService: RankingLabelService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -45,7 +41,6 @@ class RankingBatchConfig(
         const val JOB_NAME = "rankingMissionDailyJob"
         const val STEP_NAME = "rankingMissionDailyStep"
         const val CHUNK_SIZE = 100
-        const val SIMILARITY_THRESHOLD = 0.3
     }
 
     @Value("\${ranking.batch.target-date:#{null}}")
@@ -102,13 +97,17 @@ class RankingBatchConfig(
         logger.info("선택된 미션 수: ${selectedMissions.size}")
 
         // 2. 이미 처리된 member_mission_id 제외
-        val existingMemberMissionIds = if (selectedMissions.isNotEmpty()) {
-            rankingMissionDailyRepository.findAllByMemberMissionIdIn(
-                selectedMissions.mapNotNull { it.id }
-            ).map { it.memberMissionId }.toSet()
+        val missionIds = selectedMissions.mapNotNull { it.id }
+        logger.info("선택된 미션 ID 목록: $missionIds")
+
+        val existingRecords = if (selectedMissions.isNotEmpty()) {
+            rankingMissionDailyRepository.findAllByMemberMissionIdIn(missionIds)
         } else {
-            emptySet()
+            emptyList()
         }
+        logger.info("ranking_mission_daily 조회 결과: ${existingRecords.size}건, IDs: ${existingRecords.map { it.memberMissionId }}")
+
+        val existingMemberMissionIds = existingRecords.map { it.memberMissionId }.toSet()
 
         val targetMissions = selectedMissions.filter { it.id !in existingMemberMissionIds }
         logger.info("처리 대상 미션 수: ${targetMissions.size} (이미 처리됨: ${existingMemberMissionIds.size})")
@@ -125,12 +124,9 @@ class RankingBatchConfig(
         return ItemProcessor { memberMission ->
             try {
                 val memberMissionId = memberMission.id ?: return@ItemProcessor null
-                val missionId = memberMission.missionId
                 val targetDate = getTargetDate()
 
-                // mission_embedding 조회
-                val missionEmbedding = missionEmbeddingRepository.findByIdOrNull(missionId)
-                    ?: return@ItemProcessor null
+                logger.info("Processing memberMissionId=$memberMissionId, missionContent=${memberMission.missionContent}")
 
                 // member_interest -> interest_embedding 조회
                 val memberInterest = memberInterestRepository.findByIdOrNull(memberMission.memberInterestId)
@@ -141,25 +137,25 @@ class RankingBatchConfig(
                 // member_profile 조회
                 val memberProfile = memberProfileRepository.findByMemberId(memberMission.memberId)
 
-                // 라벨 처리
-                val labelName = processLabel(
-                    missionId = missionId,
-                    existingLabel = missionEmbedding.labelName,
-                    missionContent = missionEmbedding.missionContent,
-                    embedding = missionEmbedding.embedding,
+                // 라벨 처리 (별도 서비스에서 @Transactional 처리)
+                val labelName = rankingLabelService.processLabel(
+                    memberMissionId = memberMissionId,
+                    existingLabelName = memberMission.labelName,
+                    missionContent = memberMission.missionContent,
                     interestPath = interestEmbedding?.fullPath ?: memberInterest?.directFullPath
                 )
+
+                logger.info("라벨 처리 완료: memberMissionId=$memberMissionId, labelName=$labelName")
 
                 RankingMissionDailyEntity(
                     rankingDate = targetDate,
                     memberMissionId = memberMissionId,
-                    missionId = missionId,
-                    labelName = labelName,
                     interestFullPath = interestEmbedding?.fullPath ?: memberInterest?.directFullPath,
                     gender = memberProfile?.gender,
                     birthDt = memberProfile?.birthDt?.toLocalDate(),
                     jobId = memberProfile?.jobId,
-                    jobDetailId = memberProfile?.jobDetailId
+                    jobDetailId = memberProfile?.jobDetailId,
+                    labelName = labelName
                 )
             } catch (e: Exception) {
                 logger.error("처리 실패: memberMissionId=${memberMission.id}, error=${e.message}", e)
@@ -178,93 +174,5 @@ class RankingBatchConfig(
             logger.info("랭킹 데이터 저장: ${items.size()}건")
             rankingMissionDailyRepository.saveAll(items)
         }
-    }
-
-    /**
-     * 라벨 처리 로직
-     */
-    private fun processLabel(
-        missionId: Long,
-        existingLabel: String?,
-        missionContent: String,
-        embedding: String?,
-        interestPath: List<String>?
-    ): String? {
-        // 1. 기존 라벨이 있으면 그대로 사용
-        if (!existingLabel.isNullOrBlank()) {
-            return existingLabel
-        }
-
-        // 2. 임베딩이 있으면 유사도로 기존 라벨 검색
-        if (!embedding.isNullOrBlank()) {
-            val similarMission = missionEmbeddingRepository.findSimilarMissionWithLabel(
-                embedding = embedding,
-                threshold = SIMILARITY_THRESHOLD
-            )
-
-            if (similarMission?.labelName != null) {
-                val reusedLabel = similarMission.labelName
-                missionEmbeddingRepository.updateLabelName(
-                    id = missionId,
-                    labelName = reusedLabel!!,
-                    updatedAt = LocalDateTime.now()
-                )
-                logger.debug("기존 라벨 재사용: missionId=$missionId, label=$reusedLabel")
-                return reusedLabel
-            }
-        }
-
-        // 3. LLM으로 새 라벨 생성
-        return try {
-            val newLabel = generateLabelWithLLM(missionContent, interestPath)
-            if (!newLabel.isNullOrBlank()) {
-                missionEmbeddingRepository.updateLabelName(
-                    id = missionId,
-                    labelName = newLabel,
-                    updatedAt = LocalDateTime.now()
-                )
-                logger.debug("새 라벨 생성: missionId=$missionId, label=$newLabel")
-            }
-            newLabel
-        } catch (e: Exception) {
-            logger.error("라벨 생성 실패: missionId=$missionId, error=${e.message}", e)
-            null
-        }
-    }
-
-    private fun generateLabelWithLLM(missionContent: String, interestPath: List<String>?): String? {
-        val prompt = """
-            미션 내용을 분석하여 대표 라벨(그룹명)을 생성해주세요.
-
-            [규칙]
-            - 구체적인 숫자, 시간, 횟수는 제외하고 핵심 행동만 추출
-            - 10자 이내의 간결한 명사형으로 작성
-            - 따옴표, 설명 없이 라벨명만 출력
-
-            [예시]
-            - "영어 단어 20개 외우기" → 영어 단어 외우기
-            - "30분 조깅하기" → 조깅하기
-            - "물 2L 마시기" → 물 마시기
-
-            [관심사 경로]
-            ${interestPath?.joinToString(" > ") ?: "없음"}
-
-            [미션 내용]
-            $missionContent
-
-            라벨:
-        """.trimIndent()
-
-        val response = clovaApiClient.generateText(
-            userMessage = prompt,
-            systemMessage = "당신은 미션 내용을 분석하여 대표 라벨(그룹명)을 생성하는 전문가입니다.",
-            temperature = 0.3
-        )
-
-        return response.trim()
-            .replace("\"", "")
-            .replace("'", "")
-            .take(100)
-            .ifBlank { null }
     }
 }

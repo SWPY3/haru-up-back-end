@@ -166,21 +166,40 @@ class InterestController(
      *
      * 사용자가 선택한 관심사 목록을 조회합니다 (vector 데이터 제외)
      *
+     * @param memberInterestId 멤버 관심사 ID (선택) - 값이 있으면 해당 ID의 관심사만 조회
      * @return 사용자가 선택한 관심사 목록
      */
     @Operation(
         summary = "멤버 관심사 조회",
-        description = "사용자가 선택한 관심사 목록을 조회합니다"
+        description = """
+            사용자가 선택한 관심사 목록을 조회합니다.
+
+            - memberInterestId 없음: 모든 관심사 조회
+            - memberInterestId 있음: 해당 ID의 관심사만 조회
+        """
     )
     @GetMapping("/member")
     fun getMemberInterests(
-        @AuthenticationPrincipal principal: MemberPrincipal
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "멤버 관심사 ID (없으면 전체 조회)",
+            required = false
+        )
+        @RequestParam(required = false) memberInterestId: Long?
     ): ResponseEntity<MemberInterestsResponse> {
-        logger.info("멤버 관심사 조회 - memberId: ${principal.id}")
+        logger.info("멤버 관심사 조회 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
 
         return try {
-            // member_interest 테이블에서 사용자가 선택한 관심사 조회
-            val memberInterests = memberInterestRepository.findByMemberIdAndDeletedFalse(principal.id)
+            // memberInterestId가 있으면 특정 관심사만 조회, 없으면 전체 조회
+            val memberInterests = if (memberInterestId != null) {
+                val singleInterest = memberInterestRepository.findByIdAndMemberIdAndDeletedFalse(
+                    id = memberInterestId,
+                    memberId = principal.id
+                )
+                if (singleInterest != null) listOf(singleInterest) else emptyList()
+            } else {
+                memberInterestRepository.findByMemberIdAndDeletedFalse(principal.id)
+            }
 
             if (memberInterests.isEmpty()) {
                 logger.info("멤버 관심사 조회 완료 - memberId: ${principal.id}, 관심사 없음")
