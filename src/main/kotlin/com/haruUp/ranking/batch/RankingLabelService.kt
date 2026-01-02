@@ -30,7 +30,7 @@ class RankingLabelService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        const val SIMILARITY_THRESHOLD = 0.3
+        const val SIMILARITY_THRESHOLD = 0.15
     }
 
     /**
