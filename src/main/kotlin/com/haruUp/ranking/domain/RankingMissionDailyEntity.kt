@@ -18,7 +18,6 @@ import java.time.LocalDate
     name = "ranking_mission_daily",
     indexes = [
         Index(name = "idx_ranking_daily_date", columnList = "ranking_date"),
-        Index(name = "idx_ranking_daily_label", columnList = "label_name"),
         Index(name = "idx_ranking_daily_filter", columnList = "ranking_date, birth_dt, gender, job_id, job_detail_id")
     ]
 )
@@ -32,12 +31,6 @@ class RankingMissionDailyEntity(
 
     @Column(name = "member_mission_id", nullable = false, unique = true)
     val memberMissionId: Long,
-
-    @Column(name = "mission_id", nullable = false)
-    val missionId: Long,
-
-    @Column(name = "label_name", length = 100)
-    val labelName: String? = null,
 
     /**
      * 관심사 전체 경로 배열
@@ -59,6 +52,14 @@ class RankingMissionDailyEntity(
     val jobId: Long? = null,
 
     @Column(name = "job_detail_id")
-    val jobDetailId: Long? = null
+    val jobDetailId: Long? = null,
+
+    /**
+     * 미션 라벨명 (비정규화)
+     * mission_label.label_name에서 가져와 저장
+     * join 없이 조회 가능하도록 함
+     */
+    @Column(name = "label_name", length = 100)
+    val labelName: String? = null
 
 ) : BaseEntity()

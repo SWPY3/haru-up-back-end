@@ -17,23 +17,25 @@ interface RankingMissionDailyRepository : JpaRepository<RankingMissionDailyEntit
      * 인기차트 조회 (필터링 + 그룹핑) - 다중 선택 지원
      * 네이티브 쿼리 사용 (PostgreSQL 배열 인덱스 접근)
      * birth_dt로 나이 계산하여 연령대 필터링
+     *
+     * label_name은 ranking_mission_daily에 비정규화되어 있음 (조인 불필요)
      */
     @Query(
         value = """
             SELECT
-                label_name as labelName,
-                interest_full_path as interestFullPath,
+                rmd.label_name as labelName,
+                rmd.interest_full_path as interestFullPath,
                 COUNT(*) as selectionCount
-            FROM ranking_mission_daily
-            WHERE label_name IS NOT NULL
-              AND deleted = false
-              AND ranking_date >= CURRENT_DATE - INTERVAL '30 days'
-              AND (:gender IS NULL OR gender = :gender)
-              AND (:ages IS NULL OR EXTRACT(YEAR FROM AGE(CURRENT_DATE, birth_dt))::int = ANY(CAST(string_to_array(:ages, ',') AS int[])))
-              AND (:jobIds IS NULL OR job_id = ANY(CAST(string_to_array(:jobIds, ',') AS bigint[])))
-              AND (:jobDetailIds IS NULL OR job_detail_id = ANY(CAST(string_to_array(:jobDetailIds, ',') AS bigint[])))
-              AND (:interests IS NULL OR interest_full_path[1] = ANY(string_to_array(:interests, ',')))
-            GROUP BY label_name, interest_full_path
+            FROM ranking_mission_daily rmd
+            WHERE rmd.label_name IS NOT NULL
+              AND rmd.deleted = false
+              AND rmd.ranking_date >= CURRENT_DATE - INTERVAL '30 days'
+              AND (:gender IS NULL OR rmd.gender = :gender)
+              AND (:ages IS NULL OR EXTRACT(YEAR FROM AGE(CURRENT_DATE, rmd.birth_dt))::int = ANY(CAST(string_to_array(:ages, ',') AS int[])))
+              AND (:jobIds IS NULL OR rmd.job_id = ANY(CAST(string_to_array(:jobIds, ',') AS bigint[])))
+              AND (:jobDetailIds IS NULL OR rmd.job_detail_id = ANY(CAST(string_to_array(:jobDetailIds, ',') AS bigint[])))
+              AND (:interests IS NULL OR rmd.interest_full_path[1] = ANY(string_to_array(:interests, ',')))
+            GROUP BY rmd.label_name, rmd.interest_full_path
             ORDER BY COUNT(*) DESC
         """,
         nativeQuery = true

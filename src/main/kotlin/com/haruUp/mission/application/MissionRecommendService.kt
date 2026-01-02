@@ -13,9 +13,7 @@ import com.haruUp.mission.domain.MissionExpCalculator
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
-import com.haruUp.mission.infrastructure.MissionAiClient
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
-import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
 import com.haruUp.missionembedding.service.MissionRecommendationService
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -29,7 +27,6 @@ import java.time.Period
 class MissionRecommendService(
     private val redisTemplate: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
-    private val missionEmbeddingRepository: MissionEmbeddingRepository,
     private val missionRecommendationService: MissionRecommendationService,
     private val memberProfileRepository: MemberProfileRepository,
     private val memberMissionRepository: MemberMissionRepository,
@@ -68,20 +65,17 @@ class MissionRecommendService(
 
         logger.info("미션 조회 - memberId: $memberId, memberInterestId: $memberInterestId, targetDate: $targetDate, 결과: ${memberMissions.size}개")
 
-        // mission_embeddings에서 상세 정보 조회하여 MissionCandidateDto로 변환
-        // directFullPath는 member_interest에서 가져옴
-        val missions = memberMissions.mapNotNull { memberMission ->
-            missionEmbeddingRepository.findById(memberMission.missionId).orElse(null)?.let { embedding ->
-                MissionCandidateDto(
-                    memberMissionId = memberMission.id!!,
-                    missionStatus = memberMission.missionStatus,
-                    content = embedding.missionContent,
-                    directFullPath = directFullPath,
-                    difficulty = embedding.difficulty,
-                    expEarned = memberMission.expEarned,
-                    targetDate = memberMission.targetDate
-                )
-            }
+        // member_mission에서 직접 데이터를 조회하여 MissionCandidateDto로 변환
+        val missions = memberMissions.map { memberMission ->
+            MissionCandidateDto(
+                memberMissionId = memberMission.id!!,
+                missionStatus = memberMission.missionStatus,
+                content = memberMission.missionContent,
+                directFullPath = directFullPath,
+                difficulty = memberMission.difficulty,
+                expEarned = memberMission.expEarned,
+                targetDate = memberMission.targetDate
+            )
         }
 
         return MissionRecommendResult(
@@ -142,33 +136,38 @@ class MissionRecommendService(
         val directFullPath = memberInterest.directFullPath
             ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다. (memberInterestId: $memberInterestId)")
 
-        // 4. 제외할 미션 유효성 검증 및 난이도 조회
+        // 4. READY 상태 미션 조회 및 제외할 미션 유효성 검증
+        val readyMissions = memberMissionRepository.findByMemberIdAndMemberInterestIdAndMissionStatusAndDeletedFalse(
+            memberId = memberId,
+            memberInterestId = memberInterestId,
+            missionStatus = MissionStatus.READY
+        )
+        val readyDifficulties = readyMissions.mapNotNull { it.difficulty }.distinct()
+        logger.info("READY 상태 미션 난이도: $readyDifficulties")
+
         val excludeDifficulties = if (!excludeMemberMissionIds.isNullOrEmpty()) {
-            // 유효성 검증: 현재 memberId, memberInterestId, deleted=false, READY 상태인 미션만 제외 가능
-            val validMemberMissions = memberMissionRepository.findByMemberIdAndMemberInterestIdAndDeletedFalse(
-                memberId = memberId,
-                memberInterestId = memberInterestId
-            ).filter { it.missionStatus == MissionStatus.READY }
-            val validMemberMissionIds = validMemberMissions.map { it.id }
+            // 유효성 검증: READY 상태인 미션만 제외(유지) 가능
+            val validMemberMissionIds = readyMissions.map { it.id }
             val invalidIds = excludeMemberMissionIds.filter { it !in validMemberMissionIds }
             if (invalidIds.isNotEmpty()) {
                 throw IllegalArgumentException("제외할 미션이 유효하지 않습니다. (invalidIds: $invalidIds)")
             }
 
+            // 제외(유지)할 미션의 난이도 조회
             val excludedMemberMissions = memberMissionRepository.findAllById(excludeMemberMissionIds)
-            val missionIds = excludedMemberMissions.map { it.missionId }
-            val difficulties = missionEmbeddingRepository.findAllById(missionIds)
+            val difficulties = excludedMemberMissions
                 .mapNotNull { it.difficulty }
                 .distinct()
-            logger.info("제외할 난이도: $difficulties (member_mission_ids: $excludeMemberMissionIds)")
+            logger.info("제외(유지)할 난이도: $difficulties (member_mission_ids: $excludeMemberMissionIds)")
             difficulties
         } else {
             emptyList()
         }
 
-        // 5. 추천할 난이도 결정 (1~5 중 제외할 난이도를 뺀 나머지)
-        val targetDifficulties = (1..5).filter { it !in excludeDifficulties }
-        logger.info("추천할 난이도: $targetDifficulties")
+        // 5. 추천할 난이도 결정 (전체 난이도 1~5 중 제외 난이도를 뺀 나머지)
+        val allDifficulties = listOf(1, 2, 3, 4, 5)
+        val targetDifficulties = allDifficulties.filter { it !in excludeDifficulties }
+        logger.info("추천할 난이도: $targetDifficulties (제외: $excludeDifficulties)")
 
         if (targetDifficulties.isEmpty()) {
             logger.info("추천할 난이도가 없습니다. 빈 응답 반환")
@@ -184,28 +183,31 @@ class MissionRecommendService(
             )
         }
 
-        // 6. 제외할 미션 ID 수집 (ACTIVE 상태 + Redis 캐시)
-        val activeMissionIds = memberMissionRepository.findMissionIdsByMemberIdAndStatus(
+        // 6. 제외할 미션 내용 수집 (ACTIVE 상태 미션의 내용)
+        val activeMissionContents = memberMissionRepository.findMissionContentsByMemberIdAndStatus(
             memberId = memberId,
             status = MissionStatus.ACTIVE
         )
-        logger.info("ACTIVE 상태 미션 ID: $activeMissionIds")
+        logger.info("ACTIVE 상태 미션 내용: ${activeMissionContents.size}개")
 
-        val cachedMissionIds = getRecommendedMissionIds(
-            memberId = memberId,
-            interestId = memberInterest.interestId
-        )
-        logger.info("Redis 캐시 미션 ID: $cachedMissionIds")
+        // 현재 관심사의 기존 미션 내용도 제외
+        val existingMissionContents = memberMissionRepository
+            .findByMemberIdAndMemberInterestIdAndDeletedFalse(memberId, memberInterestId)
+            .map { it.missionContent }
 
-        val excludeIds = (activeMissionIds + cachedMissionIds).distinct()
-        logger.info("제외할 미션 ID 총합: ${excludeIds.size}개")
+        // Redis 캐시에서 오늘 추천된 미션 내용 조회 (soft delete된 미션도 제외하기 위함)
+        val cachedMissionContents = getRecommendedMissionContents(memberId, memberInterestId)
+        logger.info("Redis 캐시 미션 내용: ${cachedMissionContents.size}개")
+
+        val excludeContents = (activeMissionContents + existingMissionContents + cachedMissionContents).distinct()
+        logger.info("제외할 미션 내용 총합: ${excludeContents.size}개")
 
         // 7. 미션 추천 (targetDifficulties에 해당하는 난이도만)
         val missionDtos = missionRecommendationService.recommendTodayMissions(
             directFullPath = directFullPath,
             memberProfile = missionMemberProfile,
             difficulties = targetDifficulties,
-            excludeIds = excludeIds
+            excludeContents = excludeContents
         )
 
         // 8. 제외된 미션을 제외한 기존 READY 상태 member_mission soft delete
@@ -233,32 +235,27 @@ class MissionRecommendService(
 
         // 9. 추천된 미션들을 member_mission에 READY 상태로 저장
         val savedMemberMissions = missionDtos.mapNotNull { missionDto ->
-            missionDto.mission_id?.let { missionId ->
-                try {
-                    val memberMission = MemberMissionEntity(
-                        memberId = memberId,
-                        missionId = missionId,
-                        memberInterestId = memberInterestId,
-                        missionStatus = MissionStatus.READY,
-                        expEarned = MissionExpCalculator.calculateByDifficulty(missionDto.difficulty)
-                    )
-                    memberMissionRepository.save(memberMission)
-                } catch (e: Exception) {
-                    logger.error("member_mission 저장 실패: missionId=$missionId, 에러: ${e.message}")
-                    null
-                }
+            try {
+                val memberMission = MemberMissionEntity(
+                    memberId = memberId,
+                    memberInterestId = memberInterestId,
+                    missionContent = missionDto.content,
+                    difficulty = missionDto.difficulty,
+                    missionStatus = MissionStatus.READY,
+                    expEarned = MissionExpCalculator.calculateByDifficulty(missionDto.difficulty)
+                )
+                memberMissionRepository.save(memberMission)
+            } catch (e: Exception) {
+                logger.error("member_mission 저장 실패: content=${missionDto.content}, 에러: ${e.message}")
+                null
             }
         }
         logger.info("member_mission READY 상태로 저장 완료: ${savedMemberMissions.size}개")
 
-        // 10. 추천된 미션 ID를 Redis에 저장
-        val recommendedMissionIds = missionDtos.mapNotNull { it.mission_id }
-        if (recommendedMissionIds.isNotEmpty()) {
-            saveRecommendedMissionIds(
-                memberId = memberId,
-                interestId = memberInterest.interestId,
-                missionIds = recommendedMissionIds
-            )
+        // 10. 추천된 미션 내용을 Redis에 저장 (다음 재추천 시 제외하기 위함)
+        val recommendedContents = savedMemberMissions.map { it.missionContent }
+        if (recommendedContents.isNotEmpty()) {
+            saveRecommendedMissionContents(memberId, memberInterestId, recommendedContents)
         }
 
         // 11. reset_mission_count 증가
@@ -266,30 +263,28 @@ class MissionRecommendService(
         memberInterestRepository.save(memberInterest)
         logger.info("reset_mission_count 증가: ${memberInterest.resetMissionCount}")
 
-        // 12. 응답 생성 - savedMemberMissions의 member_mission_id를 매핑
-        val missionIdToMemberMissionId = savedMemberMissions.associateBy({ it.missionId }, { it.id })
-        val missionDtosWithMemberMissionId = missionDtos.map { dto ->
+        // 12. 응답 생성 - 저장된 member_mission 정보를 사용
+        val responseMissionDtos = savedMemberMissions.map { memberMission ->
             com.haruUp.missionembedding.dto.MissionDto(
-                member_mission_id = dto.mission_id?.let { missionIdToMemberMissionId[it] },
-                mission_id = dto.mission_id,
-                content = dto.content,
-                directFullPath = dto.directFullPath,
-                difficulty = dto.difficulty,
-                expEarned = MissionExpCalculator.calculateByDifficulty(dto.difficulty),
-                createdType = dto.createdType
+                member_mission_id = memberMission.id,
+                content = memberMission.missionContent,
+                directFullPath = directFullPath,
+                difficulty = memberMission.difficulty,
+                expEarned = memberMission.expEarned,
+                createdType = "AI"
             )
         }
 
         val missionGroup = com.haruUp.missionembedding.dto.MissionGroupDto(
             memberInterestId = memberInterestId.toInt(),
-            data = missionDtosWithMemberMissionId
+            data = responseMissionDtos
         )
 
-        logger.info("오늘의 미션 재추천 성공: ${missionDtosWithMemberMissionId.size}개")
+        logger.info("오늘의 미션 재추천 성공: ${responseMissionDtos.size}개")
 
         return MissionRecommendationResponse(
             missions = listOf(missionGroup),
-            totalCount = missionDtosWithMemberMissionId.size,
+            totalCount = responseMissionDtos.size,
             retryCount = incrementRetryCount(memberId)
         )
     }
@@ -357,21 +352,21 @@ class MissionRecommendService(
             val directFullPath = memberInterest.directFullPath
                 ?: throw IllegalArgumentException("관심사 경로 정보가 없습니다: memberInterestId=${memberInterest.id}")
 
-            // 오늘 이미 추천된 미션 ID 조회 (제외할 미션)
+            // 오늘 이미 추천된 미션 내용 조회 (제외할 미션)
             val todayMemberMissions = memberMissionRepository.findByMemberIdAndMemberInterestIdAndTargetDate(
                 memberId = memberId,
                 memberInterestId = memberInterest.id!!,
                 targetDate = today
             )
-            val excludeMissionIds = todayMemberMissions.map { it.missionId }
-            logger.info("오늘 추천된 미션 제외 - memberInterestId: ${memberInterest.id}, excludeIds: ${excludeMissionIds.size}개")
+            val excludeContents = todayMemberMissions.map { it.missionContent }
+            logger.info("오늘 추천된 미션 제외 - memberInterestId: ${memberInterest.id}, excludeContents: ${excludeContents.size}개")
 
-            // 미션 추천 (제외할 미션 ID 전달)
+            // 미션 추천 (제외할 미션 내용 전달)
             val missionDtos = kotlinx.coroutines.runBlocking {
                 missionRecommendationService.recommendTodayMissions(
                     directFullPath = directFullPath,
                     memberProfile = missionMemberProfile,
-                    excludeIds = excludeMissionIds
+                    excludeContents = excludeContents
                 )
             }
 
@@ -396,11 +391,13 @@ class MissionRecommendService(
         }
         logger.info("기존 READY 상태 미션 soft delete 완료: ${totalDeletedCount}개")
 
-        // 7. 추천된 미션들을 member_mission에 READY 상태로 저장하고 ID 수집
-        val missionIdToMemberMissionId = mutableMapOf<Long, Long>()
+        // 7. 추천된 미션들을 member_mission에 READY 상태로 저장
+        val savedMissionGroups = mutableListOf<com.haruUp.missionembedding.dto.MissionGroupDto>()
         var savedMissionCount = 0
+
         for (memberInterest in memberInterests) {
             val memberInterestId = memberInterest.id!!.toInt()
+            val directFullPath = memberInterest.directFullPath ?: emptyList()
 
             val missionGroup = missions.find { it.memberInterestId == memberInterestId }
             if (missionGroup == null) {
@@ -408,47 +405,46 @@ class MissionRecommendService(
                 continue
             }
 
+            val savedMissionDtos = mutableListOf<com.haruUp.missionembedding.dto.MissionDto>()
             for (missionDto in missionGroup.data) {
-                val missionId = missionDto.mission_id ?: continue
                 try {
                     val memberMission = MemberMissionEntity(
                         memberId = memberId,
-                        missionId = missionId,
                         memberInterestId = memberInterest.id!!,
+                        missionContent = missionDto.content,
+                        difficulty = missionDto.difficulty,
                         missionStatus = MissionStatus.READY,
                         expEarned = MissionExpCalculator.calculateByDifficulty(missionDto.difficulty)
                     )
                     val saved = memberMissionRepository.save(memberMission)
-                    saved.id?.let { missionIdToMemberMissionId[missionId] = it }
+                    savedMissionDtos.add(
+                        com.haruUp.missionembedding.dto.MissionDto(
+                            member_mission_id = saved.id,
+                            content = saved.missionContent,
+                            directFullPath = directFullPath,
+                            difficulty = saved.difficulty,
+                            expEarned = saved.expEarned,
+                            createdType = "AI"
+                        )
+                    )
                     savedMissionCount++
                 } catch (e: Exception) {
-                    logger.error("member_mission 저장 실패: missionId=$missionId, 에러: ${e.message}")
+                    logger.error("member_mission 저장 실패: content=${missionDto.content}, 에러: ${e.message}")
                 }
             }
+
+            savedMissionGroups.add(
+                com.haruUp.missionembedding.dto.MissionGroupDto(
+                    memberInterestId = memberInterestId,
+                    data = savedMissionDtos
+                )
+            )
         }
         logger.info("member_mission READY 상태로 저장 완료: ${savedMissionCount}개")
 
-        // 8. 응답에 member_mission_id 매핑
-        val missionsWithMemberMissionId = missions.map { group ->
-            com.haruUp.missionembedding.dto.MissionGroupDto(
-                memberInterestId = group.memberInterestId,
-                data = group.data.map { dto ->
-                    com.haruUp.missionembedding.dto.MissionDto(
-                        member_mission_id = dto.mission_id?.let { missionIdToMemberMissionId[it] },
-                        mission_id = dto.mission_id,
-                        content = dto.content,
-                        directFullPath = dto.directFullPath,
-                        difficulty = dto.difficulty,
-                        expEarned = MissionExpCalculator.calculateByDifficulty(dto.difficulty),
-                        createdType = dto.createdType
-                    )
-                }
-            )
-        }
-
         return MissionRecommendationResponse(
-            missions = missionsWithMemberMissionId,
-            totalCount = missionsWithMemberMissionId.sumOf { it.data.size }
+            missions = savedMissionGroups,
+            totalCount = savedMissionGroups.sumOf { it.data.size }
         )
     }
 
@@ -468,48 +464,48 @@ class MissionRecommendService(
     }
 
     /**
-     * 추천된 미션 ID 목록 저장
+     * 추천된 미션 내용 목록 저장
      *
      * @param memberId 사용자 ID
-     * @param interestId 관심사 ID
-     * @param missionIds 추천된 미션 ID 목록
+     * @param memberInterestId 멤버 관심사 ID
+     * @param contents 추천된 미션 내용 목록
      */
-    fun saveRecommendedMissionIds(memberId: Long, interestId: Long, missionIds: List<Long>) {
-        val key = MissionRecommendRedisKey.retry(memberId, interestId, LocalDate.now())
+    fun saveRecommendedMissionContents(memberId: Long, memberInterestId: Long, contents: List<String>) {
+        val key = MissionRecommendRedisKey.recommendedContents(memberId, memberInterestId, LocalDate.now())
         try {
             // 기존 값에 추가
-            val existingIds = getRecommendedMissionIds(memberId, interestId)
-            val allIds = (existingIds + missionIds).distinct()
+            val existingContents = getRecommendedMissionContents(memberId, memberInterestId)
+            val allContents = (existingContents + contents).distinct()
 
             // Set으로 저장
             redisTemplate.delete(key)
-            if (allIds.isNotEmpty()) {
-                redisTemplate.opsForSet().add(key, *allIds.map { it.toString() }.toTypedArray())
+            if (allContents.isNotEmpty()) {
+                redisTemplate.opsForSet().add(key, *allContents.toTypedArray())
                 redisTemplate.expire(key, TODAY_RETRY_TTL)
             }
 
-            logger.info("추천 미션 ID 캐시 저장 - key: $key, ids: $allIds")
+            logger.info("추천 미션 내용 캐시 저장 - key: $key, count: ${allContents.size}")
         } catch (e: Exception) {
-            logger.error("추천 미션 ID 캐시 저장 실패 - key: $key, error: ${e.message}")
+            logger.error("추천 미션 내용 캐시 저장 실패 - key: $key, error: ${e.message}")
         }
     }
 
     /**
-     * 추천된 미션 ID 목록 조회
+     * 추천된 미션 내용 목록 조회
      *
      * @param memberId 사용자 ID
-     * @param interestId 관심사 ID
-     * @return 이전에 추천된 미션 ID 목록
+     * @param memberInterestId 멤버 관심사 ID
+     * @return 이전에 추천된 미션 내용 목록
      */
-    fun getRecommendedMissionIds(memberId: Long, interestId: Long): List<Long> {
-        val key = MissionRecommendRedisKey.retry(memberId, interestId, LocalDate.now())
+    fun getRecommendedMissionContents(memberId: Long, memberInterestId: Long): List<String> {
+        val key = MissionRecommendRedisKey.recommendedContents(memberId, memberInterestId, LocalDate.now())
         return try {
             val members = redisTemplate.opsForSet().members(key)
-            val ids = members?.mapNotNull { it.toString().toLongOrNull() } ?: emptyList()
-            logger.info("추천 미션 ID 캐시 조회 - key: $key, ids: $ids")
-            ids
+            val contents = members?.map { it.toString() } ?: emptyList()
+            logger.info("추천 미션 내용 캐시 조회 - key: $key, count: ${contents.size}")
+            contents
         } catch (e: Exception) {
-            logger.error("추천 미션 ID 캐시 조회 실패 - key: $key, error: ${e.message}")
+            logger.error("추천 미션 내용 캐시 조회 실패 - key: $key, error: ${e.message}")
             emptyList()
         }
     }
@@ -575,9 +571,9 @@ class MissionRecommendService(
 
 
 object MissionRecommendRedisKey {
-    fun retry(memberId: Long, memberInterestId: Long, date: LocalDate) =
-        "today-mission:$memberId:$memberInterestId:$date"
-
     fun retryCount(memberId: Long) =
         "mission:retry:count:$memberId"
+
+    fun recommendedContents(memberId: Long, memberInterestId: Long, date: LocalDate) =
+        "today-mission:contents:$memberId:$memberInterestId:$date"
 }

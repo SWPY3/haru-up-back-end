@@ -60,9 +60,6 @@ data class MissionDto(
     @Schema(description = "member_mission 테이블 ID", example = "123")
     val member_mission_id: Long? = null,
 
-    @Schema(description = "mission_embeddings 테이블 ID", example = "123")
-    val mission_id: Long? = null,
-
     @Schema(description = "미션 내용", example = "주 3회 가슴 운동 루틴 완수하기")
     val content: String,
 
@@ -79,15 +76,11 @@ data class MissionDto(
     val expEarned: Int = 0,
 
     @Schema(
-        description = "생성 타입 (EMBEDDING: RAG 조회, AI: LLM 생성)",
-        example = "EMBEDDING",
-        allowableValues = ["EMBEDDING", "AI"]
+        description = "생성 타입 (AI: LLM 생성)",
+        example = "AI",
+        allowableValues = ["AI"]
     )
-    val createdType: String? = null,
-
-    @Schema(description = "관련 관심사 (deprecated)", hidden = true)
-    @Deprecated("Use directFullPath instead")
-    val relatedInterest: String? = null
+    val createdType: String? = null
 )
 
 /**
