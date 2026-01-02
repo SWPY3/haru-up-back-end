@@ -8,9 +8,6 @@ import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
-import com.haruUp.missionembedding.repository.MissionEmbeddingRepository
-import com.haruUp.missionembedding.service.MissionEmbeddingService
-import kotlinx.coroutines.runBlocking
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,8 +17,6 @@ import java.time.LocalDateTime
 @Service
 class MemberMissionService(
     private val memberMissionRepository: MemberMissionRepository,
-    private val missionEmbeddingRepository: MissionEmbeddingRepository,
-    private val missionEmbeddingService: MissionEmbeddingService,
     private val memberInterestRepository: MemberInterestJpaRepository,
     private val interestEmbeddingRepository: InterestEmbeddingJpaRepository
 ) {
@@ -29,7 +24,7 @@ class MemberMissionService(
 
     /**
      * 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
-     * - mission_embeddings에서 mission_content, difficulty 조회
+     * - member_mission에서 mission_content, difficulty 직접 조회
      * - member_interest에서 direct_full_path 조회
      * - interest_embeddings에서 full_path 조회
      *
@@ -59,9 +54,6 @@ class MemberMissionService(
         }
 
         return missions.map { mission ->
-            // mission_embeddings에서 mission_content 조회
-            val missionEmbedding = missionEmbeddingRepository.findByIdOrNull(mission.missionId)
-
             // member_interest에서 direct_full_path 조회
             val memberInterest = memberInterestRepository.findByIdOrNull(mission.memberInterestId)
 
@@ -70,9 +62,8 @@ class MemberMissionService(
                 interestEmbeddingRepository.findByIdOrNull(it.interestId)
             }
 
+            // entity에서 직접 데이터 조회
             mission.toDto(
-                missionContent = missionEmbedding?.missionContent,
-                difficulty = missionEmbedding?.difficulty,
                 fullPath = interestEmbedding?.fullPath,
                 directFullPath = memberInterest?.directFullPath
             )
@@ -88,11 +79,14 @@ class MemberMissionService(
         val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
             ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
 
-        // 새로운 row 생성 (기존 row는 그대로 유지, expEarned 유지)
+        // 새로운 row 생성 (기존 row는 그대로 유지, 미션 내용과 난이도 복사)
         val postponedMission = MemberMissionEntity(
             memberId = stored.memberId,
-            missionId = stored.missionId,
             memberInterestId = stored.memberInterestId,
+            missionContent = stored.missionContent,
+            difficulty = stored.difficulty,
+            labelName = stored.labelName,
+            embedding = stored.embedding,
             missionStatus = MissionStatus.POSTPONED,
             expEarned = stored.expEarned,
             targetDate = LocalDate.now().plusDays(1)
@@ -149,12 +143,6 @@ class MemberMissionService(
                 throw IllegalArgumentException("본인의 미션만 선택할 수 있습니다: memberMissionId=$memberMissionId")
             }
 
-            // missionId로 미션 존재 확인
-            val missionId = memberMission.missionId
-            if (!missionEmbeddingRepository.existsById(missionId)) {
-                throw IllegalArgumentException("missionId에 해당하는 미션을 찾을 수 없습니다: missionId=$missionId")
-            }
-
             // missionStatus를 ACTIVE로, targetDate를 오늘로, isSelected를 true로 변경
             memberMission.missionStatus = MissionStatus.ACTIVE
             memberMission.targetDate = today
@@ -163,7 +151,7 @@ class MemberMissionService(
 
             val saved = memberMissionRepository.save(memberMission)
             saved.id?.let { updatedMemberMissionIds.add(it) }
-            logger.info("미션 활성화 완료: memberId=$memberId, memberMissionId=$memberMissionId, missionId=$missionId")
+            logger.info("미션 활성화 완료: memberId=$memberId, memberMissionId=$memberMissionId")
         }
 
         logger.info("미션 선택 완료 - 업데이트된 개수: ${updatedMemberMissionIds.size}")

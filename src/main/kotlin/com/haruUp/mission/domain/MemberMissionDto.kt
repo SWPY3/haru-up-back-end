@@ -1,10 +1,7 @@
 package com.haruUp.mission.domain
 
-import com.haruUp.global.common.BaseEntity
-import com.haruUp.missionembedding.dto.SelectedMissionDto
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Schema(description = "멤버 미션 정보")
 data class MemberMissionDto (
@@ -13,9 +10,6 @@ data class MemberMissionDto (
 
     @Schema(description = "멤버 ID", example = "1")
     val memberId: Long,
-
-    @Schema(description = "미션 ID (mission_embeddings.id)", example = "100")
-    val missionId: Long,
 
     @Schema(description = "멤버 관심사 ID", example = "1")
     val memberInterestId: Long,
@@ -29,10 +23,10 @@ data class MemberMissionDto (
     @Schema(description = "목표 날짜", example = "2025-01-01")
     val targetDate: LocalDate = LocalDate.now(),
 
-    @Schema(description = "미션 내용 (mission_embeddings.mission_content)", example = "오늘 30분 운동하기")
+    @Schema(description = "미션 내용", example = "오늘 30분 운동하기")
     val missionContent: String? = null,
 
-    @Schema(description = "미션 난이도 (mission_embeddings.difficulty)", example = "3")
+    @Schema(description = "미션 난이도 (1~5)", example = "3")
     val difficulty: Int? = null,
 
     @Schema(description = "관심사 전체 경로 (interest_embeddings.full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")

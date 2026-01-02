@@ -17,53 +17,65 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     /** * 사용자의 삭제되지 않은 미션 조회 */
     fun findByMemberIdAndDeletedFalse(memberId: Long): List<MemberMissionEntity>
 
-    /* 오늘의 추천 미션 조회 - mission_embeddings.difficulty 기준 */
+    /* 오늘의 추천 미션 조회 - member_mission.difficulty 기준 */
     @Query(
         value = """
             SELECT mm.*
             FROM member_mission mm
-            JOIN mission_embeddings me ON mm.mission_id = me.id
             WHERE mm.id IN (
                 SELECT id FROM (
                     SELECT
                         m.id,
                         ROW_NUMBER() OVER (
-                            PARTITION BY e.difficulty
+                            PARTITION BY m.difficulty
                             ORDER BY
-                                CASE WHEN m.create_at = CURRENT_DATE THEN 0 ELSE 1 END
+                                CASE WHEN m.target_date = CURRENT_DATE THEN 0 ELSE 1 END
                         ) AS rn
                     FROM member_mission m
-                    JOIN mission_embeddings e ON m.mission_id = e.id
                     WHERE m.member_id = :memberId
                       AND m.mission_status <> 'COMPLETED'
-                      AND (
-                            (m.create_at = CURRENT_DATE)
-                            OR
-                            (m.mission_status = 'READY' AND m.created_at = CURRENT_DATE AND m.create_at IS NULL)
-                          )
+                      AND m.deleted = false
+                      AND m.target_date = CURRENT_DATE
                 ) sub
                 WHERE sub.rn = 1
             )
-            ORDER BY me.difficulty
+            ORDER BY mm.difficulty
         """,
         nativeQuery = true
     )
     fun getTodayMissionsByMemberId(memberId: Long): List<MemberMissionEntity>
 
     /**
-     * 사용자의 ACTIVE 상태 미션 ID 목록 조회
-     * 오늘의 미션 추천 시 제외할 미션 조회에 사용
+     * 사용자의 특정 상태 미션 난이도 목록 조회
+     * 오늘의 미션 추천 시 제외할 난이도 조회에 사용
      */
     @Query("""
-    SELECT m.missionId
+    SELECT m.difficulty
     FROM MemberMissionEntity m
     WHERE m.memberId = :memberId
       AND m.missionStatus = :status
+      AND m.difficulty IS NOT NULL
     """)
-    fun findMissionIdsByMemberIdAndStatus(
+    fun findDifficultiesByMemberIdAndStatus(
         memberId: Long,
         status: MissionStatus
-    ): List<Long>
+    ): List<Int>
+
+    /**
+     * 사용자의 특정 상태 미션 내용 목록 조회
+     * 오늘의 미션 추천 시 제외할 미션 내용 조회에 사용
+     */
+    @Query("""
+    SELECT m.missionContent
+    FROM MemberMissionEntity m
+    WHERE m.memberId = :memberId
+      AND m.missionStatus = :status
+      AND m.deleted = false
+    """)
+    fun findMissionContentsByMemberIdAndStatus(
+        memberId: Long,
+        status: MissionStatus
+    ): List<String>
 
     /**
      * 특정 관심사의 READY 상태 미션을 soft delete 처리
@@ -132,21 +144,22 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     ): List<MemberMissionEntity>
 
     /**
-     * memberId, memberInterestId, missionId로 미션 조회 (deleted=false)
-     */
-    fun findByMemberIdAndMemberInterestIdAndMissionIdAndDeletedFalse(
-        memberId: Long,
-        memberInterestId: Long,
-        missionId: Long
-    ): MemberMissionEntity?
-
-    /**
      * memberId, memberInterestId로 삭제되지 않은 미션 조회
      * 제외할 미션 유효성 검증에 사용
      */
     fun findByMemberIdAndMemberInterestIdAndDeletedFalse(
         memberId: Long,
         memberInterestId: Long
+    ): List<MemberMissionEntity>
+
+    /**
+     * memberId, memberInterestId로 삭제되지 않은 READY 상태 미션만 조회
+     * 재추천 시 제외할 미션 유효성 검증에 사용
+     */
+    fun findByMemberIdAndMemberInterestIdAndMissionStatusAndDeletedFalse(
+        memberId: Long,
+        memberInterestId: Long,
+        missionStatus: MissionStatus
     ): List<MemberMissionEntity>
 
     /**
@@ -221,4 +234,78 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
       AND m.deleted = false
     """)
     fun findSelectedMissionsByTargetDate(targetDate: LocalDate): List<MemberMissionEntity>
+
+    /**
+     * 라벨명과 임베딩 업데이트 (랭킹 배치용)
+     * Native Query로 vector 타입 처리
+     */
+    @Transactional
+    @Modifying
+    @Query(
+        value = """
+            UPDATE member_mission
+            SET label_name = :labelName,
+                embedding = CAST(:embedding AS vector),
+                updated_at = :updatedAt
+            WHERE id = :id
+        """,
+        nativeQuery = true
+    )
+    fun updateLabelNameAndEmbedding(
+        id: Long,
+        labelName: String,
+        embedding: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    /**
+     * 라벨명만 업데이트 (임베딩 없이)
+     */
+    @Transactional
+    @Modifying
+    @Query("""
+    UPDATE MemberMissionEntity m
+    SET m.labelName = :labelName, m.updatedAt = :updatedAt
+    WHERE m.id = :id
+    """)
+    fun updateLabelName(
+        id: Long,
+        labelName: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    /**
+     * 유사 미션 검색 (코사인 유사도)
+     * threshold 이하의 거리를 가진 미션 중 가장 유사한 것 반환
+     *
+     * pgvector 연산자: <=> (코사인 거리, 0에 가까울수록 유사)
+     */
+    @Query(
+        value = """
+            SELECT * FROM member_mission
+            WHERE embedding IS NOT NULL
+              AND label_name IS NOT NULL
+              AND deleted = false
+              AND (embedding <=> CAST(:embedding AS vector)) < :threshold
+            ORDER BY embedding <=> CAST(:embedding AS vector)
+            LIMIT 1
+        """,
+        nativeQuery = true
+    )
+    fun findSimilarMission(
+        embedding: String,
+        threshold: Double
+    ): MemberMissionEntity?
+
+    /**
+     * 라벨이 없는 선택된 미션 조회 (배치용)
+     */
+    @Query("""
+    SELECT m FROM MemberMissionEntity m
+    WHERE m.isSelected = true
+      AND m.targetDate = :targetDate
+      AND m.labelName IS NULL
+      AND m.deleted = false
+    """)
+    fun findSelectedMissionsWithoutLabel(targetDate: LocalDate): List<MemberMissionEntity>
 }
