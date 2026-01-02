@@ -6,6 +6,7 @@ import com.haruUp.member.application.useCase.MemberAccountUseCase
 import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -148,15 +149,31 @@ class MemberAccountController(
         return ApiResponse.success("회원 탈퇴가 성공적으로 처리되었습니다.")
     }
 
+    @Operation(
+        summary = "홈 화면 회원 정보 조회",
+        description = """
+        로그인한 회원의 홈 화면에 표시될 정보를 조회합니다.
+
+        - 누적 경험치(totalExp)
+        - 현재 레벨 내 경험치(currentExp)
+        - 레벨 번호(levelNumber)
+        - 닉네임(nickname)
+        - 선택한 관심사 경로 목록(interests)
+
+        JWT 인증이 필요하며, 인증된 회원의 정보만 반환합니다.
+    """
+    )
     @PostMapping("/home/memberInfo")
     fun homeMemberInfo(
         @AuthenticationPrincipal principal: MemberPrincipal,
-    ) : ApiResponse<List<HomeMemberInfoDto>> {
-        val homeMemberInfo = memberAccountUseCase.homeMemberInfo(principal.id);
+    ): ApiResponse<List<HomeMemberInfoDto>> {
+
+        val homeMemberInfo =
+            memberAccountUseCase.homeMemberInfo(principal.id)
 
         return ApiResponse.success(homeMemberInfo)
-
     }
+
 
     // =====================
     // Request DTO
