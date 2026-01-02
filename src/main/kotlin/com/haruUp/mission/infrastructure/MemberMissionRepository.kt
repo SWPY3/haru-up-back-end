@@ -1,5 +1,6 @@
 package com.haruUp.mission.infrastructure
 
+import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MissionStatus
 import org.springframework.data.jpa.repository.JpaRepository
@@ -308,4 +309,24 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
       AND m.deleted = false
     """)
     fun findSelectedMissionsWithoutLabel(targetDate: LocalDate): List<MemberMissionEntity>
+
+    @Query("""
+        SELECT 
+            m.targetDate AS targetDate,
+            COUNT(m.id) AS completedCount
+        FROM MemberMissionEntity m
+        WHERE m.memberId = :memberId
+          AND m.missionStatus = 'COMPLETED'
+          AND m.deleted = false
+          AND m.targetDate >= :targetStartDate
+          AND m.targetDate <= :targetEndDate
+        GROUP BY m.targetDate
+        ORDER BY m.targetDate
+    """)
+    fun findDailyCompletedMissionCount(
+        memberId: Long,
+        targetStartDate: LocalDate,
+        targetEndDate: LocalDate
+    ): List<DailyMissionCountDto>
+
 }

@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import com.haruUp.interest.repository.MemberInterestJpaRepository
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.mission.domain.DailyCompletionStatus
+import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
@@ -215,5 +216,18 @@ class MemberMissionService(
             currentDate = currentDate.plusDays(1)
         }
         return result
+    }
+
+    fun findDailyCompletedMissionCount(
+        memberId: Long,
+        targetStartDate: LocalDate,
+        targetEndDate: LocalDate,
+    ) : List<DailyMissionCountDto>  {
+
+        val continueMissionMonth =
+            memberMissionRepository.findDailyCompletedMissionCount(memberId, targetStartDate, targetEndDate)
+
+        return continueMissionMonth
+
     }
 }

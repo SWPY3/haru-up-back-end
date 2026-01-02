@@ -6,6 +6,7 @@ import com.haruUp.global.ratelimit.RateLimit
 import com.haruUp.mission.application.MemberMissionUseCase
 import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.DailyCompletionStatus
+import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
@@ -18,6 +19,7 @@ import com.haruUp.mission.domain.MissionStatusChangeItem
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -201,6 +203,7 @@ class MemberMissionController(
             ```
         """
     )
+
     @PutMapping("/status")
     fun changeMissionStatus(
         @AuthenticationPrincipal principal: MemberPrincipal,
@@ -219,7 +222,6 @@ class MemberMissionController(
             ApiResponse(success = false, data = null, errorMessage = "서버 오류가 발생했습니다.")
         }
     }
-
 
     /**
      * 미션 선택 API
@@ -559,5 +561,35 @@ class MemberMissionController(
                 )
             )
         }
+    }
+
+
+    @Operation(
+        summary = "월간 미션 수행 현황 조회",
+        description = """
+        지정한 월(YYYY-MM)에 대해
+        사용자가 날짜별로 완료한 미션 개수를 조회합니다.
+
+        - 미션 상태가 COMPLETED 인 항목만 집계됩니다.
+        - 완료 미션이 없는 날짜는 결과에 포함되지 않습니다.
+        - 결과는 날짜 오름차순으로 반환됩니다.
+    """
+    )
+    @PostMapping("/continue/mission/month/{targetMonth}")
+    fun continueMissionMonth(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "조회할 대상 월 (YYYY-MM 형식)",
+            example = "2025-01",
+            required = true
+        )
+        @PathVariable
+        targetMonth: String
+    ): ApiResponse<List<DailyMissionCountDto>> {
+
+        val result =
+            memberMissionUseCase.continueMissionMonth(principal.id, targetMonth)
+
+        return ApiResponse.success(result)
     }
 }
