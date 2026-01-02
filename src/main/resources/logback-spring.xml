@@ -63,6 +63,19 @@
         </format>
     </appender>
 
+    <!-- Batch 로그용 Loki Appender (JSON 형식) -->
+    <appender name="LOKI_BATCH" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>http://${LOKI_HOST:-localhost}:3100/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>app=haruUp,host=${HOSTNAME:-localhost},type=batch,level=%level</pattern>
+            </label>
+            <message class="com.github.loki4j.logback.JsonLayout"/>
+        </format>
+    </appender>
+
     <!-- API 로깅 (Controller, Filter) -->
     <logger name="com.haruUp" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
@@ -111,6 +124,18 @@
     <logger name="reactor.netty.http.client" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="LOKI_HTTP"/>
+    </logger>
+
+    <!-- Spring Batch 로깅 -->
+    <logger name="org.springframework.batch" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI_BATCH"/>
+    </logger>
+
+    <!-- 커스텀 Batch 로깅 (RankingBatch 등) -->
+    <logger name="com.haruUp.ranking.batch" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI_BATCH"/>
     </logger>
 
     <!-- Loki4j 디버그 -->
