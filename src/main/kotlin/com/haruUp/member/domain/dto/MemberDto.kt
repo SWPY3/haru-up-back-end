@@ -1,5 +1,6 @@
 package com.haruUp.member.domain.dto
 
+import com.haruUp.global.common.BaseEntity
 import com.haruUp.member.domain.type.LoginType
 import com.haruUp.member.domain.Member
 import com.haruUp.member.domain.type.MemberStatus
@@ -34,9 +35,9 @@ class MemberDto(
 
     var accessToken : String ?= "",
 
-    var refreshToken : String ?= ""
+    var refreshToken : String ?= "",
 
-) {
+) : BaseEntity() {
 
     fun toEntity(): Member =
 

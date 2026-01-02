@@ -3,6 +3,7 @@ package com.haruUp.member.controller
 import com.haruUp.global.common.ApiResponse
 import com.haruUp.global.security.MemberPrincipal
 import com.haruUp.member.application.useCase.MemberAccountUseCase
+import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -147,6 +148,16 @@ class MemberAccountController(
         return ApiResponse.success("회원 탈퇴가 성공적으로 처리되었습니다.")
     }
 
+    @PostMapping("/home/memberInfo")
+    fun homeMemberInfo(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+    ) : ApiResponse<List<HomeMemberInfoDto>> {
+        val homeMemberInfo = memberAccountUseCase.homeMemberInfo(principal.id);
+
+        return ApiResponse.success(homeMemberInfo)
+
+    }
+
     // =====================
     // Request DTO
     // =====================
@@ -166,5 +177,6 @@ class MemberAccountController(
     data class WithdrawRequest(
         val password: String
     )
+
 }
 

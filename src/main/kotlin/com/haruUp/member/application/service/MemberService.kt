@@ -2,6 +2,7 @@ package com.haruUp.member.application.service
 
 import com.haruUp.member.domain.type.LoginType
 import com.haruUp.member.domain.Member
+import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.infrastructure.MemberRepository
 import jakarta.transaction.Transactional
@@ -58,6 +59,15 @@ class MemberService(
         memberRepository.save(saved)
     }
 
+    fun homeMemberInfo(memberId: Long) : List<HomeMemberInfoDto>  {
+        val homeMemberInfo = memberRepository.homeMemberInfo(memberId);
+
+        if(homeMemberInfo != null) {
+            return homeMemberInfo
+        } else{
+            throw IllegalArgumentException("회원의 정보가 존재하지 않습니다")
+        }
+    }
 
 
 }
