@@ -11,6 +11,7 @@ import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.DailyMissionCountDto
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -40,6 +41,7 @@ class MemberMissionUseCase(
     /**
      * 미션 상태 벌크 변경 (선택 / 완료 / 미루기 / 실패)
      */
+    @Transactional
     fun missionChangeStatus(request: MissionStatusChangeRequest): MemberCharacterDto? {
         var lastCharacterDto: MemberCharacterDto? = null
 
