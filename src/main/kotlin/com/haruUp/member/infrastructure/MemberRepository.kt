@@ -25,6 +25,7 @@ interface MemberRepository : JpaRepository<Member, Long> {
     SELECT new com.haruUp.member.domain.dto.HomeMemberInfoDto(
         mc.totalExp,
         mc.currentExp,
+        lv.maxExp,
         lv.levelNumber,
         mp.nickname
     )
