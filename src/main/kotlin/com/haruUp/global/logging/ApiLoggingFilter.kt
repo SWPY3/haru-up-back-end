@@ -72,6 +72,7 @@ class ApiLoggingFilter(
             "uri" to request.requestURI,
             "query" to (request.queryString ?: ""),
             "clientIp" to getClientIp(request),
+            "headers" to getRequestHeaders(request),
             "status" to response.status,
             "duration" to duration,
             "requestBody" to parseJsonOrTruncate(getRequestBody(request)),
@@ -94,6 +95,14 @@ class ApiLoggingFilter(
         } else {
             request.remoteAddr
         }
+    }
+
+    private fun getRequestHeaders(request: HttpServletRequest): Map<String, String> {
+        val headers = mutableMapOf<String, String>()
+        request.headerNames?.toList()?.forEach { headerName ->
+            headers[headerName] = request.getHeader(headerName)
+        }
+        return headers
     }
 
     private fun getRequestBody(request: ContentCachingRequestWrapper): String {
