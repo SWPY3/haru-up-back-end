@@ -26,6 +26,7 @@ interface MemberRepository : JpaRepository<Member, Long> {
         mc.id,
         mc.totalExp,
         mc.currentExp,
+        lv.maxExp,
         lv.levelNumber,
         mp.nickname
     )

@@ -7,6 +7,7 @@ data class HomeMemberInfoDto(
     val characterId: Long,
     val totalExp: Long,
     val currentExp: Long,
+    val maxExp: Int?,
     val levelNumber: Int,
     val nickname: String,
     val interests: List<List<String>?> = emptyList()
@@ -16,12 +17,14 @@ data class HomeMemberInfoDto(
         characterId : Long,
         totalExp: Long,
         currentExp: Long,
+        maxExp: Int?,
         levelNumber: Int,
         nickname: String
     ) : this(
         characterId = characterId,
         totalExp = totalExp,
         currentExp = currentExp,
+        maxExp = maxExp,
         levelNumber = levelNumber,
         nickname = nickname,
         interests = emptyList()
