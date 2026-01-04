@@ -210,17 +210,9 @@ class MemberMissionController(
         @RequestBody request: MissionStatusChangeRequest
     ): ApiResponse<Any> {
 
-        return try {
-            memberMissionUseCase.missionChangeStatus(request)
-            ApiResponse.success("OK")
-        } catch (e: IllegalArgumentException) {
-            ApiResponse(success = false, data = null, errorMessage = e.message ?: "잘못된 요청입니다.")
-        } catch (e: IllegalStateException) {
-            ApiResponse(success = false, data = null, errorMessage = e.message ?: "처리할 수 없는 상태입니다.")
-        } catch (e: Exception) {
-            logger.error("미션 상태 변경 실패: ${e.message}", e)
-            ApiResponse(success = false, data = null, errorMessage = "서버 오류가 발생했습니다.")
-        }
+        memberMissionUseCase.missionChangeStatus(request)
+
+        return ApiResponse.success("OK")
     }
 
     /**
@@ -257,50 +249,19 @@ class MemberMissionController(
         )
         @RequestBody request: MemberMissionSelectionRequest
     ): ResponseEntity<ApiResponse<List<Long>>> {
-        logger.info("미션 선택 요청 - 사용자: ${principal.id}, 미션 개수: ${request.memberMissionIds.size}")
+        val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request.memberMissionIds)
 
-        return try {
-            val savedMissionIds = missionRecommendUseCase.memberMissionSelection(principal.id, request.memberMissionIds)
-            logger.info("미션 선택 완료 - 저장된 개수: ${savedMissionIds.size}")
-            ResponseEntity.ok(ApiResponse.success(savedMissionIds))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(
-                ApiResponse(
-                    success = false,
-                    data = emptyList(),
-                    errorMessage = e.message ?: "유효성 검증 실패"
-                )
-            )
-        } catch (e: IllegalStateException) {
-            logger.error("처리 실패: ${e.message}")
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = emptyList(),
-                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다"
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("미션 선택 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = emptyList(),
-                    errorMessage = "서버 오류가 발생했습니다"
-                )
-            )
-        }
+        return ResponseEntity.ok(ApiResponse.success(savedMissionIds))
     }
 
     /**
-     * 오늘의 미션 추천 API
+     * 오늘의 미션 추천 조회 API
      *
      * @param request 오늘의 미션 추천 요청 (memberInterestId)
      * @return 추천된 미션 목록
      */
     @Operation(
-        summary = "오늘의 미션 추천",
+        summary = "오늘의 미션 추천 조회",
         description = """
             오늘의 미션 추천 정보를 조회합니다.
 
@@ -327,41 +288,12 @@ class MemberMissionController(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         targetDate: LocalDate?
     ): ResponseEntity<ApiResponse<MissionRecommendResult>> = runBlocking {
-        try {
-            val response = missionRecommendUseCase.recommendToday(
-                memberId = principal.id,
-                memberInterestId = memberInterestId,
-                targetDate = targetDate ?: LocalDate.now()
-            )
-            ResponseEntity.ok(ApiResponse.success(response))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "잘못된 요청입니다."
-                )
-            )
-        } catch (e: IllegalStateException) {
-            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("오늘의 미션 추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = "서버 오류가 발생했습니다."
-                )
-            )
-        }
+        val response = missionRecommendUseCase.recommendToday(
+            memberId = principal.id,
+            memberInterestId = memberInterestId,
+            targetDate = targetDate ?: LocalDate.now()
+        )
+        ResponseEntity.ok(ApiResponse.success(response))
     }
 
     /**
@@ -405,41 +337,12 @@ class MemberMissionController(
         )
         @RequestBody request: TodayMissionRetryRequest
     ): ResponseEntity<ApiResponse<MissionRecommendationResponse>> = runBlocking {
-        try {
-            val response = missionRecommendUseCase.retryRecommend(
-                memberId = principal.id,
-                memberInterestId = request.memberInterestId,
-                excludeMemberMissionIds = request.excludeMemberMissionIds
-            )
-            ResponseEntity.ok(ApiResponse.success(response))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "잘못된 요청입니다."
-                )
-            )
-        } catch (e: IllegalStateException) {
-            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("오늘의 미션 재추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = "서버 오류가 발생했습니다."
-                )
-            )
-        }
+        val response = missionRecommendUseCase.retryRecommend(
+            memberId = principal.id,
+            memberInterestId = request.memberInterestId,
+            excludeMemberMissionIds = request.excludeMemberMissionIds
+        )
+        ResponseEntity.ok(ApiResponse.success(response))
     }
 
     /**
@@ -470,43 +373,12 @@ class MemberMissionController(
         )
         @PathVariable memberInterestId: Long
     ): ResponseEntity<ApiResponse<Int>> {
-        logger.info("미션 리셋 요청 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
+        val deletedCount = memberMissionUseCase.resetMissionsByMemberInterestId(
+            memberId = principal.id,
+            memberInterestId = memberInterestId
+        )
 
-        return try {
-            val deletedCount = memberMissionUseCase.resetMissionsByMemberInterestId(
-                memberId = principal.id,
-                memberInterestId = memberInterestId
-            )
-            logger.info("미션 리셋 완료 - 삭제된 개수: $deletedCount")
-            ResponseEntity.ok(ApiResponse.success(deletedCount))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "잘못된 요청입니다."
-                )
-            )
-        } catch (e: IllegalStateException) {
-            logger.error("미션 리셋 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("미션 리셋 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = "서버 오류가 발생했습니다."
-                )
-            )
-        }
+        return ResponseEntity.ok(ApiResponse.success(deletedCount))
     }
 
     /**
@@ -527,40 +399,9 @@ class MemberMissionController(
     fun resetRetryCount(
         @AuthenticationPrincipal principal: MemberPrincipal
     ): ResponseEntity<ApiResponse<Boolean>> {
-        logger.info("재추천 횟수 초기화 요청 - memberId: ${principal.id}")
+        val result = missionRecommendUseCase.resetRetryCount(principal.id)
 
-        return try {
-            val result = missionRecommendUseCase.resetRetryCount(principal.id)
-            logger.info("재추천 횟수 초기화 완료 - memberId: ${principal.id}, result: $result")
-            ResponseEntity.ok(ApiResponse.success(result))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "잘못된 요청입니다."
-                )
-            )
-        } catch (e: IllegalStateException) {
-            logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = e.message ?: "처리 중 오류가 발생했습니다."
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("재추천 횟수 초기화 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(
-                ApiResponse(
-                    success = false,
-                    data = null,
-                    errorMessage = "서버 오류가 발생했습니다."
-                )
-            )
-        }
+        return ResponseEntity.ok(ApiResponse.success(result))
     }
 
 
