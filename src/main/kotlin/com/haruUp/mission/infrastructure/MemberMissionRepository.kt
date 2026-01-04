@@ -311,7 +311,7 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     fun findSelectedMissionsWithoutLabel(targetDate: LocalDate): List<MemberMissionEntity>
 
     @Query("""
-        SELECT 
+        SELECT
             m.targetDate AS targetDate,
             COUNT(m.id) AS completedCount
         FROM MemberMissionEntity m
@@ -328,5 +328,24 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
         targetStartDate: LocalDate,
         targetEndDate: LocalDate
     ): List<DailyMissionCountDto>
+
+    /**
+     * 오늘 선택된 미션 개수 조회 (하루 최대 5개 제한용)
+     * - targetDate = 오늘
+     * - deleted = false
+     * - missionStatus IN (COMPLETED, ACTIVE, INACTIVE)
+     */
+    @Query("""
+    SELECT COUNT(m) FROM MemberMissionEntity m
+    WHERE m.memberId = :memberId
+      AND m.targetDate = :targetDate
+      AND m.deleted = false
+      AND m.missionStatus IN :statuses
+    """)
+    fun countTodaySelectedMissions(
+        memberId: Long,
+        targetDate: LocalDate,
+        statuses: List<MissionStatus>
+    ): Long
 
 }

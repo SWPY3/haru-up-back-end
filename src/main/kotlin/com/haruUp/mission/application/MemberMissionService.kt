@@ -23,6 +23,10 @@ class MemberMissionService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    companion object {
+        const val MAX_MISSIONS_SELECT_PER_DAY = 5
+    }
+
     /**
      * 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
      * - member_mission에서 mission_content, difficulty 직접 조회
@@ -124,6 +128,7 @@ class MemberMissionService(
 
     /**
      * 사용자가 선택한 미션들을 ACTIVE 상태로 변경
+     * - 하루 최대 5개까지만 선택 가능
      *
      * @param memberId 사용자 ID
      * @param memberMissionIds 선택한 member_mission ID 목록
@@ -133,6 +138,21 @@ class MemberMissionService(
     fun saveMissions(memberId: Long, memberMissionIds: List<Long>): List<Long> {
         val updatedMemberMissionIds = mutableListOf<Long>()
         val today = LocalDate.now()
+
+        // 오늘 이미 선택된 미션 개수 조회 (COMPLETED, ACTIVE, INACTIVE)
+        val currentCount = memberMissionRepository.countTodaySelectedMissions(
+            memberId = memberId,
+            targetDate = today,
+            statuses = listOf(MissionStatus.COMPLETED, MissionStatus.ACTIVE, MissionStatus.INACTIVE)
+        )
+
+        // 하루 최대 5개 제한 체크
+        val maxMissionsPerDay = MAX_MISSIONS_SELECT_PER_DAY
+        val availableSlots = maxMissionsPerDay - currentCount
+        require(availableSlots > 0) { "하루에 최대 ${maxMissionsPerDay}개의 미션만 선택할 수 있습니다. (현재: ${currentCount}개)" }
+        require(memberMissionIds.size <= availableSlots) {
+            "선택 가능한 미션 개수를 초과했습니다. (선택 가능: ${availableSlots}개, 요청: ${memberMissionIds.size}개)"
+        }
 
         memberMissionIds.forEach { memberMissionId ->
             // memberMissionId로 조회
