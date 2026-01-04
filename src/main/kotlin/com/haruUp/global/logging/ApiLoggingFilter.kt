@@ -72,8 +72,9 @@ class ApiLoggingFilter(
             "uri" to request.requestURI,
             "query" to (request.queryString ?: ""),
             "clientIp" to getClientIp(request),
-            "headers" to getRequestHeaders(request),
+            "requestHeaders" to getRequestHeaders(request),
             "status" to response.status,
+            "responseHeaders" to getResponseHeaders(response),
             "duration" to duration,
             "requestBody" to parseJsonOrTruncate(getRequestBody(request)),
             "responseBody" to parseJsonOrTruncate(getResponseBody(response))
@@ -101,6 +102,14 @@ class ApiLoggingFilter(
         val headers = mutableMapOf<String, String>()
         request.headerNames?.toList()?.forEach { headerName ->
             headers[headerName] = request.getHeader(headerName)
+        }
+        return headers
+    }
+
+    private fun getResponseHeaders(response: HttpServletResponse): Map<String, String> {
+        val headers = mutableMapOf<String, String>()
+        response.headerNames?.forEach { headerName ->
+            headers[headerName] = response.getHeader(headerName)
         }
         return headers
     }
