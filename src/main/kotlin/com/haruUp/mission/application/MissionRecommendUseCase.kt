@@ -1,6 +1,7 @@
 package com.haruUp.mission.application
 
 import com.haruUp.mission.domain.MissionRecommendResult
+import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.missionembedding.dto.MissionRecommendationResponse
 import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Component
@@ -49,14 +50,16 @@ class MissionRecommendUseCase(
      * @param memberId 멤버 ID
      * @param memberInterestId 멤버 관심사 ID
      * @param targetDate 조회할 날짜
+     * @param statuses 조회할 미션 상태 목록
      * @return 추천된 미션 목록
      */
     fun recommendToday(
         memberId: Long,
         memberInterestId: Long,
-        targetDate: LocalDate
+        targetDate: LocalDate,
+        statuses: List<MissionStatus> = listOf(MissionStatus.READY)
     ): MissionRecommendResult {
-        return missionRecommendService.recommend(memberId, memberInterestId, targetDate)
+        return missionRecommendService.recommend(memberId, memberInterestId, targetDate, statuses)
     }
 
     /**

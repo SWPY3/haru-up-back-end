@@ -44,13 +44,19 @@ class MissionRecommendService(
      * member_mission에서 조건에 맞는 미션 조회:
      * - deleted = false
      * - targetDate = 지정된 날짜
-     * - missionStatus IN (READY, ACTIVE, POSTPONED)
+     * - missionStatus IN (전달받은 statuses)
      *
      * @param memberId 멤버 ID
      * @param memberInterestId 멤버 관심사 ID
      * @param targetDate 조회할 날짜
+     * @param statuses 조회할 미션 상태 목록 (기본값: READY)
      */
-    fun recommend(memberId: Long, memberInterestId: Long, targetDate: LocalDate): MissionRecommendResult {
+    fun recommend(
+        memberId: Long,
+        memberInterestId: Long,
+        targetDate: LocalDate,
+        statuses: List<MissionStatus> = listOf(MissionStatus.READY)
+    ): MissionRecommendResult {
         // member_interest에서 directFullPath 조회
         val memberInterest = memberInterestRepository.findById(memberInterestId).orElse(null)
         val directFullPath = memberInterest?.directFullPath ?: emptyList()
@@ -60,7 +66,7 @@ class MissionRecommendService(
             memberId = memberId,
             memberInterestId = memberInterestId,
             targetDate = targetDate,
-            statuses = listOf(MissionStatus.READY, MissionStatus.ACTIVE, MissionStatus.POSTPONED)
+            statuses = statuses
         )
 
         logger.info("미션 조회 - memberId: $memberId, memberInterestId: $memberInterestId, targetDate: $targetDate, 결과: ${memberMissions.size}개")
