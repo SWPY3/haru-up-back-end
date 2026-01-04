@@ -46,6 +46,11 @@ class MemberCurationUseCase(
         val memberId = memberProfileDto.memberId
             ?: throw IllegalArgumentException("존재하지 않는 회원입니다.")
 
+        // 이미 관심사가 등록되어 있는지 체크
+        require(!memberInterestService.hasInterests(memberId)) {
+            "이미 초기 설정이 완료된 회원입니다."
+        }
+
         /** STEP 01 캐릭터 */
         characterService.validateExists(characterId)
         val levelId = levelService.getInitialLevelId()

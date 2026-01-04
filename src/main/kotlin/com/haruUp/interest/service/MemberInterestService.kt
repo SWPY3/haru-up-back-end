@@ -82,6 +82,13 @@ class MemberInterestService(
         )
     }
 
+    /**
+     * 멤버 관심사 존재 여부 확인
+     */
+    fun hasInterests(memberId: Long): Boolean {
+        return memberInterestRepository.findByMemberIdAndDeletedFalse(memberId).isNotEmpty()
+    }
+
     @Transactional
     fun deleteMemberInterestsByMemberId(memberId: Long) {
         memberInterestRepository.softDeleteAllByMemberId(memberId)

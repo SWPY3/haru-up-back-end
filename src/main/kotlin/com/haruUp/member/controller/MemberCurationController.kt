@@ -79,7 +79,9 @@ class MemberCurationController(
                     emitter.complete()
 
                 } catch (e: Exception) {
-                    emitter.completeWithError(e)
+                    val errorMessage = e.message ?: "알 수 없는 오류가 발생했습니다."
+                    emitter.send(SseEmitter.event().name("error").data(mapOf("errorMessage" to errorMessage)))
+                    emitter.complete()
                 }
             }
         }
