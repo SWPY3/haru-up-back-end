@@ -3,10 +3,12 @@ package com.haruUp.global.error
 import com.haruUp.global.common.ApiResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.BindException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -56,6 +58,62 @@ class GlobalExceptionHandler {
 
         val body = ApiResponse.failure<Nothing>(errorMessage)
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body)
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadableException(
+        ex: HttpMessageNotReadableException,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex
+        }
+
+        val body = ApiResponse.failure<Nothing>("요청 형식이 올바르지 않습니다. 필드명과 타입을 확인해주세요.")
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body)
+    }
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(
+        ex: IllegalArgumentException,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex
+        }
+
+        val body = ApiResponse.failure<Nothing>(ex.message ?: "잘못된 요청입니다.")
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body)
+    }
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResourceFoundException(
+        ex: NoResourceFoundException,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex
+        }
+
+        val body = ApiResponse.failure<Nothing>("요청한 리소스를 찾을 수 없습니다: ${ex.resourcePath}")
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body)
+    }
+
+    @ExceptionHandler(IllegalStateException::class)
+    fun handleIllegalStateException(
+        ex: IllegalStateException,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+
+        if (request.getHeader("Accept")?.contains("text/event-stream") == true) {
+            throw ex
+        }
+
+        val body = ApiResponse.failure<Nothing>(ex.message ?: "내부 서버 오류가 발생했습니다.")
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body)
     }
 
     @ExceptionHandler(Exception::class)

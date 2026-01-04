@@ -72,26 +72,13 @@ class MissionembeddingController(
         )
         @RequestBody request: MissionRecommendationRequest
     ): ResponseEntity<ApiResponse<MissionRecommendationResponse>> {
-        logger.info("미션 추천 요청 - 사용자: ${principal.id}, 관심사 개수: ${request.memberInterestIds.size}")
+        require(request.memberInterestIds.isNotEmpty()) { "관심사 ID 목록은 필수입니다." }
 
-        return try {
-            val response = missionRecommendUseCase.recommendByMemberInterestIds(
-                memberId = principal.id,
-                memberInterestIds = request.memberInterestIds
-            )
+        val response = missionRecommendUseCase.recommendByMemberInterestIds(
+            memberId = principal.id,
+            memberInterestIds = request.memberInterestIds
+        )
 
-            logger.info("미션 추천 성공: ${response.totalCount}개")
-
-            ResponseEntity.ok(ApiResponse.success(response))
-        } catch (e: IllegalArgumentException) {
-            logger.error("잘못된 요청: ${e.message}")
-            ResponseEntity.badRequest().body(ApiResponse.failure(e.message ?: "잘못된 요청입니다."))
-        } catch (e: IllegalStateException) {
-            logger.error("미션 추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(ApiResponse.failure(e.message ?: "서버 오류가 발생했습니다."))
-        } catch (e: Exception) {
-            logger.error("미션 추천 실패: ${e.message}", e)
-            ResponseEntity.internalServerError().body(ApiResponse.failure(e.message ?: "서버 오류가 발생했습니다."))
-        }
+        return ResponseEntity.ok(ApiResponse.success(response))
     }
 }
