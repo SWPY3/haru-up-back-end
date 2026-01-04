@@ -14,7 +14,7 @@ data class HomeMemberInfoDto(
     // ⭐ JPQL 전용 생성자
     constructor(
         characterId : Long,
-        totalExp: Long,
+        totalExp: Long, 
         currentExp: Long,
         levelNumber: Int,
         nickname: String
