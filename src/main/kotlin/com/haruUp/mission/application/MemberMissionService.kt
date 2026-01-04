@@ -143,7 +143,7 @@ class MemberMissionService(
         val currentCount = memberMissionRepository.countTodaySelectedMissions(
             memberId = memberId,
             targetDate = today,
-            statuses = listOf(MissionStatus.COMPLETED, MissionStatus.ACTIVE, MissionStatus.INACTIVE)
+            statuses = listOf(MissionStatus.COMPLETED, MissionStatus.ACTIVE)
         )
 
         // 하루 최대 5개 제한 체크
