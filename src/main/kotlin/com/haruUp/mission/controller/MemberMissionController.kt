@@ -269,6 +269,8 @@ class MemberMissionController(
             ```
             GET /api/member/mission/recommend?memberInterestId=1
             GET /api/member/mission/recommend?memberInterestId=1&targetDate=2025-01-15
+            GET /api/member/mission/recommend?memberInterestId=1&missionStatus=READY
+            GET /api/member/mission/recommend?memberInterestId=1&missionStatus=READY,ACTIVE
             ```
         """
     )
@@ -286,12 +288,25 @@ class MemberMissionController(
         )
         @RequestParam(required = false)
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-        targetDate: LocalDate?
+        targetDate: LocalDate?,
+        @Parameter(
+            description = "미션 상태 필터 (콤마로 구분, 기본값: READY)",
+            example = "READY,ACTIVE"
+        )
+        @RequestParam(required = false, defaultValue = "READY") missionStatus: String
     ): ResponseEntity<ApiResponse<MissionRecommendResult>> = runBlocking {
+        val statuses = missionStatus.split(",")
+            .map { it.trim().uppercase() }
+            .mapNotNull {
+                try { MissionStatus.valueOf(it) }
+                catch (e: IllegalArgumentException) { null }
+            }
+
         val response = missionRecommendUseCase.recommendToday(
             memberId = principal.id,
             memberInterestId = memberInterestId,
-            targetDate = targetDate ?: LocalDate.now()
+            targetDate = targetDate ?: LocalDate.now(),
+            statuses = statuses
         )
         ResponseEntity.ok(ApiResponse.success(response))
     }
