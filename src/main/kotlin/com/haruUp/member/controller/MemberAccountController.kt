@@ -6,6 +6,7 @@ import com.haruUp.member.application.useCase.MemberAccountUseCase
 import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping

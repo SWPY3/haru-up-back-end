@@ -23,6 +23,7 @@ interface MemberRepository : JpaRepository<Member, Long> {
     @Query(
         """
     SELECT new com.haruUp.member.domain.dto.HomeMemberInfoDto(
+        mc.id,
         mc.totalExp,
         mc.currentExp,
         lv.maxExp,
