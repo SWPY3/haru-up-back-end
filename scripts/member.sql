@@ -14,4 +14,7 @@ INSERT INTO public.character (character_img_ref, name, description, deleted) VAL
 INSERT INTO public.character (character_img_ref, name, description, deleted) VALUES (2, '부지런벌', '부지런하게 미션을 수행하는 벌 캐릭터', false);
 INSERT INTO public.character (character_img_ref, name, description, deleted) VALUES (3, '도전토끼', '새로운 도전을 좋아하는 토끼 캐릭터', false);
 
-INSERT INTO public.level (level_number, required_exp, max_exp, deleted) VALUES (1, 100, 50, false);
+INSERT INTO public.level (level_number, required_exp, max_exp, deleted) VALUES (1, 1000, 1000, false);
+INSERT INTO public.level (level_number, required_exp, max_exp, deleted) VALUES (2, 2000, 2000, false);
+INSERT INTO public.level (level_number, required_exp, max_exp, deleted) VALUES (3, 3000, 3000, false);
+INSERT INTO public.level (level_number, required_exp, max_exp, deleted) VALUES (4, 4000, 4000, false);
