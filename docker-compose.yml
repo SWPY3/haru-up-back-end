@@ -11,6 +11,18 @@ services:
       - "8080:8080"
     network_mode: host
 
+  app-qa:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: app-qa
+    restart: unless-stopped
+    env_file:
+      - src/main/resources/env.properties
+    ports:
+      - "8082:8082"
+    network_mode: host
+
   postgres:
     build:
       context: docker/pgsql
@@ -30,15 +42,26 @@ services:
         hard: 65536
 
   redis:
-    image: redis:7.4-alpine      # ⬅ build 대신 image 사용
+    image: redis:7.4-alpine
     container_name: redis
     restart: unless-stopped
     env_file:
-      - docker/redis/.env        # 필요 없으면 이 줄도 삭제 가능
+      - docker/redis/.env
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+  redis-qa:
+    image: redis:7.4-alpine
+    container_name: redis-qa
+    restart: unless-stopped
+    env_file:
+      - docker/redis/.env
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_qa_data:/data
 
   prometheus:
     image: prom/prometheus:latest
@@ -75,4 +98,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  redis_qa_data:
   loki_data:
