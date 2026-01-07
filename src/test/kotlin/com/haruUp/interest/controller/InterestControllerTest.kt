@@ -41,6 +41,7 @@ class InterestValidationIntegrationTest {
         // 기본적으로 AI는 "true" 반환하도록 설정
         given(clovaApiClient.chatCompletion(
             messages = any(),
+            model = any(),
             maxTokens = any(),
             temperature = any(),
             topK = any(),
@@ -133,6 +134,7 @@ class InterestValidationIntegrationTest {
         // AI 응답을 false로 변경
         given(clovaApiClient.chatCompletion(
             messages = any(),
+            model = any(),
             maxTokens = any(),
             temperature = any(),
             topK = any(),

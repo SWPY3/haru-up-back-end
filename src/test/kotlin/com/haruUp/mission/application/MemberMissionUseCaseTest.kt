@@ -58,8 +58,8 @@ class MemberMissionUseCaseUnitTest {
         val missionEntity = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
-            missionId = 99L,
             memberInterestId = 1L,
+            missionContent = "테스트 미션",
             missionStatus = MissionStatus.COMPLETED,
             expEarned = 250
         )
@@ -78,14 +78,13 @@ class MemberMissionUseCaseUnitTest {
         whenever(memberCharacterService.getSelectedCharacter(10L)).thenReturn(mc)
 
         // 레벨 정보
-        val level1 = Level(id = 1L, levelNumber = 1, requiredExp = 100)
-        val level2 = Level(id = 2L, levelNumber = 2, requiredExp = 100)
-        val level3 = Level(id = 3L, levelNumber = 3, requiredExp = 100)
+        val level1 = Level(id = 1L, levelNumber = 1, requiredExp = 100, maxExp = 100)
+        val level2 = Level(id = 2L, levelNumber = 2, requiredExp = 100, maxExp = 100)
+        val level3 = Level(id = 3L, levelNumber = 3, requiredExp = 100, maxExp = 100)
 
         whenever(levelService.getById(1L)).thenReturn(level1)
-        whenever(levelService.getNextLevel(1)).thenReturn(level2)
-        whenever(levelService.getNextLevel(2)).thenReturn(level3)
-        whenever(levelService.getNextLevel(3)).thenReturn(null)
+        whenever(levelService.getOrCreateLevel(2)).thenReturn(level2)
+        whenever(levelService.getOrCreateLevel(3)).thenReturn(level3)
 
         // applyExpWithResolvedValues 결과는 레벨업된 캐릭터라고 가정
         val updatedMc = MemberCharacter(
@@ -119,7 +118,7 @@ class MemberMissionUseCaseUnitTest {
         verify(memberMissionService).updateMission(1L, MissionStatus.COMPLETED)
         verify(memberCharacterService).getSelectedCharacter(10L)
         verify(levelService).getById(1L)
-        verify(levelService, times(3)).getNextLevel(any())
+        verify(levelService, times(2)).getOrCreateLevel(any())
     }
 
     @Test
@@ -131,8 +130,8 @@ class MemberMissionUseCaseUnitTest {
         val mission1 = MemberMissionEntity(
             id = 1L,
             memberId = memberId,
-            missionId = 101L,
             memberInterestId = 1L,
+            missionContent = "테스트 미션 1",
             expEarned = 10,
             missionStatus = MissionStatus.ACTIVE
         )
@@ -140,8 +139,8 @@ class MemberMissionUseCaseUnitTest {
         val mission2 = MemberMissionEntity(
             id = 2L,
             memberId = memberId,
-            missionId = 102L,
             memberInterestId = 2L,
+            missionContent = "테스트 미션 2",
             expEarned = 20,
             missionStatus = MissionStatus.READY
         )
@@ -154,8 +153,8 @@ class MemberMissionUseCaseUnitTest {
 
         // then
         assertEquals(2, result.size)
-        assertEquals(101L, result[0].missionId)
-        assertEquals(102L, result[1].missionId)
+        assertEquals(1L, result[0].id)
+        assertEquals(2L, result[1].id)
 
         verify(memberMissionService).getTodayMissionsByMemberId(memberId)
     }
@@ -172,8 +171,8 @@ class MemberMissionUseCaseUnitTest {
         val missionEntity = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
-            missionId = 99L,
             memberInterestId = 1L,
+            missionContent = "테스트 미션",
             missionStatus = MissionStatus.ACTIVE,
             expEarned = 0
         )
@@ -199,8 +198,8 @@ class MemberMissionUseCaseUnitTest {
         val postponedMission = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
-            missionId = 99L,
             memberInterestId = 1L,
+            missionContent = "테스트 미션",
             missionStatus = MissionStatus.POSTPONED,
             expEarned = 0,
             targetDate = LocalDate.now().plusDays(1)
@@ -227,8 +226,8 @@ class MemberMissionUseCaseUnitTest {
         val missionEntity = MemberMissionEntity(
             id = 1L,
             memberId = 10L,
-            missionId = 99L,
             memberInterestId = 1L,
+            missionContent = "테스트 미션",
             missionStatus = MissionStatus.INACTIVE,
             expEarned = 0
         )
