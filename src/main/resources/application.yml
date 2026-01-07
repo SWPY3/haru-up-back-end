@@ -64,7 +64,7 @@ clova:
     embedding-model: clir-emb-dolphin # 임베딩 모델 (1024차원)
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   forward-headers-strategy: framework  # X-Forwarded-Proto 헤더를 인식하여 HTTPS로 처리
   compression:
     enabled: true
