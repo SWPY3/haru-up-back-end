@@ -25,9 +25,13 @@ SELECT
 FROM interest_embeddings m
 CROSS JOIN (VALUES
     ('영어'),
-    ('일본어'),
     ('중국어'),
-    ('기타')
+    ('일본어'),
+    ('스페인어'),
+    ('이탈리아어'),
+    ('프랑스어'),
+    ('독일어'),
+    ('러시아어')
 ) v(name)
 WHERE m.name = '외국어 공부' AND m.level = 'MAIN';
 
@@ -75,6 +79,7 @@ SELECT
     NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings m
 CROSS JOIN (VALUES
+    ('직무 전문 분야'),
     ('국가자격'),
     ('어학 능력'),
     ('기술 분야')
@@ -99,13 +104,14 @@ CROSS JOIN (VALUES
 WHERE m.name = '직무 관련 역량 개발' AND m.level = 'MAIN';
 
 -- 3. 소분류 (SUB) INSERT
--- 영어 하위
+-- 외국어 공부 하위 언어들 (영어, 중국어, 일본어, 스페인어, 이탈리아어, 프랑스어, 독일어, 러시아어)
+-- 모든 언어가 동일한 소분류를 가지므로 한번에 INSERT
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
 SELECT
-    v.name,
+    sub.name,
     'SUB',
     mid.id::text,
-    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
+    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, sub.name],
     NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
 FROM interest_embeddings mid
 CROSS JOIN (VALUES
@@ -113,59 +119,8 @@ CROSS JOIN (VALUES
     ('시험 공부'),
     ('회화 공부'),
     ('직접 입력할게요')
-) v(name)
-WHERE mid.name = '영어' AND mid.level = 'MIDDLE';
-
--- 일본어 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
-SELECT
-    v.name,
-    'SUB',
-    mid.id::text,
-    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
-FROM interest_embeddings mid
-CROSS JOIN (VALUES
-    ('단어 학습'),
-    ('시험 공부'),
-    ('회화 공부'),
-    ('직접 입력할게요')
-) v(name)
-WHERE mid.name = '일본어' AND mid.level = 'MIDDLE';
-
--- 중국어 하위
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
-SELECT
-    v.name,
-    'SUB',
-    mid.id::text,
-    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
-FROM interest_embeddings mid
-CROSS JOIN (VALUES
-    ('단어 학습'),
-    ('시험 공부'),
-    ('회화 공부'),
-    ('직접 입력할게요')
-) v(name)
-WHERE mid.name = '중국어' AND mid.level = 'MIDDLE';
-
--- 기타 하위 (외국어 공부)
-INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
-SELECT
-    v.name,
-    'SUB',
-    mid.id::text,
-    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
-    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
-FROM interest_embeddings mid
-CROSS JOIN (VALUES
-    ('단어 학습'),
-    ('시험 공부'),
-    ('회화 공부'),
-    ('직접 입력할게요')
-) v(name)
-WHERE mid.name = '기타' AND mid.level = 'MIDDLE'
+) sub(name)
+WHERE mid.level = 'MIDDLE'
   AND mid.parent_id IN (SELECT id::text FROM interest_embeddings WHERE name = '외국어 공부' AND level = 'MAIN');
 
 -- 지출 관리 및 예산 세우기 하위
@@ -310,6 +265,21 @@ CROSS JOIN (VALUES
     ('직접 입력할게요')
 ) v(name)
 WHERE mid.name = '자전거' AND mid.level = 'MIDDLE';
+
+-- 직무 전문 분야 하위
+INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
+SELECT
+    v.name,
+    'SUB',
+    mid.id::text,
+    ARRAY[(SELECT name FROM interest_embeddings WHERE id = mid.parent_id::bigint), mid.name, v.name],
+    NULL, 0, 'SYSTEM', true, false, NOW(), NOW()
+FROM interest_embeddings mid
+CROSS JOIN (VALUES
+    ('온보딩 시 입력한 개인정보 기반'),
+    ('직접 입력할게요')
+) v(name)
+WHERE mid.name = '직무 전문 분야' AND mid.level = 'MIDDLE';
 
 -- 국가자격 하위
 INSERT INTO interest_embeddings (name, level, parent_id, full_path, embedding, usage_count, created_source, is_activated, deleted, created_at, updated_at)
