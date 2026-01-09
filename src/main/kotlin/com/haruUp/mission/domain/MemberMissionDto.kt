@@ -69,11 +69,18 @@ data class MissionStatusChangeItem(
     val memberMissionId: Long,
 
     @Schema(
-        description = "member_mission ID",
+        description = "변경할 미션 상태",
         example = "COMPLETED",
         required = false
     )
-    val missionStatus: MissionStatus? = null
+    val missionStatus: MissionStatus? = null,
+
+    @Schema(
+        description = "soft delete 여부 (true일 경우 상태 변경 없이 바로 삭제)",
+        example = "false",
+        required = false
+    )
+    val deleted: Boolean? = null
 )
 
 /**
