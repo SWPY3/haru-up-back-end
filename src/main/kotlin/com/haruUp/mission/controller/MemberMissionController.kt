@@ -190,6 +190,7 @@ class MemberMissionController(
 
             **상태 변경:**
             - missionStatus: ACTIVE (선택), COMPLETED (완료), INACTIVE (포기), POSTPONED (내일로 미루기)
+            - deleted: true로 설정 시 상태 변경 없이 바로 soft delete (선택 사항)
 
             **호출 예시:**
             ```json
@@ -197,7 +198,8 @@ class MemberMissionController(
               "missions": [
                 { "memberMissionId": 1, "missionStatus": "COMPLETED" },
                 { "memberMissionId": 2, "missionStatus": "ACTIVE" },
-                { "memberMissionId": 3, "missionStatus": "POSTPONED" }
+                { "memberMissionId": 3, "missionStatus": "POSTPONED" },
+                { "memberMissionId": 4, "deleted": true }
               ]
             }
             ```

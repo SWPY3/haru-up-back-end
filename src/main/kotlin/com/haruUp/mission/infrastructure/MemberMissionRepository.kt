@@ -18,6 +18,9 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     /** * 사용자의 삭제되지 않은 미션 조회 */
     fun findByMemberIdAndDeletedFalse(memberId: Long): List<MemberMissionEntity>
 
+    /** * ID로 삭제되지 않은 미션 조회 */
+    fun findByIdAndDeletedFalse(id: Long): MemberMissionEntity?
+
     /* 오늘의 추천 미션 조회 - member_mission.difficulty 기준 */
     @Query(
         value = """

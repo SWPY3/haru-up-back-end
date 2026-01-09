@@ -81,8 +81,8 @@ class MemberMissionService(
      * - 새로운 row 생성: missionStatus=POSTPONED, targetDate=내일
      */
     fun handleMissionPostponed(memberMissionId: Long): MemberMissionEntity {
-        val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
-            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
+        val stored = memberMissionRepository.findByIdAndDeletedFalse(memberMissionId)
+            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다: memberMissionId=$memberMissionId")
 
         // 새로운 row 생성 (기존 row는 그대로 유지, 미션 내용과 난이도 복사)
         val postponedMission = MemberMissionEntity(
@@ -105,8 +105,8 @@ class MemberMissionService(
      * - status: 변경할 상태 (null이면 변경 안함)
      */
     fun updateMission(memberMissionId: Long, status: MissionStatus?): MemberMissionEntity {
-        val stored = memberMissionRepository.findByIdOrNull(memberMissionId)
-            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다.")
+        val stored = memberMissionRepository.findByIdAndDeletedFalse(memberMissionId)
+            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다: memberMissionId=$memberMissionId")
 
         // 상태 변경
         if (status != null) {
@@ -201,6 +201,27 @@ class MemberMissionService(
         )
         logger.info("멤버 미션 삭제 완료 - memberId: $memberId, memberInterestId: $memberInterestId, deletedCount: $deletedCount")
         return deletedCount
+    }
+
+    /**
+     * 개별 미션 soft delete
+     *
+     * @param memberMissionId 미션 ID
+     */
+    @Transactional
+    fun softDeleteMission(memberMissionId: Long) {
+        val mission = memberMissionRepository.findByIdAndDeletedFalse(memberMissionId)
+            ?: throw IllegalArgumentException("미션을 찾을 수 없습니다: memberMissionId=$memberMissionId")
+
+        if (mission.missionStatus == MissionStatus.COMPLETED) {
+            throw IllegalStateException("완료된 미션은 삭제할 수 없습니다: memberMissionId=$memberMissionId")
+        }
+
+        mission.deleted = true
+        mission.deletedAt = LocalDateTime.now()
+
+        memberMissionRepository.save(mission)
+        logger.info("미션 soft delete 완료 - memberMissionId: $memberMissionId")
     }
 
     /**
