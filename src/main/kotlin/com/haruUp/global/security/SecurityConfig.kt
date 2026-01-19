@@ -87,17 +87,12 @@ class SecurityConfig(
 
             .authorizeHttpRequests { auth ->
                 auth
-                    // 🔥 CORS preflight 통과
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                    // 🔥 SSE 비동기 디스패치 허용
                     .dispatcherTypeMatchers(
                         DispatcherType.ASYNC,
                         DispatcherType.ERROR
                     ).permitAll()
-
-                    // SSE 엔드포인트는 인증 필요
-                    .requestMatchers("/api/member/curation/**").authenticated()
 
                     .requestMatchers(
                         "/api/member/auth/**",
@@ -105,7 +100,10 @@ class SecurityConfig(
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/actuator/prometheus/**",
-                        "/health"
+                        "/health",
+
+                        // ⭐ 엑셀 다운로드 허용
+                        "/members/statistics/excel"
                     ).permitAll()
 
                     .anyRequest().authenticated()

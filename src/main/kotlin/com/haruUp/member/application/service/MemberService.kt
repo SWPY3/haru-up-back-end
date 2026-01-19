@@ -4,6 +4,7 @@ import com.haruUp.member.domain.type.LoginType
 import com.haruUp.member.domain.Member
 import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
+import com.haruUp.member.domain.dto.MemberStatisticsDto
 import com.haruUp.member.infrastructure.MemberRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
@@ -67,6 +68,11 @@ class MemberService(
         } else{
             throw IllegalArgumentException("회원의 정보가 존재하지 않습니다")
         }
+    }
+
+    fun memberStatisticsList() : List<MemberStatisticsDto> {
+        val memberStatisticsList = memberRepository.memberStatisticsList();
+        return memberStatisticsList
     }
 
 
