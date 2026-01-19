@@ -28,11 +28,22 @@ class MemberProfileService (
     @Transactional
     fun updateProfile(memberId: Long, profileDto: MemberProfileDto): MemberProfileDto {
         val existing = memberProfileRepository.findByMemberId(memberId)
-            ?: MemberProfile().apply{ this.memberId = memberId}
+            ?: MemberProfile().apply { this.memberId = memberId }
 
-        existing.nickname = profileDto.nickname
-        existing.imgId = profileDto.imgId
-        existing.intro = profileDto.intro
+        //직업이 자영업 세부직업 null 처리
+        if(profileDto.jobId == 2L){
+            existing.jobDetailId = null
+            profileDto.jobDetailId = null
+        }
+
+
+        existing.nickname     = profileDto.nickname     ?: existing.nickname
+        existing.birthDt      = profileDto.birthDt      ?: existing.birthDt
+        existing.gender       = profileDto.gender       ?: existing.gender
+        existing.imgId        = profileDto.imgId        ?: existing.imgId
+        existing.intro        = profileDto.intro        ?: existing.intro
+        existing.jobId        = profileDto.jobId        ?: existing.jobId
+        existing.jobDetailId  = profileDto.jobDetailId  ?: existing.jobDetailId
 
         return memberProfileRepository.save(existing).toDto()
     }
@@ -47,9 +58,14 @@ class MemberProfileService (
         val existing = memberProfileRepository.findByMemberId(memberId)
             ?: MemberProfile(memberId = memberId)
 
-        existing.nickname = profileDto.nickname
-        existing.birthDt = profileDto.birthDt
-        existing.gender = profileDto.gender
+        existing.nickname     = profileDto.nickname     ?: existing.nickname
+        existing.birthDt      = profileDto.birthDt      ?: existing.birthDt
+        existing.gender       = profileDto.gender       ?: existing.gender
+        existing.imgId        = profileDto.imgId        ?: existing.imgId
+        existing.intro        = profileDto.intro        ?: existing.intro
+        existing.jobId        = profileDto.jobId        ?: existing.jobId
+        existing.jobDetailId  = profileDto.jobDetailId  ?: existing.jobDetailId
+
 
         return memberProfileRepository.save(existing).toDto()
 

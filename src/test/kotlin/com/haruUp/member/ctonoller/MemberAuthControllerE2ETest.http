@@ -10,7 +10,7 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNS_E2E_001",
+  "snsId": "SNhello112hello112S_E2E_005",
   "email": "",
   "name": ""
 }
@@ -35,6 +35,35 @@ Content-Type: application/json
     console.log("accessToken =", data.accessToken);
     console.log("refreshToken =", data.refreshToken);
 %}
+
+### profile-update - 프로필 정보 조회 (액세스 토큰 사용)
+PUT {{baseUrl}}/api/member/profile/profile
+Content-Type: application/json
+jwt-token: {{accessToken}}
+
+{
+  "jobId": 2,
+  "jobDetailId": 2
+}
+
+
+### home-member-info - 홈화면용 회원 정보 조회 (액세스 토큰 사용)
+POST {{baseUrl}}/api/member/account/home/memberInfo
+Content-Type: application/json
+jwt-token: {{accessToken}}
+
+> {%
+    const data = response.body.data;
+
+    console.log("=== 홈화면용 회원 정보 조회 결과 ===");
+    console.log("memberId =", data.id);
+    console.log("name =", data.name);
+    console.log("nickname =", data.nickname);
+    console.log("jobId =", data.jobId);
+    console.log("jobDetailId =", data.jobDetailId);
+
+
+
 
 ### 2. jwt-token-login - 리프레시 토큰으로 자동 로그인 (앱 재실행용)
 POST {{baseUrl}}/api/member/auth/jwt-token-login

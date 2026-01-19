@@ -1,9 +1,9 @@
 ### ============================================
 ### 환경 설정
 ### ============================================
-#@host = 223.130.141.179
-@host = localhost
-@port = 8080
+@host = 223.130.141.179
+#@host = localhost
+@port = 8082
 @baseUrl = http://{{host}}:{{port}}
 
 ### ============================================
@@ -15,7 +15,7 @@ Content-Type: application/json
 
 {
   "loginType": "KAKAO",
-  "snsId": "SNhello112hello112S_E2E_005",
+  "snsId": "4688218040",
   "email": "",
   "name": ""
 }

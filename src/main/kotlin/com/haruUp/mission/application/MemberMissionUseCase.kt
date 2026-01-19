@@ -13,7 +13,6 @@ import com.haruUp.mission.domain.DailyMissionCountDto
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Component
 class MemberMissionUseCase(
@@ -59,6 +58,17 @@ class MemberMissionUseCase(
      * 개별 미션 상태 변경 처리
      */
     fun processStatusChange(item: MissionStatusChangeItem): MemberCharacterDto? {
+
+        // missionStatus와 deleted 둘 중 하나는 필수
+        require(item.missionStatus != null || item.deleted == true) {
+            "missionStatus 또는 deleted 중 하나는 필수입니다. (memberMissionId: ${item.memberMissionId})"
+        }
+
+        // deleted가 true인 경우 상태 변경 없이 바로 soft delete
+        if (item.deleted == true) {
+            memberMissionService.softDeleteMission(item.memberMissionId)
+            return null
+        }
 
         // COMPLETED 상태인 경우 경험치 처리 필요
         if (item.missionStatus == MissionStatus.COMPLETED) {
