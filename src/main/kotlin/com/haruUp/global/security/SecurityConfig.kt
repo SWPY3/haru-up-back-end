@@ -103,7 +103,7 @@ class SecurityConfig(
                         "/health",
 
                         // ⭐ 엑셀 다운로드 허용
-                        "/members/statistics/excel"
+                        "/members/statistics/**"
                     ).permitAll()
 
                     .anyRequest().authenticated()
