@@ -3,8 +3,6 @@ package com.haruUp.member.application.useCase
 import com.haruUp.auth.application.RefreshTokenService
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
-import com.haruUp.global.security.JwtTokenProvider
-import com.haruUp.member.application.service.MemberProfileService
 import com.haruUp.member.application.service.MemberService
 import com.haruUp.member.application.service.MemberSettingService
 import com.haruUp.interest.service.MemberInterestService
@@ -13,9 +11,11 @@ import com.haruUp.member.application.service.MemberValidator
 import com.haruUp.member.domain.dto.HomeMemberInfoDto
 import com.haruUp.member.domain.dto.MemberDto
 import com.haruUp.member.domain.type.LoginType
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.io.ByteArrayOutputStream
 
 @Component
 class MemberAccountUseCase(
@@ -31,8 +31,7 @@ class MemberAccountUseCase(
     // 사용자 조회
     @Transactional(readOnly = true)
     fun findMemberById(memberId: Long): MemberDto {
-        val member = memberService.getFindMemberId(memberId)
-            .orElseThrow {
+        val member = memberService.getFindMemberId(memberId).orElseThrow {
                 BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
             }
         return member.toDto()
@@ -49,8 +48,7 @@ class MemberAccountUseCase(
     @Transactional
     fun changeEmail(memberId: Long, newEmail: String): MemberDto {
         // 1) 회원 조회
-        val member = memberService.getFindMemberId(memberId)
-            .orElseThrow {
+        val member = memberService.getFindMemberId(memberId).orElseThrow {
                 BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
             }
 
@@ -69,22 +67,19 @@ class MemberAccountUseCase(
     @Transactional
     fun changePassword(memberId: Long, currentPassword: String, newPassword: String) {
         // 1) 회원 조회
-        val member = memberService.getFindMemberId(memberId)
-            .orElseThrow {
+        val member = memberService.getFindMemberId(memberId).orElseThrow {
                 BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
             }
 
         // 2) COMMON 계정만 비밀번호 변경 허용
         if (member.loginType != LoginType.COMMON) {
             throw BusinessException(
-                ErrorCode.INVALID_INPUT,
-                "SNS 로그인 계정은 비밀번호를 변경할 수 없습니다."
+                ErrorCode.INVALID_INPUT, "SNS 로그인 계정은 비밀번호를 변경할 수 없습니다."
             )
         }
 
         // 3) 기존 비밀번호 검증
-        val encoded = member.password
-            ?: throw BusinessException(ErrorCode.INVALID_STATE, "저장된 비밀번호가 없습니다.")
+        val encoded = member.password ?: throw BusinessException(ErrorCode.INVALID_STATE, "저장된 비밀번호가 없습니다.")
 
         if (!passwordEncoder.matches(currentPassword, encoded)) {
             throw BusinessException(ErrorCode.INVALID_CREDENTIALS, "기존 비밀번호가 일치하지 않습니다.")
@@ -106,18 +101,15 @@ class MemberAccountUseCase(
     @Transactional
     fun withdraw(memberId: Long, passwordForCheck: String?) {
         // 1) 회원 조회
-        val member = memberService.getFindMemberId(memberId)
-            .orElseThrow {
+        val member = memberService.getFindMemberId(memberId).orElseThrow {
                 BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
             }
 
         // 2) COMMON 계정은 비밀번호 검증
         if (member.loginType == LoginType.COMMON) {
-            val raw = passwordForCheck
-                ?: throw BusinessException(ErrorCode.INVALID_INPUT, "비밀번호가 필요합니다.")
+            val raw = passwordForCheck ?: throw BusinessException(ErrorCode.INVALID_INPUT, "비밀번호가 필요합니다.")
 
-            val encoded = member.password
-                ?: throw BusinessException(ErrorCode.INVALID_STATE, "저장된 비밀번호가 없습니다.")
+            val encoded = member.password ?: throw BusinessException(ErrorCode.INVALID_STATE, "저장된 비밀번호가 없습니다.")
 
             if (!passwordEncoder.matches(raw, encoded)) {
                 throw BusinessException(ErrorCode.INVALID_CREDENTIALS, "비밀번호가 일치하지 않습니다.")
@@ -146,10 +138,7 @@ class MemberAccountUseCase(
         val homeMemberInfo = memberService.homeMemberInfo(memberId)
 
         // 관심사 fullPath 리스트
-        val interests: List<List<String>?> =
-            memberInterestService
-                .selectMemberInterestsByMemberId(memberId)
-                .map { it }
+        val interests: List<List<String>?> = memberInterestService.selectMemberInterestsByMemberId(memberId).map { it }
 
         return homeMemberInfo.map { dto ->
             dto.copy(
@@ -157,4 +146,42 @@ class MemberAccountUseCase(
             )
         }
     }
+
+    @Transactional(readOnly = true)
+    fun createMemberStatisticsExcel(): ByteArray {
+        val data = memberService.memberStatisticsList()
+
+        val workbook = XSSFWorkbook()
+        val sheet = workbook.createSheet("Member Statistics")
+
+        // 1️⃣ Header
+        val headerRow = sheet.createRow(0)
+        val headers = listOf("SNS ID", "이름", "레벨", "캐릭터 ID", "가입일")
+
+        headers.forEachIndexed { index, title ->
+            headerRow.createCell(index).setCellValue(title)
+        }
+
+        // 2️⃣ Data
+        data.forEachIndexed { rowIdx, dto ->
+            val row = sheet.createRow(rowIdx + 1)
+            row.createCell(0).setCellValue(dto.snsId)
+            row.createCell(1).setCellValue(dto.name)
+            row.createCell(2).setCellValue(dto.levelNumber.toDouble())
+            row.createCell(3).setCellValue(dto.characterId.toDouble())
+            row.createCell(4).setCellValue(dto.createdAt.toString())
+        }
+
+        // 3️⃣ 컬럼 자동 너비
+        headers.indices.forEach { sheet.autoSizeColumn(it) }
+
+        // 4️⃣ ByteArray 변환
+        val outputStream = ByteArrayOutputStream()
+        workbook.write(outputStream)
+        workbook.close()
+
+        return outputStream.toByteArray()
+    }
+
+
 }

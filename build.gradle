@@ -99,6 +99,9 @@ dependencies {
 
     // 코드 변경 감지 (개발환경에서 사용할 목적)
     developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+
+    implementation "org.apache.poi:poi-ooxml:5.2.5"
 }
 
 kotlin {

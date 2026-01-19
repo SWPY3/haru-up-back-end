@@ -25,6 +25,7 @@ class MemberProfileUseCase (
     fun getMyProfile(memberId: Long): MemberProfileDto {
         // 회원 존재 여부 먼저 확인해도 좋음
         val exists = memberService.getFindMemberId(memberId)
+
         if (exists.isEmpty) {
             throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
         }

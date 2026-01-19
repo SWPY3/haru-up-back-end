@@ -30,6 +30,13 @@ class MemberProfileService (
         val existing = memberProfileRepository.findByMemberId(memberId)
             ?: MemberProfile().apply { this.memberId = memberId }
 
+        //직업이 자영업 세부직업 null 처리
+        if(profileDto.jobId == 2L){
+            existing.jobDetailId = null
+            profileDto.jobDetailId = null
+        }
+
+
         existing.nickname     = profileDto.nickname     ?: existing.nickname
         existing.birthDt      = profileDto.birthDt      ?: existing.birthDt
         existing.gender       = profileDto.gender       ?: existing.gender
