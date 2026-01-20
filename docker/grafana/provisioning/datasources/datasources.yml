@@ -26,3 +26,21 @@ datasources:
     orgId: 1
     jsonData:
       maxLines: 1000
+
+  - name: PostgreSQL
+    type: postgres
+    uid: postgres
+    access: proxy
+    url: ${POSTGRES_HOST}:5432
+    user: ${HARUUP_USER}
+    isDefault: false
+    editable: true
+    orgId: 1
+    jsonData:
+      database: ${HARUUP_DB}
+      sslmode: disable
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: ${HARUUP_USER_PASSWORD}

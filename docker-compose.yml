@@ -80,6 +80,13 @@ services:
       - "3000:3000"
     volumes:
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - POSTGRES_USER=${HARUUP_USER:-haruup_user}
+      - POSTGRES_PASSWORD=${HARUUP_USER_PASSWORD:-haruup@001}
+      - POSTGRES_HOST=${POSTGRES_HOST:-host.docker.internal}
+      - POSTGRES_DB=${HARUUP_DB:-haruup}
+    env_file:
+      - docker/pgsql/.env
     depends_on:
       - prometheus
       - loki
