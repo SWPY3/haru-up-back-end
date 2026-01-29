@@ -31,7 +31,6 @@ import java.util.Optional
 // RefreshToken 엔티티 패키지는 실제 프로젝트에 맞게 조정
 import com.haruUp.auth.domain.RefreshToken
 import com.haruUp.character.application.CharacterUseCase
-import com.haruUp.member.application.service.MemberAttendanceService
 import com.haruUp.member.application.service.MemberProfileService
 import org.mockito.Mockito.lenient
 
@@ -41,7 +40,6 @@ class MemberAuthUseCaseTest {
     @Mock lateinit var memberService: MemberService
     @Mock lateinit var memberSettingService: MemberSettingService
     @Mock lateinit var memberProfileService: MemberProfileService
-    @Mock lateinit var memberAttendanceService: MemberAttendanceService
     @Mock lateinit var jwtTokenProvider: JwtTokenProvider
     @Mock lateinit var passwordEncoder: PasswordEncoder
     @Mock lateinit var memberValidator: MemberValidator
@@ -63,7 +61,6 @@ class MemberAuthUseCaseTest {
             memberService = memberService,
             memberSettingService = memberSettingService,
             memberProfileService =  memberProfileService,
-            memberAttendanceService = memberAttendanceService,
             jwtTokenProvider = jwtTokenProvider,
             passwordEncoder = passwordEncoder,
             memberValidator = memberValidator,
