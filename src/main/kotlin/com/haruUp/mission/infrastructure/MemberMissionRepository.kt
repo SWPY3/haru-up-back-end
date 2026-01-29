@@ -314,9 +314,10 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     fun findSelectedMissionsWithoutLabel(targetDate: LocalDate): List<MemberMissionEntity>
 
     @Query("""
-        SELECT
-            m.targetDate AS targetDate,
-            COUNT(m.id) AS completedCount
+        SELECT new com.haruUp.mission.domain.DailyMissionCountDto(
+            m.targetDate,
+            COUNT(m.id)
+        )
         FROM MemberMissionEntity m
         WHERE m.memberId = :memberId
           AND m.missionStatus = 'COMPLETED'

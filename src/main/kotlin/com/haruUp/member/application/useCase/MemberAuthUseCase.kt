@@ -5,6 +5,7 @@ import com.haruUp.character.application.CharacterUseCase
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
 import com.haruUp.global.security.JwtTokenProvider
+import com.haruUp.member.application.service.MemberAttendanceService
 import com.haruUp.member.application.service.MemberProfileService
 import com.haruUp.member.application.service.MemberService
 import com.haruUp.member.application.service.MemberSettingService
@@ -26,6 +27,7 @@ class MemberAuthUseCase(
     private val memberService: MemberService,
     private val memberSettingService: MemberSettingService,
     private val memberProfileService : MemberProfileService,
+    private val memberAttendanceService: MemberAttendanceService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val passwordEncoder: PasswordEncoder,
     private val memberValidator: MemberValidator,
@@ -140,7 +142,10 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
         stringRedisTemplate.opsForValue()
             .set(redisKey, memberId.toString(), Duration.ofSeconds(ttlSeconds))
 
-        // 5) 토큰 세팅해서 반환
+        // 5) 출석 체크
+        memberAttendanceService.checkAttendance(memberId)
+
+        // 6) 토큰 세팅해서 반환
         return memberDto.apply {
             this.accessToken = accessToken
             this.refreshToken = refreshToken
