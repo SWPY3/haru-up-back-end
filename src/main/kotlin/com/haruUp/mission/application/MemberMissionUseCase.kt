@@ -10,7 +10,10 @@ import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.DailyMissionCountDto
+import com.haruUp.mission.domain.MonthlyAttendanceDto
+import com.haruUp.mission.domain.MonthlyAttendanceResponseDto
 import com.haruUp.mission.domain.MonthlyMissionWithAttendanceDto
+import java.time.YearMonth
 import com.haruUp.member.application.service.MemberAttendanceService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -221,5 +224,49 @@ class MemberMissionUseCase(
         )
     }
 
+    /**
+     * 월별 출석 횟수 조회
+     */
+    fun getMonthlyAttendance(
+        memberId: Long,
+        startTargetMonth: String,
+        endTargetMonth: String
+    ): MonthlyAttendanceResponseDto {
+
+        val startYearMonth = try {
+            YearMonth.parse(startTargetMonth)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
+        }
+
+        val endYearMonth = try {
+            YearMonth.parse(endTargetMonth)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
+        }
+
+        val startDate = startYearMonth.atDay(1)
+        val endDate = endYearMonth.atEndOfMonth()
+
+        val monthlyCountsMap = memberAttendanceService.getMonthlyAttendanceCounts(
+            memberId, startDate, endDate
+        )
+
+        // 시작월부터 종료월까지 모든 월 생성
+        val attendanceDates = mutableListOf<MonthlyAttendanceDto>()
+        var current = startYearMonth
+        while (!current.isAfter(endYearMonth)) {
+            val monthKey = "${current.year}-${current.monthValue.toString().padStart(2, '0')}"
+            attendanceDates.add(
+                MonthlyAttendanceDto(
+                    targetMonth = monthKey,
+                    attendanceCount = monthlyCountsMap[monthKey] ?: 0
+                )
+            )
+            current = current.plusMonths(1)
+        }
+
+        return MonthlyAttendanceResponseDto(attendanceDates = attendanceDates)
+    }
 
 }
