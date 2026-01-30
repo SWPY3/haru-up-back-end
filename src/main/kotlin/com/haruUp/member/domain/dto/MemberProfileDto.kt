@@ -22,7 +22,9 @@ data class MemberProfileDto(
 
     var jobId: Long? = null,
 
-    var jobDetailId: Long? = null
+    var jobDetailId: Long? = null,
+
+    var characterId: Long? = null
 ) {
 
     fun toEntity(): MemberProfile =
