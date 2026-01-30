@@ -10,6 +10,11 @@ import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.DailyMissionCountDto
+import com.haruUp.mission.domain.MonthlyAttendanceDto
+import com.haruUp.mission.domain.MonthlyAttendanceResponseDto
+import com.haruUp.mission.domain.MonthlyMissionWithAttendanceDto
+import java.time.YearMonth
+import com.haruUp.member.application.service.MemberAttendanceService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -18,7 +23,8 @@ import java.time.LocalDate
 class MemberMissionUseCase(
     private val memberMissionService: MemberMissionService,
     private val memberCharacterService: MemberCharacterService,
-    private val levelService: LevelService
+    private val levelService: LevelService,
+    private val memberAttendanceService: MemberAttendanceService
 ) {
 
     // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
@@ -166,7 +172,7 @@ class MemberMissionUseCase(
     fun continueMissionMonth(
         memberId: Long,
         targetMonth: String   // "YYYY-MM"
-    ): List<DailyMissionCountDto> {
+    ): MonthlyMissionWithAttendanceDto {
 
         val yearMonth = try {
             java.time.YearMonth.parse(targetMonth)
@@ -177,12 +183,90 @@ class MemberMissionUseCase(
         val targetStartDate: LocalDate = yearMonth.atDay(1)
         val targetEndDate: LocalDate = yearMonth.atEndOfMonth()
 
-        return memberMissionService.findDailyCompletedMissionCount(
+        val missionCounts = memberMissionService.findDailyCompletedMissionCount(
             memberId,
             targetStartDate,
             targetEndDate
         )
+
+        val attendanceDates = memberAttendanceService.getAttendanceDates(
+            memberId,
+            targetStartDate,
+            targetEndDate
+        ).toSet()
+
+        // 미션 완료일을 Map으로 변환
+        val missionCountMap = missionCounts.associateBy { it.targetDate }
+
+        // 미션 완료일 + 출석일 합치기
+        val allDates = (missionCountMap.keys + attendanceDates).sorted()
+
+        // 모든 날짜에 대해 DTO 생성
+        val missionCountsWithAttendance = allDates.map { date ->
+            val mission = missionCountMap[date]
+            DailyMissionCountDto(
+                targetDate = date,
+                completedCount = mission?.completedCount ?: 0,
+                isAttendance = attendanceDates.contains(date)
+            )
+        }
+
+        // 총 미션 완료 수
+        val totalMissionCount = missionCounts.sumOf { it.completedCount }
+
+        // 총 출석일 수
+        val totalAttendanceCount = attendanceDates.size
+
+        return MonthlyMissionWithAttendanceDto(
+            missionCounts = missionCountsWithAttendance,
+            totalMissionCount = totalMissionCount,
+            totalAttendanceCount = totalAttendanceCount
+        )
     }
 
+    /**
+     * 월별 출석 횟수 조회
+     */
+    fun getMonthlyAttendance(
+        memberId: Long,
+        startTargetMonth: String,
+        endTargetMonth: String
+    ): MonthlyAttendanceResponseDto {
+
+        val startYearMonth = try {
+            YearMonth.parse(startTargetMonth)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
+        }
+
+        val endYearMonth = try {
+            YearMonth.parse(endTargetMonth)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
+        }
+
+        val startDate = startYearMonth.atDay(1)
+        val endDate = endYearMonth.atEndOfMonth()
+
+        val monthlyCountsMap = memberAttendanceService.getMonthlyAttendanceCounts(
+            memberId, startDate, endDate
+        )
+
+        // 시작월부터 종료월까지 모든 월 생성
+        val attendanceDates = mutableListOf<MonthlyAttendanceDto>()
+        var current = startYearMonth
+        while (!current.isAfter(endYearMonth)) {
+            val monthKey = "${current.year}-${current.monthValue.toString().padStart(2, '0')}"
+            attendanceDates.add(
+                MonthlyAttendanceDto(
+                    targetMonth = monthKey,
+                    attendanceCount = monthlyCountsMap[monthKey] ?: 0
+                )
+            )
+            current = current.plusMonths(1)
+        }
+
+        return MonthlyAttendanceResponseDto(attendanceDates = attendanceDates)
+    }
 
 }
