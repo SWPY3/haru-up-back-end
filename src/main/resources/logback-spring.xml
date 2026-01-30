@@ -2,6 +2,14 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
+    <!-- 환경별 APP_LABEL 설정 -->
+    <springProfile name="qa">
+        <property name="APP_LABEL" value="haruUp-qa"/>
+    </springProfile>
+    <springProfile name="!qa">
+        <property name="APP_LABEL" value="haruUp"/>
+    </springProfile>
+
     <!-- 콘솔 출력 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -16,7 +24,7 @@
         </http>
         <format>
             <label>
-                <pattern>app=haruUp,host=${HOSTNAME:-localhost},level=%level</pattern>
+                <pattern>app=${APP_LABEL},host=${HOSTNAME:-localhost},level=%level</pattern>
             </label>
             <message class="com.github.loki4j.logback.JsonLayout"/>
         </format>
@@ -29,7 +37,7 @@
         </http>
         <format>
             <label>
-                <pattern>app=haruUp,host=${HOSTNAME:-localhost},type=api,level=%level</pattern>
+                <pattern>app=${APP_LABEL},host=${HOSTNAME:-localhost},type=api,level=%level</pattern>
             </label>
             <message>
                 <pattern>%msg</pattern>
@@ -44,7 +52,7 @@
         </http>
         <format>
             <label>
-                <pattern>app=haruUp,host=${HOSTNAME:-localhost},type=sql,level=%level</pattern>
+                <pattern>app=${APP_LABEL},host=${HOSTNAME:-localhost},type=sql,level=%level</pattern>
             </label>
             <message class="com.github.loki4j.logback.JsonLayout"/>
         </format>
@@ -57,7 +65,7 @@
         </http>
         <format>
             <label>
-                <pattern>app=haruUp,host=${HOSTNAME:-localhost},type=http_client,level=%level</pattern>
+                <pattern>app=${APP_LABEL},host=${HOSTNAME:-localhost},type=http_client,level=%level</pattern>
             </label>
             <message class="com.github.loki4j.logback.JsonLayout"/>
         </format>
@@ -70,7 +78,7 @@
         </http>
         <format>
             <label>
-                <pattern>app=haruUp,host=${HOSTNAME:-localhost},type=batch,level=%level</pattern>
+                <pattern>app=${APP_LABEL},host=${HOSTNAME:-localhost},type=batch,level=%level</pattern>
             </label>
             <message class="com.github.loki4j.logback.JsonLayout"/>
         </format>
