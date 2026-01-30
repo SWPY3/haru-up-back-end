@@ -299,6 +299,4 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
         return newTokens.accessToken
     }
 
-
-
 }

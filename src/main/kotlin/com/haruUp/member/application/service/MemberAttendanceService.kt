@@ -40,4 +40,21 @@ class MemberAttendanceService(
             memberId, startDate, endDate
         )
     }
+
+    /**
+     * 월별 출석 횟수 조회
+     */
+    fun getMonthlyAttendanceCounts(
+        memberId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): Map<String, Int> {
+        val attendanceDates = memberAttendanceRepository.findAttendanceDatesByMemberIdAndDateRange(
+            memberId, startDate, endDate
+        )
+
+        return attendanceDates
+            .groupBy { "${it.year}-${it.monthValue.toString().padStart(2, '0')}" }
+            .mapValues { it.value.size }
+    }
 }

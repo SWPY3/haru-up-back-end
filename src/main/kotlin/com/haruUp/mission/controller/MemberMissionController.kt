@@ -8,6 +8,7 @@ import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MemberMissionDto
+import com.haruUp.mission.domain.MonthlyAttendanceResponseDto
 import com.haruUp.mission.domain.MonthlyMissionWithAttendanceDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
@@ -434,7 +435,7 @@ class MemberMissionController(
         - 결과는 날짜 오름차순으로 반환됩니다.
     """
     )
-    @PostMapping("/continue/mission/month/{targetMonth}")
+    @GetMapping("/continue/mission/month/{targetMonth}")
     fun continueMissionMonth(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
@@ -448,6 +449,42 @@ class MemberMissionController(
 
         val result =
             memberMissionUseCase.continueMissionMonth(principal.id, targetMonth)
+
+        return ApiResponse.success(result)
+    }
+
+    @Operation(
+        summary = "월별 출석 횟수 조회",
+        description = """
+        시작월부터 종료월까지의 월별 출석 횟수를 조회합니다.
+
+        - startTargetMonth: 조회 시작월 (YYYY-MM)
+        - endTargetMonth: 조회 종료월 (YYYY-MM)
+        - 출석이 없는 월도 0으로 포함됩니다.
+    """
+    )
+    @GetMapping("/continue/mission/month")
+    fun getMonthlyAttendance(
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @Parameter(
+            description = "조회 시작월 (YYYY-MM 형식)",
+            example = "2026-01",
+            required = true
+        )
+        @RequestParam startTargetMonth: String,
+        @Parameter(
+            description = "조회 종료월 (YYYY-MM 형식)",
+            example = "2026-12",
+            required = true
+        )
+        @RequestParam endTargetMonth: String
+    ): ApiResponse<MonthlyAttendanceResponseDto> {
+
+        val result = memberMissionUseCase.getMonthlyAttendance(
+            principal.id,
+            startTargetMonth,
+            endTargetMonth
+        )
 
         return ApiResponse.success(result)
     }
