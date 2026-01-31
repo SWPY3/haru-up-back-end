@@ -8,8 +8,8 @@ import com.haruUp.mission.application.MissionRecommendUseCase
 import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MemberMissionDto
-import com.haruUp.mission.domain.MonthlyAttendanceResponseDto
-import com.haruUp.mission.domain.MonthlyMissionWithAttendanceDto
+import com.haruUp.mission.domain.MonthlyCompletedDaysResponseDto
+import com.haruUp.mission.domain.MonthlyMissionDataDto
 import com.haruUp.mission.domain.MissionRecommendResult
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeRequest
@@ -425,13 +425,14 @@ class MemberMissionController(
 
 
     @Operation(
-        summary = "월간 미션 수행 현황 및 출석일 조회",
+        summary = "월간 미션 수행 현황 조회",
         description = """
         지정한 월(YYYY-MM)에 대해
-        사용자가 날짜별로 완료한 미션 개수와 출석일을 조회합니다.
+        사용자가 날짜별로 완료한 미션 개수를 조회합니다.
 
         - missionCounts: 미션 상태가 COMPLETED 인 항목만 집계됩니다. 완료 미션이 없는 날짜는 결과에 포함되지 않습니다.
-        - attendanceDates: 해당 월의 출석일 목록입니다. (로그인 시 자동 기록)
+        - totalMissionCount: 해당 월의 총 미션 완료 수
+        - totalCompletedDays: 해당 월에 미션을 완료한 날 수
         - 결과는 날짜 오름차순으로 반환됩니다.
     """
     )
@@ -445,7 +446,7 @@ class MemberMissionController(
         )
         @PathVariable
         targetMonth: String
-    ): ApiResponse<MonthlyMissionWithAttendanceDto> {
+    ): ApiResponse<MonthlyMissionDataDto> {
 
         val result =
             memberMissionUseCase.continueMissionMonth(principal.id, targetMonth)
@@ -454,17 +455,17 @@ class MemberMissionController(
     }
 
     @Operation(
-        summary = "월별 출석 횟수 조회",
+        summary = "월별 미션 완료한 날 수 조회",
         description = """
-        시작월부터 종료월까지의 월별 출석 횟수를 조회합니다.
+        시작월부터 종료월까지의 월별 미션 완료한 날 수를 조회합니다.
 
         - startTargetMonth: 조회 시작월 (YYYY-MM)
         - endTargetMonth: 조회 종료월 (YYYY-MM)
-        - 출석이 없는 월도 0으로 포함됩니다.
+        - 미션 완료가 없는 월도 0으로 포함됩니다.
     """
     )
     @GetMapping("/continue/mission/month")
-    fun getMonthlyAttendance(
+    fun getMonthlyCompletedDays(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @Parameter(
             description = "조회 시작월 (YYYY-MM 형식)",
@@ -478,9 +479,9 @@ class MemberMissionController(
             required = true
         )
         @RequestParam endTargetMonth: String
-    ): ApiResponse<MonthlyAttendanceResponseDto> {
+    ): ApiResponse<MonthlyCompletedDaysResponseDto> {
 
-        val result = memberMissionUseCase.getMonthlyAttendance(
+        val result = memberMissionUseCase.getMonthlyCompletedDays(
             principal.id,
             startTargetMonth,
             endTargetMonth
