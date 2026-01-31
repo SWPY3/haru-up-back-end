@@ -1,6 +1,7 @@
 package com.haruUp.member.application.service
 
 import com.haruUp.category.application.JobDetailService
+import com.haruUp.character.application.service.MemberCharacterService
 import com.haruUp.member.domain.MemberProfile
 import com.haruUp.member.domain.dto.MemberProfileDto
 import com.haruUp.member.infrastructure.MemberProfileRepository
@@ -12,17 +13,25 @@ import kotlin.apply
 @Service
 class MemberProfileService (
     private val memberProfileRepository: MemberProfileRepository,
-    private val jobDetailService: JobDetailService
+    private val jobDetailService: JobDetailService,
+    private val memberCharacterService: MemberCharacterService
 ) {
 
     @Transactional
-    fun getByMemberId(memberId: Long): MemberProfileDto? =
-        memberProfileRepository.findByMemberId(memberId)?.toDto()
+    fun getByMemberId(memberId: Long): MemberProfileDto? {
+        val profileDto = memberProfileRepository.findByMemberId(memberId)?.toDto() ?: return null
+        val memberCharacter = memberCharacterService.getSelectedCharacter(memberId)
+        profileDto.characterId = memberCharacter?.characterId
+        return profileDto
+    }
 
     @Transactional
     fun createDefaultProfile(memberId: Long): MemberProfileDto {
         val entity = MemberProfile().apply { this.memberId = memberId  }
-        return memberProfileRepository.save(entity).toDto()
+        val profileDto = memberProfileRepository.save(entity).toDto()
+        val memberCharacter = memberCharacterService.getSelectedCharacter(memberId)
+        profileDto.characterId = memberCharacter?.characterId
+        return profileDto
     }
 
     @Transactional

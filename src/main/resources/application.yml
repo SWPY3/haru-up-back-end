@@ -3,7 +3,7 @@ spring:
     name: haruUp
 
   profiles:
-    active: ${APPS_ENV}  # dev = Swagger 활성화 | prod = Swagger 비활성화
+    active: ${APPS_ENV}
 
   config:
     import: classpath:env.properties
