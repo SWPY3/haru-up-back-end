@@ -271,4 +271,19 @@ class MemberMissionService(
         return continueMissionMonth
 
     }
+
+    /**
+     * 특정 기간 내 미션 완료한 날짜 목록 조회
+     */
+    fun findCompletedDatesByDateRange(
+        memberId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<LocalDate> {
+        return memberMissionRepository.findCompletedDatesByMemberIdAndDateRange(
+            memberId = memberId,
+            startDate = startDate,
+            endDate = endDate
+        )
+    }
 }

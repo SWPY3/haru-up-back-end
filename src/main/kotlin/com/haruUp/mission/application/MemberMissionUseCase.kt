@@ -10,11 +10,11 @@ import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.domain.DailyCompletionStatus
 import com.haruUp.mission.domain.DailyMissionCountDto
-import com.haruUp.mission.domain.MonthlyAttendanceDto
-import com.haruUp.mission.domain.MonthlyAttendanceResponseDto
-import com.haruUp.mission.domain.MonthlyMissionWithAttendanceDto
+import com.haruUp.mission.domain.MonthlyCompletedDaysDto
+import com.haruUp.mission.domain.MonthlyCompletedDaysResponseDto
+import com.haruUp.mission.domain.MonthlyMissionDataDto
+import com.haruUp.member.application.service.MemberService
 import java.time.YearMonth
-import com.haruUp.member.application.service.MemberAttendanceService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -24,7 +24,7 @@ class MemberMissionUseCase(
     private val memberMissionService: MemberMissionService,
     private val memberCharacterService: MemberCharacterService,
     private val levelService: LevelService,
-    private val memberAttendanceService: MemberAttendanceService
+    private val memberService: MemberService
 ) {
 
     // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
@@ -172,7 +172,7 @@ class MemberMissionUseCase(
     fun continueMissionMonth(
         memberId: Long,
         targetMonth: String   // "YYYY-MM"
-    ): MonthlyMissionWithAttendanceDto {
+    ): MonthlyMissionDataDto {
 
         val yearMonth = try {
             java.time.YearMonth.parse(targetMonth)
@@ -189,49 +189,28 @@ class MemberMissionUseCase(
             targetEndDate
         )
 
-        val attendanceDates = memberAttendanceService.getAttendanceDates(
-            memberId,
-            targetStartDate,
-            targetEndDate
-        ).toSet()
-
-        // 미션 완료일을 Map으로 변환
-        val missionCountMap = missionCounts.associateBy { it.targetDate }
-
-        // 미션 완료일 + 출석일 합치기
-        val allDates = (missionCountMap.keys + attendanceDates).sorted()
-
-        // 모든 날짜에 대해 DTO 생성
-        val missionCountsWithAttendance = allDates.map { date ->
-            val mission = missionCountMap[date]
-            DailyMissionCountDto(
-                targetDate = date,
-                completedCount = mission?.completedCount ?: 0,
-                isAttendance = attendanceDates.contains(date)
-            )
-        }
-
         // 총 미션 완료 수
         val totalMissionCount = missionCounts.sumOf { it.completedCount }
 
-        // 총 출석일 수
-        val totalAttendanceCount = attendanceDates.size
+        // 미션 완료한 날 수
+        val totalCompletedDays = missionCounts.size
 
-        return MonthlyMissionWithAttendanceDto(
-            missionCounts = missionCountsWithAttendance,
+        return MonthlyMissionDataDto(
+            missionCounts = missionCounts,
             totalMissionCount = totalMissionCount,
-            totalAttendanceCount = totalAttendanceCount
+            totalCompletedDays = totalCompletedDays
         )
     }
 
     /**
-     * 월별 출석 횟수 조회
+     * 월별 미션 완료한 날 수 조회
+     * - 회원가입일 이후의 월만 반환
      */
-    fun getMonthlyAttendance(
+    fun getMonthlyCompletedDays(
         memberId: Long,
         startTargetMonth: String,
         endTargetMonth: String
-    ): MonthlyAttendanceResponseDto {
+    ): MonthlyCompletedDaysResponseDto {
 
         val startYearMonth = try {
             YearMonth.parse(startTargetMonth)
@@ -245,28 +224,55 @@ class MemberMissionUseCase(
             throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
         }
 
-        val startDate = startYearMonth.atDay(1)
+        // 회원 정보 조회하여 가입일 확인
+        val member = memberService.getFindMemberId(memberId)
+            .orElseThrow { IllegalArgumentException("회원 정보를 찾을 수 없습니다.") }
+
+        val memberCreatedAt = member.createdAt?.toLocalDate()
+            ?: throw IllegalStateException("회원 가입일 정보가 없습니다.")
+
+        val memberJoinYearMonth = YearMonth.from(memberCreatedAt)
+
+        // 시작월이 회원가입월보다 이전이면 회원가입월부터 시작
+        val effectiveStartYearMonth = if (startYearMonth.isBefore(memberJoinYearMonth)) {
+            memberJoinYearMonth
+        } else {
+            startYearMonth
+        }
+
+        // 회원가입월이 종료월보다 이후이면 빈 결과 반환
+        if (effectiveStartYearMonth.isAfter(endYearMonth)) {
+            return MonthlyCompletedDaysResponseDto(monthlyData = emptyList())
+        }
+
+        val startDate = effectiveStartYearMonth.atDay(1)
         val endDate = endYearMonth.atEndOfMonth()
 
-        val monthlyCountsMap = memberAttendanceService.getMonthlyAttendanceCounts(
+        // 미션 완료한 날짜 목록 조회
+        val completedDates = memberMissionService.findCompletedDatesByDateRange(
             memberId, startDate, endDate
         )
 
-        // 시작월부터 종료월까지 모든 월 생성
-        val attendanceDates = mutableListOf<MonthlyAttendanceDto>()
-        var current = startYearMonth
+        // 월별로 그룹핑하여 카운트
+        val monthlyCountsMap = completedDates
+            .groupBy { "${it.year}-${it.monthValue.toString().padStart(2, '0')}" }
+            .mapValues { it.value.size }
+
+        // 회원가입월부터 종료월까지 모든 월 생성
+        val monthlyData = mutableListOf<MonthlyCompletedDaysDto>()
+        var current = effectiveStartYearMonth
         while (!current.isAfter(endYearMonth)) {
             val monthKey = "${current.year}-${current.monthValue.toString().padStart(2, '0')}"
-            attendanceDates.add(
-                MonthlyAttendanceDto(
+            monthlyData.add(
+                MonthlyCompletedDaysDto(
                     targetMonth = monthKey,
-                    attendanceCount = monthlyCountsMap[monthKey] ?: 0
+                    completedDays = monthlyCountsMap[monthKey] ?: 0
                 )
             )
             current = current.plusMonths(1)
         }
 
-        return MonthlyAttendanceResponseDto(attendanceDates = attendanceDates)
+        return MonthlyCompletedDaysResponseDto(monthlyData = monthlyData)
     }
 
 }
