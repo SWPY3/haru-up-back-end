@@ -29,6 +29,7 @@ class NotificationController(
             platform = request.platform,
             token = request.token
         )
+
         return ApiResponse.success(Unit)
     }
 
@@ -49,7 +50,7 @@ class NotificationController(
 
 data class RegisterPushTokenRequest(
     val memberId: Long,               // 🔥 실제로는 JWT에서 꺼내 쓰는 걸 추천
-    val deviceId: String?,
+    val deviceId: String,
     val platform: PushPlatform,
     val token: String
 )

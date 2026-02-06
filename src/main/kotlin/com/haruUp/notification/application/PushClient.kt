@@ -1,14 +1,41 @@
 package com.haruUp.notification.application
 
-interface PushClient {
+import com.google.firebase.messaging.Message
+import com.google.firebase.messaging.Notification
+import com.haruUp.notification.domain.NotificationDeviceToken
+import org.springframework.stereotype.Component
 
-    /**
-     * 실제 외부 Push Provider로 "단일 토큰"에 푸시 발송하는 책임
-     */
-    fun sendToToken(
-        token: String,
+@Component
+class PushClient {
+
+    fun createMessage(
+        token: NotificationDeviceToken,
         title: String,
-        body: String,
-        data: Map<String, String> = emptyMap()
-    )
+        body: String
+    ): Message =
+        Message.builder()
+            .setToken(token.token)
+            .setNotification(
+                Notification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .build()
+            )
+            .build()
+
+
+    fun createMessageWithDeviceid(
+        deviceId: String,
+        title: String,
+        body: String
+    ): Message =
+        Message.builder()
+            .setToken(deviceId)
+            .setNotification(
+                Notification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .build()
+            )
+            .build()
 }
