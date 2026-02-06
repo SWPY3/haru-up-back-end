@@ -1,19 +1,21 @@
-// src/test/kotlin/com/swyp/notification/application/NotificationUseCaseUnitTest.kt
-package com.haruUp.notification.application
+package com.haruUp.notification.application.useCase
 
+import com.google.firebase.messaging.Message
+import com.haruUp.notification.application.PushClient
 import com.haruUp.notification.application.service.NotificationTokenService
-import com.haruUp.notification.application.useCase.NotificationUseCase
 import com.haruUp.notification.domain.NotificationDeviceToken
 import com.haruUp.notification.domain.PushPlatform
+import com.haruUp.notification.infrastructure.PushClientApplication
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
+import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.*
+import org.mockito.kotlin.any
 
 @ExtendWith(MockitoExtension::class)
-class NotificationUseCaseUnitTest {
+class NotificationUseCaseTest {
 
     @Mock
     lateinit var notificationTokenService: NotificationTokenService
@@ -21,75 +23,83 @@ class NotificationUseCaseUnitTest {
     @Mock
     lateinit var pushClient: PushClient
 
+    @Mock
+    lateinit var pushClientApplication: PushClientApplication
+
     private lateinit var notificationUseCase: NotificationUseCase
 
     @BeforeEach
     fun setUp() {
         notificationUseCase = NotificationUseCase(
             notificationTokenService = notificationTokenService,
-            pushClient = pushClient
+            pushClient = pushClient,
+            pushClientApplication = pushClientApplication
         )
     }
 
     @Test
-    fun `sendToMember는 해당 회원의 모든 토큰에 대해 PushClient를 호출한다`() {
-        val memberId = 1L
-        val tokens = listOf(
-            NotificationDeviceToken(
-                id = 1L,
-                memberId = memberId,
-                deviceId = "d1",
-                platform = PushPlatform.ANDROID,
-                token = "token-1"
-            ),
-            NotificationDeviceToken(
-                id = 2L,
-                memberId = memberId,
-                deviceId = "d2",
-                platform = PushPlatform.IOS,
-                token = "token-2"
-            )
+    fun `sendToMember는 토큰 개수만큼 메시지를 생성하고 전송한다`() {
+        // given
+        val token1 = NotificationDeviceToken(
+            memberId = 1L,
+            deviceId = "device-1",
+            platform = PushPlatform.IOS,
+            token = "token-1"
         )
 
-        whenever(notificationTokenService.getTokensByMember(memberId))
-            .thenReturn(tokens)
+        val token2 = NotificationDeviceToken(
+            memberId = 1L,
+            deviceId = "device-2",
+            platform = PushPlatform.IOS,
+            token = "token-2"
+        )
 
-        val title = "테스트 제목"
-        val body = "테스트 내용"
-        val data = mapOf("key" to "value")
+        `when`(notificationTokenService.getTokensByMember(1L))
+            .thenReturn(listOf(token1, token2))
 
+        val mockMessage = mock(Message::class.java)
+
+        // ✅ 실제 시그니처에 맞게 인자 3개
+        `when`(pushClient.createMessage(any(), any(), any()))
+            .thenReturn(mockMessage)
+
+        // when
         notificationUseCase.sendToMember(
-            memberId = memberId,
-            title = title,
-            body = body,
-            data = data
+            memberId = 1L,
+            title = "제목",
+            body = "내용"
         )
 
-        verify(notificationTokenService, times(1))
-            .getTokensByMember(memberId)
+        // then
+        verify(notificationTokenService).getTokensByMember(1L)
 
-        verify(pushClient, times(1))
-            .sendToToken("token-1", title, body, data)
-        verify(pushClient, times(1))
-            .sendToToken("token-2", title, body, data)
+        // 토큰 2개 → 메시지 2번 생성
+        verify(pushClient, times(2))
+            .createMessage(any(), any(), any())
+
+        // 토큰 2개 → 전송 2번
+        verify(pushClientApplication, times(2))
+            .send(any(), any())
     }
 
     @Test
-    fun `sendToMembers는 각 memberId에 대해 sendToMember를 호출한다`() {
-        val memberIds = listOf(1L, 2L)
-        val title = "제목"
-        val body = "내용"
-
-        whenever(notificationTokenService.getTokensByMember(any()))
+    fun `토큰이 없으면 푸시 전송을 시도하지 않는다`() {
+        // given
+        `when`(notificationTokenService.getTokensByMember(1L))
             .thenReturn(emptyList())
 
-        notificationUseCase.sendToMembers(
-            memberIds = memberIds,
-            title = title,
-            body = body
+        // when
+        notificationUseCase.sendToMember(
+            memberId = 1L,
+            title = "제목",
+            body = "내용"
         )
 
-        verify(notificationTokenService, times(1)).getTokensByMember(1L)
-        verify(notificationTokenService, times(1)).getTokensByMember(2L)
+        // then
+        verify(pushClient, never())
+            .createMessage(any(), any(), any())
+
+        verify(pushClientApplication, never())
+            .send(any(), any())
     }
 }

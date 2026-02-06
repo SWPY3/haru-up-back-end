@@ -46,33 +46,19 @@ interface MemberRepository : JpaRepository<Member, Long> {
 
     @Query(
         value = """
-        select
-            t.sns_id      as snsId,
-            t.name        as name,
-            t.level_number as levelNumber,
-            t.character_id as characterId,
-            t.created_at  as createdAt
-        from (
             select
-                m.sns_id,
-                m.name,
-                l.level_number,
-                c.id as character_id,
-                m.created_at,
-                row_number() over (
-                    partition by m.sns_id
-                    order by m.created_at desc
-                ) as rn
-            from member m
-                     inner join member_character mc on m.id = mc.member_id
-                     inner join character c on mc.character_id = c.id
-                     inner join level l on mc.level_id = l.id
-            where m.name is not null
-              and m.name <> ''
-              and m.name <> 'string'
-        ) t
-        where t.rn = 1
-        order by t.created_at desc
+                member.sns_id as SNS아이디,
+                member.name AS 이름,
+                level.level_number AS 회원레벨,
+                member.created_at AS 가입일
+            from member
+                     inner join member_character on member.id = member_character.member_id
+                     inner join character on member_character.character_id = character.id
+                     inner join level on member_character.level_id = level.id
+            where member.name != 'string'
+              and member.deleted = false
+              and member.created_at >= '2026-01-07'
+            order by member.created_at desc
     """,
         nativeQuery = true
     )
