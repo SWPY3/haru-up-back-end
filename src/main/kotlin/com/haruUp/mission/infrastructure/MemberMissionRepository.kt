@@ -3,6 +3,7 @@ package com.haruUp.mission.infrastructure
 import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MissionStatus
+import com.haruUp.notification.domain.MissionPushTarget
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -53,13 +54,15 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      * 사용자의 특정 상태 미션 난이도 목록 조회
      * 오늘의 미션 추천 시 제외할 난이도 조회에 사용
      */
-    @Query("""
+    @Query(
+        """
     SELECT m.difficulty
     FROM MemberMissionEntity m
     WHERE m.memberId = :memberId
       AND m.missionStatus = :status
       AND m.difficulty IS NOT NULL
-    """)
+    """
+    )
     fun findDifficultiesByMemberIdAndStatus(
         memberId: Long,
         status: MissionStatus
@@ -69,13 +72,15 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      * 사용자의 특정 상태 미션 내용 목록 조회
      * 오늘의 미션 추천 시 제외할 미션 내용 조회에 사용
      */
-    @Query("""
+    @Query(
+        """
     SELECT m.missionContent
     FROM MemberMissionEntity m
     WHERE m.memberId = :memberId
       AND m.missionStatus = :status
       AND m.deleted = false
-    """)
+    """
+    )
     fun findMissionContentsByMemberIdAndStatus(
         memberId: Long,
         status: MissionStatus
@@ -87,14 +92,16 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      */
     @Transactional
     @Modifying
-    @Query("""
+    @Query(
+        """
     UPDATE MemberMissionEntity m
     SET m.deleted = true, m.deletedAt = :deletedAt
     WHERE m.memberId = :memberId
       AND m.memberInterestId = :memberInterestId
       AND m.missionStatus = :status
       AND m.deleted = false
-    """)
+    """
+    )
     fun softDeleteByMemberIdAndInterestIdAndStatus(
         memberId: Long,
         memberInterestId: Long,
@@ -107,7 +114,8 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      */
     @Transactional
     @Modifying
-    @Query("""
+    @Query(
+        """
     UPDATE MemberMissionEntity m
     SET m.deleted = true, m.deletedAt = :deletedAt
     WHERE m.memberId = :memberId
@@ -115,7 +123,8 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
       AND m.missionStatus = :status
       AND m.deleted = false
       AND m.id NOT IN :excludeIds
-    """)
+    """
+    )
     fun softDeleteByMemberIdAndInterestIdAndStatusExcludingIds(
         memberId: Long,
         memberInterestId: Long,
@@ -131,7 +140,8 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      * - missionStatus IN (READY, ACTIVE)
      * - 특정 memberInterestId
      */
-    @Query("""
+    @Query(
+        """
     SELECT m FROM MemberMissionEntity m
     WHERE m.memberId = :memberId
       AND m.memberInterestId = :memberInterestId
@@ -139,7 +149,8 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
       AND m.targetDate = :targetDate
       AND m.missionStatus IN :statuses
     ORDER BY m.id
-    """)
+    """
+    )
     fun findTodayMissions(
         memberId: Long,
         memberInterestId: Long,
@@ -179,14 +190,16 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      * 날짜 범위 내에서 COMPLETED 상태인 미션의 targetDate 목록 조회
      * - 중복 제거 (DISTINCT)
      */
-    @Query("""
+    @Query(
+        """
     SELECT DISTINCT m.targetDate FROM MemberMissionEntity m
     WHERE m.memberId = :memberId
       AND m.targetDate >= :startDate
       AND m.targetDate <= :endDate
       AND m.missionStatus = 'COMPLETED'
       AND m.deleted = false
-    """)
+    """
+    )
     fun findCompletedDatesByMemberIdAndDateRange(
         memberId: Long,
         startDate: LocalDate,
@@ -198,12 +211,14 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      */
     @Transactional
     @Modifying
-    @Query("""
+    @Query(
+        """
     UPDATE MemberMissionEntity m
     SET m.deleted = true, m.deletedAt = CURRENT_TIMESTAMP
     WHERE m.memberId = :memberId
       AND m.deleted = false
-    """)
+    """
+    )
     fun softDeleteAllByMemberId(memberId: Long): Int
 
     /**
@@ -212,13 +227,15 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      */
     @Transactional
     @Modifying
-    @Query("""
+    @Query(
+        """
     UPDATE MemberMissionEntity m
     SET m.deleted = true, m.deletedAt = :deletedAt
     WHERE m.memberId = :memberId
       AND m.memberInterestId = :memberInterestId
       AND m.deleted = false
-    """)
+    """
+    )
     fun softDeleteByMemberIdAndInterestId(
         memberId: Long,
         memberInterestId: Long,
@@ -231,12 +248,14 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      * - target_date = 지정된 날짜
      * - deleted = false
      */
-    @Query("""
+    @Query(
+        """
     SELECT m FROM MemberMissionEntity m
     WHERE m.isSelected = true
       AND m.targetDate = :targetDate
       AND m.deleted = false
-    """)
+    """
+    )
     fun findSelectedMissionsByTargetDate(targetDate: LocalDate): List<MemberMissionEntity>
 
     /**
@@ -267,11 +286,13 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      */
     @Transactional
     @Modifying
-    @Query("""
+    @Query(
+        """
     UPDATE MemberMissionEntity m
     SET m.labelName = :labelName, m.updatedAt = :updatedAt
     WHERE m.id = :id
-    """)
+    """
+    )
     fun updateLabelName(
         id: Long,
         labelName: String,
@@ -304,16 +325,19 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
     /**
      * 라벨이 없는 선택된 미션 조회 (배치용)
      */
-    @Query("""
+    @Query(
+        """
     SELECT m FROM MemberMissionEntity m
     WHERE m.isSelected = true
       AND m.targetDate = :targetDate
       AND m.labelName IS NULL
       AND m.deleted = false
-    """)
+    """
+    )
     fun findSelectedMissionsWithoutLabel(targetDate: LocalDate): List<MemberMissionEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT new com.haruUp.mission.domain.DailyMissionCountDto(
             m.targetDate,
             COUNT(m.id)
@@ -326,7 +350,8 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
           AND m.targetDate <= :targetEndDate
         GROUP BY m.targetDate
         ORDER BY m.targetDate
-    """)
+    """
+    )
     fun findDailyCompletedMissionCount(
         memberId: Long,
         targetStartDate: LocalDate,
@@ -339,17 +364,38 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
      * - deleted = false
      * - missionStatus IN (COMPLETED, ACTIVE, INACTIVE)
      */
-    @Query("""
+    @Query(
+        """
     SELECT COUNT(m) FROM MemberMissionEntity m
     WHERE m.memberId = :memberId
       AND m.targetDate = :targetDate
       AND m.deleted = false
       AND m.missionStatus IN :statuses
-    """)
+    """
+    )
     fun countTodaySelectedMissions(
         memberId: Long,
         targetDate: LocalDate,
         statuses: List<MissionStatus>
     ): Long
 
-}
+
+    @Query(
+        """
+    SELECT DISTINCT new com.haruUp.notification.domain.MissionPushTarget(
+        m.memberId,
+        ndt.deviceId
+    )
+    FROM MemberMissionEntity m
+    JOIN NotificationDeviceToken ndt
+        ON m.memberId = ndt.memberId
+    WHERE m.missionStatus = 'INACTIVE'
+      AND m.deleted = false
+      AND m.createdAt >= :atStartOfDay
+      AND m.createdAt < :atEndOfDay
+    """
+    )
+    fun findMembersWithTodayFalseMission(
+        atStartOfDay: LocalDateTime,
+        atEndOfDay: LocalDateTime
+    ): List<MissionPushTarget>}

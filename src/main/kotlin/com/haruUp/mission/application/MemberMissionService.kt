@@ -9,6 +9,7 @@ import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
+import com.haruUp.notification.domain.MissionPushTarget
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -271,4 +272,10 @@ class MemberMissionService(
         return continueMissionMonth
 
     }
+
+
+    fun getMembersWithTodayFalseMission(atStartOfDay: LocalDateTime, atEndDate: LocalDateTime) : List<MissionPushTarget> {
+        return memberMissionRepository.findMembersWithTodayFalseMission(atStartOfDay, atEndDate)
+    }
+
 }

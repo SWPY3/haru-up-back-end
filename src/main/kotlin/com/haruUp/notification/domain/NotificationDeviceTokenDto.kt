@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "push_device_token")
-class NotificationDeviceToken(
+class NotificationDeviceTokenDto(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,8 +50,8 @@ class NotificationDeviceToken(
         token = ""
     )
 
-    fun toDto(): NotificationDeviceTokenDto {
-        return NotificationDeviceTokenDto(
+    fun toEntity(): NotificationDeviceToken {
+        return NotificationDeviceToken(
             id = this.id,
             memberId = this.memberId,
             deviceId = this.deviceId,
