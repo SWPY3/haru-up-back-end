@@ -15,6 +15,11 @@ import com.haruUp.mission.domain.MonthlyCompletedDaysResponseDto
 import com.haruUp.mission.domain.MonthlyMissionDataDto
 import com.haruUp.member.application.service.MemberService
 import java.time.YearMonth
+
+import com.haruUp.member.application.service.MemberAttendanceService
+import com.haruUp.notification.domain.MissionPushTarget
+
+
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -136,6 +141,7 @@ class MemberMissionUseCase(
             currentExp = newCurrentExp
         )
 
+    
 
         println("변환후 character level Id ${updatedMc.levelId}")
 
@@ -273,6 +279,12 @@ class MemberMissionUseCase(
         }
 
         return MonthlyCompletedDaysResponseDto(monthlyData = monthlyData)
+    }
+
+    fun getMembersWithTodayFalseMission() : List<MissionPushTarget> {
+        val atStartOfDay = LocalDate.now().atStartOfDay()
+        val atEndDate = LocalDate.now().atStartOfDay().plusDays(1)
+        return memberMissionService.getMembersWithTodayFalseMission(atStartOfDay, atEndDate)
     }
 
 }
