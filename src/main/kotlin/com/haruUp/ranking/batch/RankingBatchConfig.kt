@@ -43,13 +43,6 @@ class RankingBatchConfig(
         const val CHUNK_SIZE = 100
     }
 
-    @Value("\${ranking.batch.target-date:#{null}}")
-    private var targetDateParam: String? = null
-
-    private fun getTargetDate(): LocalDate {
-        return targetDateParam?.let { LocalDate.parse(it) } ?: LocalDate.now()
-    }
-
     /**
      * 랭킹 배치 Job 정의
      */
@@ -88,8 +81,10 @@ class RankingBatchConfig(
      */
     @Bean
     @StepScope
-    fun rankingMissionItemReader(): ItemReader<MemberMissionEntity> {
-        val targetDate = getTargetDate()
+    fun rankingMissionItemReader(
+        @Value("#{jobParameters['targetDate']}") targetDateParam: String?
+    ): ItemReader<MemberMissionEntity> {
+        val targetDate = targetDateParam?.let { LocalDate.parse(it) } ?: LocalDate.now().minusDays(1)
         logger.info("랭킹 배치 Reader 시작 - targetDate: $targetDate")
 
         // 1. 오늘 선택된 미션 조회
@@ -120,11 +115,13 @@ class RankingBatchConfig(
      */
     @Bean
     @StepScope
-    fun rankingMissionItemProcessor(): ItemProcessor<MemberMissionEntity, RankingMissionDailyEntity> {
+    fun rankingMissionItemProcessor(
+        @Value("#{jobParameters['targetDate']}") targetDateParam: String?
+    ): ItemProcessor<MemberMissionEntity, RankingMissionDailyEntity> {
+        val targetDate = targetDateParam?.let { LocalDate.parse(it) } ?: LocalDate.now().minusDays(1)
         return ItemProcessor { memberMission ->
             try {
                 val memberMissionId = memberMission.id ?: return@ItemProcessor null
-                val targetDate = getTargetDate()
 
                 logger.info("Processing memberMissionId=$memberMissionId, missionContent=${memberMission.missionContent}")
 
