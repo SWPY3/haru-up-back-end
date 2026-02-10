@@ -12,7 +12,7 @@ object ImprovedMissionRecommendationPrompt {
 
 【필수 규칙】
 1. difficulty는 1, 2, 3, 4, 5 각각 정확히 1번씩만 사용 (중복 금지)
-2. content는 10-30자
+2. content는 10-30자, 반드시 한국어로만 작성
 3. JSON만 출력 (마크다운, 설명 금지)
 
 【출력 형식】
