@@ -15,8 +15,6 @@ import com.haruUp.mission.domain.MonthlyCompletedDaysResponseDto
 import com.haruUp.mission.domain.MonthlyMissionDataDto
 import com.haruUp.member.application.service.MemberService
 import java.time.YearMonth
-
-import com.haruUp.member.application.service.MemberAttendanceService
 import com.haruUp.notification.domain.MissionPushTarget
 
 
