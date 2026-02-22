@@ -31,7 +31,11 @@ class MemberCustomMissionEntity(
     val memberId: Long,
 
     @Column(name = "mission_content", nullable = false, columnDefinition = "TEXT")
-    val missionContent: String,
+    var missionContent: String,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    val type: CustomMissionType = CustomMissionType.CUSTOM,
 
     @Enumerated(EnumType.STRING)
     var missionStatus: MissionStatus = MissionStatus.ACTIVE,
@@ -45,6 +49,7 @@ class MemberCustomMissionEntity(
         id = this.id,
         memberId = this.memberId,
         missionContent = this.missionContent,
+        type = this.type,
         missionStatus = this.missionStatus,
         targetDate = this.targetDate
     )

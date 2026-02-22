@@ -14,6 +14,9 @@ data class MemberCustomMissionDto(
     @Schema(description = "미션 내용", example = "오늘 책 30분 읽기")
     val missionContent: String,
 
+    @Schema(description = "미션 타입", example = "CUSTOM")
+    val type: CustomMissionType = CustomMissionType.CUSTOM,
+
     @Schema(description = "미션 상태", example = "ACTIVE")
     val missionStatus: MissionStatus = MissionStatus.ACTIVE,
 
@@ -21,20 +24,32 @@ data class MemberCustomMissionDto(
     val targetDate: LocalDate = LocalDate.now()
 )
 
-@Schema(description = "사용자 작성 미션 생성 요청")
+@Schema(description = "커스텀 미션 생성 요청")
 data class CustomMissionCreateRequest(
     @Schema(description = "미션 내용", example = "오늘 책 30분 읽기", required = true)
     val missionContent: String,
+
+    @Schema(description = "미션 타입 (CUSTOM: 직접 작성, OTHER_INTEREST: 인기차트에서 선택)", example = "CUSTOM")
+    val type: CustomMissionType = CustomMissionType.CUSTOM,
 
     @Schema(description = "목표 날짜 (미입력시 오늘)", example = "2026-02-22")
     val targetDate: LocalDate? = null
 )
 
-@Schema(description = "사용자 작성 미션 상태 변경 요청")
+@Schema(description = "커스텀 미션 상태 변경 요청")
 data class CustomMissionStatusChangeRequest(
     @Schema(description = "커스텀 미션 ID", example = "1", required = true)
     val memberCustomMissionId: Long,
 
     @Schema(description = "변경할 미션 상태", example = "COMPLETED", required = true)
     val missionStatus: MissionStatus
+)
+
+@Schema(description = "커스텀 미션 내용 수정 요청")
+data class CustomMissionUpdateRequest(
+    @Schema(description = "커스텀 미션 ID", example = "1", required = true)
+    val memberCustomMissionId: Long,
+
+    @Schema(description = "수정할 미션 내용", example = "오늘 책 1시간 읽기", required = true)
+    val missionContent: String
 )
