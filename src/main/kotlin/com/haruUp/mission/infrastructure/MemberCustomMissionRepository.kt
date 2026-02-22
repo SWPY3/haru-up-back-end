@@ -1,5 +1,6 @@
 package com.haruUp.mission.infrastructure
 
+import com.haruUp.mission.domain.CustomMissionType
 import com.haruUp.mission.domain.MemberCustomMissionEntity
 import com.haruUp.mission.domain.MissionStatus
 import org.springframework.data.jpa.repository.JpaRepository
@@ -20,9 +21,15 @@ interface MemberCustomMissionRepository : JpaRepository<MemberCustomMissionEntit
 
     fun findByIdAndDeletedFalse(id: Long): MemberCustomMissionEntity?
 
-    fun findByMemberIdAndMissionStatusAndDeletedFalse(
+    fun findByMemberIdAndTypeAndDeletedFalse(
         memberId: Long,
-        missionStatus: MissionStatus
+        type: CustomMissionType
+    ): List<MemberCustomMissionEntity>
+
+    fun findByMemberIdAndTypeAndTargetDateAndDeletedFalse(
+        memberId: Long,
+        type: CustomMissionType,
+        targetDate: LocalDate
     ): List<MemberCustomMissionEntity>
 
     @Transactional

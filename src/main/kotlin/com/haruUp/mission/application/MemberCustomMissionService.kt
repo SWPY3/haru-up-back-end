@@ -1,6 +1,7 @@
 package com.haruUp.mission.application
 
 import com.haruUp.mission.domain.CustomMissionCreateRequest
+import com.haruUp.mission.domain.CustomMissionType
 import com.haruUp.mission.domain.MemberCustomMissionDto
 import com.haruUp.mission.domain.MemberCustomMissionEntity
 import com.haruUp.mission.domain.MissionStatus
@@ -22,24 +23,31 @@ class MemberCustomMissionService(
         val entity = MemberCustomMissionEntity(
             memberId = memberId,
             missionContent = request.missionContent,
+            type = request.type,
             missionStatus = MissionStatus.ACTIVE,
             targetDate = request.targetDate ?: LocalDate.now()
         )
 
         val saved = memberCustomMissionRepository.save(entity)
-        logger.info("커스텀 미션 생성 완료 - memberId: $memberId, customMissionId: ${saved.id}")
+        logger.info("커스텀 미션 생성 완료 - memberId: $memberId, customMissionId: ${saved.id}, type: ${request.type}")
         return saved.toDto()
     }
 
     fun getMissions(
         memberId: Long,
         targetDate: LocalDate?,
-        statuses: List<MissionStatus>?
+        statuses: List<MissionStatus>?,
+        type: CustomMissionType?
     ): List<MemberCustomMissionDto> {
-        val missions = if (targetDate != null) {
-            memberCustomMissionRepository.findByMemberIdAndTargetDateAndDeletedFalse(memberId, targetDate)
-        } else {
-            memberCustomMissionRepository.findByMemberIdAndDeletedFalse(memberId)
+        val missions = when {
+            type != null && targetDate != null ->
+                memberCustomMissionRepository.findByMemberIdAndTypeAndTargetDateAndDeletedFalse(memberId, type, targetDate)
+            type != null ->
+                memberCustomMissionRepository.findByMemberIdAndTypeAndDeletedFalse(memberId, type)
+            targetDate != null ->
+                memberCustomMissionRepository.findByMemberIdAndTargetDateAndDeletedFalse(memberId, targetDate)
+            else ->
+                memberCustomMissionRepository.findByMemberIdAndDeletedFalse(memberId)
         }
 
         val filtered = if (statuses.isNullOrEmpty()) {
@@ -69,6 +77,27 @@ class MemberCustomMissionService(
 
         val saved = memberCustomMissionRepository.save(mission)
         logger.info("커스텀 미션 상태 변경 - customMissionId: $missionId, status: $status")
+        return saved.toDto()
+    }
+
+    @Transactional
+    fun updateContent(memberId: Long, missionId: Long, missionContent: String): MemberCustomMissionDto {
+        val mission = memberCustomMissionRepository.findByIdAndDeletedFalse(missionId)
+            ?: throw IllegalArgumentException("커스텀 미션을 찾을 수 없습니다: customMissionId=$missionId")
+
+        if (mission.memberId != memberId) {
+            throw IllegalArgumentException("본인의 미션만 수정할 수 있습니다.")
+        }
+
+        if (mission.missionStatus == MissionStatus.COMPLETED) {
+            throw IllegalStateException("완료된 미션은 수정할 수 없습니다.")
+        }
+
+        mission.missionContent = missionContent
+        mission.updatedAt = LocalDateTime.now()
+
+        val saved = memberCustomMissionRepository.save(mission)
+        logger.info("커스텀 미션 내용 수정 - customMissionId: $missionId")
         return saved.toDto()
     }
 
