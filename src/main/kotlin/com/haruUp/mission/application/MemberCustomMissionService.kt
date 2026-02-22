@@ -7,6 +7,8 @@ import com.haruUp.mission.domain.MemberCustomMissionEntity
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberCustomMissionRepository
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -37,26 +39,30 @@ class MemberCustomMissionService(
         memberId: Long,
         targetDate: LocalDate?,
         statuses: List<MissionStatus>?,
-        type: CustomMissionType?
-    ): List<MemberCustomMissionDto> {
-        val missions = when {
-            type != null && targetDate != null ->
-                memberCustomMissionRepository.findByMemberIdAndTypeAndTargetDateAndDeletedFalse(memberId, type, targetDate)
-            type != null ->
-                memberCustomMissionRepository.findByMemberIdAndTypeAndDeletedFalse(memberId, type)
-            targetDate != null ->
-                memberCustomMissionRepository.findByMemberIdAndTargetDateAndDeletedFalse(memberId, targetDate)
-            else ->
-                memberCustomMissionRepository.findByMemberIdAndDeletedFalse(memberId)
-        }
+        type: CustomMissionType?,
+        page: Int,
+        size: Int
+    ): Page<MemberCustomMissionDto> {
+        val pageable = PageRequest.of(page, size)
 
-        val filtered = if (statuses.isNullOrEmpty()) {
-            missions
+        val result = if (!statuses.isNullOrEmpty()) {
+            memberCustomMissionRepository.findMissionsWithStatuses(
+                memberId = memberId,
+                type = type?.name,
+                targetDate = targetDate?.toString(),
+                statuses = statuses.map { it.name },
+                pageable = pageable
+            )
         } else {
-            missions.filter { it.missionStatus in statuses }
+            memberCustomMissionRepository.findMissions(
+                memberId = memberId,
+                type = type?.name,
+                targetDate = targetDate?.toString(),
+                pageable = pageable
+            )
         }
 
-        return filtered.map { it.toDto() }
+        return result.map { it.toDto() }
     }
 
     @Transactional

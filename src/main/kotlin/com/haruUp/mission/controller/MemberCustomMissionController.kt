@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -67,16 +68,17 @@ class MemberCustomMissionController(
     }
 
     @Operation(
-        summary = "커스텀 미션 목록 조회",
+        summary = "커스텀 미션 목록 조회 (페이지네이션)",
         description = """
-            사용자의 커스텀 미션 목록을 조회합니다.
+            사용자의 커스텀 미션 목록을 페이지네이션으로 조회합니다.
+            최신순(createdAt DESC)으로 정렬됩니다.
 
             **호출 예시:**
             ```
-            GET /api/member/custom-mission
-            GET /api/member/custom-mission?type=CUSTOM
-            GET /api/member/custom-mission?type=OTHER_INTEREST&targetDate=2026-02-22
-            GET /api/member/custom-mission?missionStatus=ACTIVE,COMPLETED
+            GET /api/member/custom-mission?page=0&size=10
+            GET /api/member/custom-mission?type=CUSTOM&page=0&size=20
+            GET /api/member/custom-mission?type=OTHER_INTEREST&targetDate=2026-02-22&page=0&size=10
+            GET /api/member/custom-mission?missionStatus=ACTIVE,COMPLETED&page=0&size=10
             ```
         """
     )
@@ -90,8 +92,12 @@ class MemberCustomMissionController(
         @Parameter(description = "미션 상태 필터 (콤마로 구분, 미입력시 전체 조회)", example = "ACTIVE,COMPLETED")
         @RequestParam(required = false) missionStatus: String?,
         @Parameter(description = "미션 타입 필터 (CUSTOM / OTHER_INTEREST, 미입력시 전체 조회)", example = "CUSTOM")
-        @RequestParam(required = false) type: CustomMissionType?
-    ): ApiResponse<List<MemberCustomMissionDto>> {
+        @RequestParam(required = false) type: CustomMissionType?,
+        @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
+        @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "페이지 크기", example = "10")
+        @RequestParam(defaultValue = "10") size: Int
+    ): ApiResponse<Page<MemberCustomMissionDto>> {
         val statuses = missionStatus?.split(",")
             ?.map { it.trim().uppercase() }
             ?.mapNotNull {
@@ -100,7 +106,7 @@ class MemberCustomMissionController(
             }
 
         return ApiResponse.success(
-            memberCustomMissionService.getMissions(principal.id, targetDate, statuses, type)
+            memberCustomMissionService.getMissions(principal.id, targetDate, statuses, type, page, size)
         )
     }
 
