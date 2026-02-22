@@ -6,6 +6,7 @@ import com.haruUp.global.error.ErrorCode
 import com.haruUp.member.application.service.MemberService
 import com.haruUp.member.application.service.MemberSettingService
 import com.haruUp.interest.service.MemberInterestService
+import com.haruUp.mission.application.MemberCustomMissionService
 import com.haruUp.mission.application.MemberMissionService
 import com.haruUp.member.application.service.MemberValidator
 import com.haruUp.member.domain.dto.HomeMemberInfoDto
@@ -25,7 +26,8 @@ class MemberAccountUseCase(
     private val memberValidator: MemberValidator,
     private val refreshTokenService: RefreshTokenService,
     private val memberInterestService: MemberInterestService,
-    private val memberMissionService: MemberMissionService
+    private val memberMissionService: MemberMissionService,
+    private val memberCustomMissionService: MemberCustomMissionService
 ) {
 
     // 사용자 조회
@@ -131,6 +133,8 @@ class MemberAccountUseCase(
         memberInterestService.deleteMemberInterestsByMemberId(memberId)
 
         memberMissionService.deleteMemberMissionsByMemberId(memberId)
+
+        memberCustomMissionService.deleteAllByMemberId(memberId)
     }
 
     fun homeMemberInfo(memberId: Long): List<HomeMemberInfoDto> {
