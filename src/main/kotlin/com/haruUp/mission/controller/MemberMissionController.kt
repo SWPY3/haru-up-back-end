@@ -416,9 +416,10 @@ class MemberMissionController(
     )
     @PostMapping("/retry-count/reset")
     fun resetRetryCount(
-        @AuthenticationPrincipal principal: MemberPrincipal
+        @AuthenticationPrincipal principal: MemberPrincipal,
+        @RequestParam memberInterestId: Long
     ): ResponseEntity<ApiResponse<Boolean>> {
-        val result = missionRecommendUseCase.resetRetryCount(principal.id)
+        val result = missionRecommendUseCase.resetRetryCount(principal.id, memberInterestId)
 
         return ResponseEntity.ok(ApiResponse.success(result))
     }

@@ -8,6 +8,14 @@ import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
 /**
+ * 관심사 타입
+ */
+enum class InterestType {
+    PRIMARY,  // 메인 관심사
+    SUB       // 서브 관심사
+}
+
+/**
  * 멤버-관심사 연결 Entity
  *
  * 사용자가 선택한 관심사를 저장
@@ -39,6 +47,14 @@ class MemberInterestEntity(
     @Type(ListArrayType::class)
     @Column(name = "direct_full_path", columnDefinition = "text[]")
     var directFullPath: List<String>? = null,
+
+    /**
+     * 관심사 타입 (PRIMARY: 메인, SUB: 서브)
+     */
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'PRIMARY'")
+    @Column(name = "interest_type", nullable = false, length = 10)
+    var interestType: InterestType = InterestType.PRIMARY,
 
     /**
      * 오늘의 미션 재추천 횟수

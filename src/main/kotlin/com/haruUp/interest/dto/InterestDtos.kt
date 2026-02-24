@@ -192,6 +192,9 @@ data class MemberInterestDto(
     @Schema(description = "직접 저장된 전체 경로 (member_interest.direct_full_path)", example = "[\"체력관리 및 운동\", \"헬스\", \"근력 키우기\"]")
     val directFullPath: List<String>?,
 
+    @Schema(description = "관심사 타입 (PRIMARY: 메인, SUB: 서브)", example = "PRIMARY", allowableValues = ["PRIMARY", "SUB"])
+    val interestType: String,
+
     @Schema(description = "미션 재추천 횟수", example = "0")
     val resetMissionCount: Int,
 
@@ -266,12 +269,21 @@ data class MemberInterestSaveRequest(
         description = """
             멤버 관심사 저장 요청
             예시:
-            - 소분류까지 저장: [{"interestId": 64, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]
+            - 메인 관심사: [{"interestId": 64, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]
+            - 서브 관심사: [{"interestId": 125, "directFullPath": ["직무 관련 역량 개발", "리더십", "성과관리 능력 향상"]}]
         """,
         example = """[{"interestId": 64, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]""",
         required = false
     )
     val interests: List<InterestsDto> = emptyList(),
+
+    @Schema(
+        description = "관심사 타입 (미입력 시 PRIMARY). SUB 입력 시 서브 관심사로 등록",
+        allowableValues = ["PRIMARY", "SUB"],
+        example = "PRIMARY",
+        defaultValue = "PRIMARY"
+    )
+    val interestType: String = "PRIMARY"
 )
 
 /**
@@ -293,3 +305,4 @@ data class MemberInterestUpdateRequest(
     )
     val directFullPath: List<String>
 )
+

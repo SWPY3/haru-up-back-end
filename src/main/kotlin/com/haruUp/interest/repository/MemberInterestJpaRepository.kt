@@ -1,5 +1,6 @@
 package com.haruUp.interest.repository
 
+import com.haruUp.interest.entity.InterestType
 import com.haruUp.interest.entity.MemberInterestEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
@@ -37,4 +38,19 @@ interface MemberInterestJpaRepository : JpaRepository<MemberInterestEntity, Long
 
 
     fun findAllByMemberIdAndDeletedFalse(memberId: Long) : List<MemberInterestEntity>
+
+    /**
+     * 멤버의 활성 관심사 개수 조회
+     */
+    fun countByMemberIdAndDeletedFalse(memberId: Long): Long
+
+    /**
+     * 멤버의 특정 타입 관심사 조회
+     */
+    fun findByMemberIdAndInterestTypeAndDeletedFalse(memberId: Long, interestType: InterestType): List<MemberInterestEntity>
+
+    /**
+     * 멤버의 특정 타입 관심사 개수 조회
+     */
+    fun countByMemberIdAndInterestTypeAndDeletedFalse(memberId: Long, interestType: InterestType): Long
 }

@@ -86,7 +86,7 @@ class MissionRecommendUseCase(
      * @param memberId 멤버 ID
      * @return 초기화 성공 여부
      */
-    fun resetRetryCount(memberId: Long): Boolean {
-        return missionRecommendService.resetRetryCount(memberId)
+    fun resetRetryCount(memberId: Long, memberInterestId: Long): Boolean {
+        return missionRecommendService.resetRetryCount(memberId, memberInterestId)
     }
 }

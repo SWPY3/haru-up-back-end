@@ -1,6 +1,7 @@
 package com.haruUp.interest.service
 
 import com.haruUp.interest.dto.MemberInterestDto
+import com.haruUp.interest.entity.InterestType
 import com.haruUp.interest.entity.MemberInterestEntity
 import com.haruUp.interest.repository.InterestEmbeddingJpaRepository
 import com.haruUp.interest.repository.MemberInterestJpaRepository
@@ -41,8 +42,17 @@ class MemberInterestService(
      */
     fun saveInterests(
         memberId: Long,
-        interests: List<Pair<Long, List<String>?>>
+        interests: List<Pair<Long, List<String>?>>,
+        interestType: InterestType = InterestType.PRIMARY
     ): MemberInterestSaveResult {
+        // PRIMARY 관심사 1개 제한
+        if (interestType == InterestType.PRIMARY) {
+            val primaryCount = memberInterestRepository
+                .countByMemberIdAndInterestTypeAndDeletedFalse(memberId, InterestType.PRIMARY)
+            require(primaryCount == 0L) { "메인 관심사는 최대 1개만 등록 가능합니다." }
+            require(interests.size == 1) { "메인 관심사는 1개만 등록할 수 있습니다." }
+        }
+
         val savedIds = mutableListOf<Long>()
         val invalidInterestIds = mutableListOf<Long>()
 
@@ -67,7 +77,8 @@ class MemberInterestService(
             val memberInterest = MemberInterestEntity(
                 memberId = memberId,
                 interestId = interestEntity.id!!,
-                directFullPath = pathToSave
+                directFullPath = pathToSave,
+                interestType = interestType
             )
             val saved = memberInterestRepository.save(memberInterest)
             saved.id?.let { savedIds.add(it) }
@@ -79,6 +90,42 @@ class MemberInterestService(
             savedIds = savedIds,
             invalidInterestIds = invalidInterestIds,
             savedCount = savedIds.size
+        )
+    }
+
+    /**
+     * 서브 관심사 추가
+     * - 메인 관심사가 이미 존재해야 함
+     * - 서브 관심사는 최대 1개만 등록 가능
+     * - 메인 관심사와 동일한 관심사 등록 불가
+     */
+    @Transactional
+    fun addSubInterest(
+        memberId: Long,
+        interestId: Long,
+        directFullPath: List<String>?
+    ): MemberInterestSaveResult {
+        // 1. 메인 관심사 존재 확인
+        val primaryInterests = memberInterestRepository
+            .findByMemberIdAndInterestTypeAndDeletedFalse(memberId, InterestType.PRIMARY)
+        require(primaryInterests.isNotEmpty()) { "메인 관심사가 등록되어 있어야 합니다." }
+
+        // 2. 서브 관심사 중복 확인 (최대 1개)
+        val subCount = memberInterestRepository
+            .countByMemberIdAndInterestTypeAndDeletedFalse(memberId, InterestType.SUB)
+        require(subCount == 0L) { "서브 관심사는 최대 1개만 등록 가능합니다." }
+
+        // 3. 메인 관심사와 동일한 관심사 등록 불가
+        val primaryInterestIds = primaryInterests.map { it.interestId }
+        require(interestId !in primaryInterestIds) {
+            "메인 관심사와 동일한 관심사를 서브로 등록할 수 없습니다."
+        }
+
+        // 4. 저장
+        return saveInterests(
+            memberId = memberId,
+            interests = listOf(Pair(interestId, directFullPath)),
+            interestType = InterestType.SUB
         )
     }
 

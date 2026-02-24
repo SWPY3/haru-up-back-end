@@ -24,7 +24,7 @@ class MemberMissionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        const val MAX_MISSIONS_SELECT_PER_DAY = 5
+        const val MAX_MISSIONS_PER_INTEREST = 5  // 관심사당 최대 선택 가능 미션 수
     }
 
     /**
@@ -128,7 +128,7 @@ class MemberMissionService(
 
     /**
      * 사용자가 선택한 미션들을 ACTIVE 상태로 변경
-     * - 하루 최대 5개까지만 선택 가능
+     * - 관심사당 최대 5개까지 선택 가능 (메인 5개, 서브 5개 독립)
      *
      * @param memberId 사용자 ID
      * @param memberMissionIds 선택한 member_mission ID 목록
@@ -138,33 +138,42 @@ class MemberMissionService(
     fun saveMissions(memberId: Long, memberMissionIds: List<Long>): List<Long> {
         val updatedMemberMissionIds = mutableListOf<Long>()
         val today = LocalDate.now()
+        val activeStatuses = listOf(MissionStatus.COMPLETED, MissionStatus.ACTIVE)
 
-        // 오늘 이미 선택된 미션 개수 조회 (COMPLETED, ACTIVE, INACTIVE)
-        val currentCount = memberMissionRepository.countTodaySelectedMissions(
-            memberId = memberId,
-            targetDate = today,
-            statuses = listOf(MissionStatus.COMPLETED, MissionStatus.ACTIVE)
-        )
-
-        // 하루 최대 5개 제한 체크
-        val maxMissionsPerDay = MAX_MISSIONS_SELECT_PER_DAY
-        val availableSlots = maxMissionsPerDay - currentCount
-        require(availableSlots > 0) { "하루에 최대 ${maxMissionsPerDay}개의 미션만 선택할 수 있습니다. (현재: ${currentCount}개)" }
-        require(memberMissionIds.size <= availableSlots) {
-            "선택 가능한 미션 개수를 초과했습니다. (선택 가능: ${availableSlots}개, 요청: ${memberMissionIds.size}개)"
-        }
-
-        memberMissionIds.forEach { memberMissionId ->
-            // memberMissionId로 조회
+        // 선택할 미션들을 먼저 조회하여 관심사별로 그룹화
+        val missionsToActivate = memberMissionIds.map { memberMissionId ->
             val memberMission = memberMissionRepository.findByIdOrNull(memberMissionId)
                 ?: throw IllegalArgumentException("등록된 미션을 찾을 수 없습니다: memberMissionId=$memberMissionId")
 
-            // 본인의 미션인지 확인
             if (memberMission.memberId != memberId) {
                 throw IllegalArgumentException("본인의 미션만 선택할 수 있습니다: memberMissionId=$memberMissionId")
             }
 
-            // missionStatus를 ACTIVE로, targetDate를 오늘로, isSelected를 true로 변경
+            memberMission
+        }
+
+        // 관심사별로 그룹화하여 개수 제한 체크
+        val groupedByInterest = missionsToActivate.groupBy { it.memberInterestId }
+
+        for ((memberInterestId, missions) in groupedByInterest) {
+            val currentCount = memberMissionRepository.countTodaySelectedMissionsByInterest(
+                memberId = memberId,
+                memberInterestId = memberInterestId,
+                targetDate = today,
+                statuses = activeStatuses
+            )
+
+            val availableSlots = MAX_MISSIONS_PER_INTEREST - currentCount
+            require(availableSlots > 0) {
+                "관심사(ID: $memberInterestId)의 미션을 최대 ${MAX_MISSIONS_PER_INTEREST}개까지만 선택할 수 있습니다. (현재: ${currentCount}개)"
+            }
+            require(missions.size <= availableSlots) {
+                "관심사(ID: $memberInterestId)의 선택 가능한 미션 개수를 초과했습니다. (선택 가능: ${availableSlots}개, 요청: ${missions.size}개)"
+            }
+        }
+
+        // 검증 통과 후 일괄 활성화
+        for (memberMission in missionsToActivate) {
             memberMission.missionStatus = MissionStatus.ACTIVE
             memberMission.targetDate = today
             memberMission.isSelected = true
@@ -172,7 +181,7 @@ class MemberMissionService(
 
             val saved = memberMissionRepository.save(memberMission)
             saved.id?.let { updatedMemberMissionIds.add(it) }
-            logger.info("미션 활성화 완료: memberId=$memberId, memberMissionId=$memberMissionId")
+            logger.info("미션 활성화 완료: memberId=$memberId, memberMissionId=${memberMission.id}")
         }
 
         logger.info("미션 선택 완료 - 업데이트된 개수: ${updatedMemberMissionIds.size}")

@@ -214,6 +214,7 @@ class InterestController(
                     memberId = memberInterest.memberId,
                     interestId = memberInterest.interestId,
                     directFullPath = memberInterest.directFullPath,
+                    interestType = memberInterest.interestType.name,
                     resetMissionCount = memberInterest.resetMissionCount,
                     createdAt = memberInterest.createdAt,
                     updatedAt = memberInterest.updatedAt,
@@ -296,14 +297,13 @@ class InterestController(
     }
 
     /**
-     * 멤버 관심사 삭제 API (soft delete)
+     * 멤버 관심사 삭제 API (관심사 + 관련 미션 soft delete)
      */
     @Operation(
         summary = "멤버 관심사 삭제",
-        description = "멤버 관심사를 삭제합니다. (soft delete)"
+        description = "멤버 관심사와 관련 미션을 함께 삭제합니다. (soft delete)"
     )
     @DeleteMapping("/member/{memberInterestId}")
-    @org.springframework.transaction.annotation.Transactional
     fun deleteMemberInterest(
         @AuthenticationPrincipal principal: MemberPrincipal,
         @PathVariable memberInterestId: Long
@@ -311,21 +311,15 @@ class InterestController(
         logger.info("멤버 관심사 삭제 - memberId: ${principal.id}, memberInterestId: $memberInterestId")
 
         return try {
-            val deletedCount = memberInterestRepository.softDeleteByIdAndMemberId(
-                id = memberInterestId,
-                memberId = principal.id
-            )
-
-            if (deletedCount == 0) {
-                return ResponseEntity.badRequest().body(
-                    com.haruUp.global.common.ApiResponse.failure("관심사를 찾을 수 없습니다. memberInterestId: $memberInterestId")
-                )
-            }
-
-            logger.info("멤버 관심사 삭제 완료 - memberInterestId: $memberInterestId")
+            memberInterestUseCase.deleteInterest(principal.id, memberInterestId)
 
             ResponseEntity.ok(com.haruUp.global.common.ApiResponse.success("삭제 성공"))
 
+        } catch (e: IllegalArgumentException) {
+            logger.warn("멤버 관심사 삭제 실패 - memberId: ${principal.id}, reason: ${e.message}")
+            ResponseEntity.badRequest().body(
+                com.haruUp.global.common.ApiResponse.failure(e.message ?: "잘못된 요청입니다.")
+            )
         } catch (e: Exception) {
             logger.error("멤버 관심사 삭제 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(
@@ -413,17 +407,25 @@ class InterestController(
         summary = "멤버 관심사 등록",
         description = """
             사용자가 선택한 관심사를 등록합니다. 소분류(SUB) 레벨의 관심사만 등록 가능합니다.
-            **호출 예시:**
+
+            - interestType 미입력 또는 "PRIMARY": 메인 관심사로 등록
+            - interestType = "SUB": 서브 관심사로 등록 (메인 관심사가 먼저 등록되어 있어야 하며, 최대 1개)
+            - 미션 생성은 별도로 POST /api/missions/recommend 를 호출해주세요
+
+            **메인 관심사 등록 예시:**
             ```json
             {
-              "interests": [
-                {"interestId": 10},
-                {"interestId": 15}
-              ]
+              "interests": [{"interestId": 64, "directFullPath": ["체력관리 및 운동", "헬스", "근력 키우기"]}]
             }
             ```
-            
-            interestId는 관심사 조회 API(/api/interests/data) 또는 관심사 추천 API(/api/interests/recommend)를 통해 획득할 수 있습니다.
+
+            **서브 관심사 등록 예시:**
+            ```json
+            {
+              "interests": [{"interestId": 125, "directFullPath": ["직무 관련 역량 개발", "리더십", "성과관리 능력 향상"]}],
+              "interestType": "SUB"
+            }
+            ```
         """
     )
     @PostMapping("/member")
@@ -434,8 +436,20 @@ class InterestController(
         val memberId = principal.id
 
         return try {
-            val interestIds = request.interests.mapNotNull { it.interestId }
-            val result = memberInterestUseCase.saveInterests(memberId, interestIds)
+            val interestType = try {
+                com.haruUp.interest.entity.InterestType.valueOf(request.interestType)
+            } catch (e: IllegalArgumentException) {
+                com.haruUp.interest.entity.InterestType.PRIMARY
+            }
+
+            val interests = request.interests.map { dto ->
+                Pair(
+                    dto.interestId ?: throw IllegalArgumentException("interestId는 필수입니다."),
+                    dto.directFullPath.takeIf { it.isNotEmpty() }
+                )
+            }
+
+            val result = memberInterestUseCase.saveInterests(memberId, interests, interestType)
 
             if (result.hasInvalidInterests) {
                 ResponseEntity.badRequest().body(
@@ -448,6 +462,11 @@ class InterestController(
                     com.haruUp.global.common.ApiResponse.success("${result.savedCount}건 저장 성공")
                 )
             }
+        } catch (e: IllegalArgumentException) {
+            logger.warn("멤버 관심사 저장 실패 - memberId: $memberId, reason: ${e.message}")
+            ResponseEntity.badRequest().body(
+                com.haruUp.global.common.ApiResponse.failure(e.message ?: "잘못된 요청입니다.")
+            )
         } catch (e: Exception) {
             logger.error("멤버 관심사 저장 실패: ${e.message}", e)
             ResponseEntity.internalServerError().body(

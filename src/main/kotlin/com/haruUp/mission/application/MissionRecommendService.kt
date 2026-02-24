@@ -86,7 +86,7 @@ class MissionRecommendService(
 
         return MissionRecommendResult(
             missions = missions,
-            retryCount = getRetryCount(memberId)
+            retryCount = getRetryCount(memberId, memberInterestId)
         )
     }
 
@@ -107,7 +107,7 @@ class MissionRecommendService(
         memberInterestId: Long,
         excludeMemberMissionIds: List<Long>? = null
     ): MissionRecommendationResponse {
-        if (getRetryCount(memberId) >= 5) {
+        if (getRetryCount(memberId, memberInterestId) >= 5) {
             throw IllegalArgumentException("재추천 횟수 초과: 최대 5회까지 가능합니다.")
         }
 
@@ -185,7 +185,7 @@ class MissionRecommendService(
                     )
                 ),
                 totalCount = 0,
-                retryCount = getRetryCount(memberId)
+                retryCount = getRetryCount(memberId, memberInterestId)
             )
         }
 
@@ -291,7 +291,7 @@ class MissionRecommendService(
         return MissionRecommendationResponse(
             missions = listOf(missionGroup),
             totalCount = responseMissionDtos.size,
-            retryCount = incrementRetryCount(memberId)
+            retryCount = incrementRetryCount(memberId, memberInterestId)
         )
     }
 
@@ -522,15 +522,15 @@ class MissionRecommendService(
      * @param memberId 사용자 ID
      * @return 증가 후 현재 횟수
      */
-    fun incrementRetryCount(memberId: Long): Long {
-        val key = MissionRecommendRedisKey.retryCount(memberId)
+    fun incrementRetryCount(memberId: Long, memberInterestId: Long): Long {
+        val key = MissionRecommendRedisKey.retryCount(memberId, memberInterestId)
         return try {
             val count = redisTemplate.opsForValue().increment(key) ?: 1L
             // TTL이 설정되지 않은 경우에만 설정 (첫 번째 증가 시)
             if (count == 1L) {
                 redisTemplate.expire(key, Duration.ofSeconds(secondsUntilMidnight()))
             }
-            logger.info("재추천 횟수 증가 - memberId: $memberId, count: $count")
+            logger.info("재추천 횟수 증가 - memberId: $memberId, memberInterestId: $memberInterestId, count: $count")
             count
         } catch (e: Exception) {
             logger.error("재추천 횟수 증가 실패 - key: $key, error: ${e.message}")
@@ -542,13 +542,14 @@ class MissionRecommendService(
      * 재추천 횟수 조회
      *
      * @param memberId 사용자 ID
+     * @param memberInterestId 멤버 관심사 ID
      * @return 현재 재추천 횟수 (없으면 0)
      */
-    fun getRetryCount(memberId: Long): Long {
-        val key = MissionRecommendRedisKey.retryCount(memberId)
+    fun getRetryCount(memberId: Long, memberInterestId: Long): Long {
+        val key = MissionRecommendRedisKey.retryCount(memberId, memberInterestId)
         return try {
             val count = redisTemplate.opsForValue().get(key)?.toLongOrNull() ?: 0L
-            logger.info("재추천 횟수 조회 - memberId: $memberId, count: $count")
+            logger.info("재추천 횟수 조회 - memberId: $memberId, memberInterestId: $memberInterestId, count: $count")
             count
         } catch (e: Exception) {
             logger.error("재추천 횟수 조회 실패 - key: $key, error: ${e.message}")
@@ -560,13 +561,14 @@ class MissionRecommendService(
      * 재추천 횟수 초기화
      *
      * @param memberId 사용자 ID
+     * @param memberInterestId 멤버 관심사 ID
      * @return 초기화 성공 여부
      */
-    fun resetRetryCount(memberId: Long): Boolean {
-        val key = MissionRecommendRedisKey.retryCount(memberId)
+    fun resetRetryCount(memberId: Long, memberInterestId: Long): Boolean {
+        val key = MissionRecommendRedisKey.retryCount(memberId, memberInterestId)
         return try {
             val deleted = redisTemplate.delete(key)
-            logger.info("재추천 횟수 초기화 - memberId: $memberId, deleted: $deleted")
+            logger.info("재추천 횟수 초기화 - memberId: $memberId, memberInterestId: $memberInterestId, deleted: $deleted")
             deleted
         } catch (e: Exception) {
             logger.error("재추천 횟수 초기화 실패 - key: $key, error: ${e.message}")
@@ -577,8 +579,8 @@ class MissionRecommendService(
 
 
 object MissionRecommendRedisKey {
-    fun retryCount(memberId: Long) =
-        "mission:retry:count:$memberId"
+    fun retryCount(memberId: Long, memberInterestId: Long) =
+        "mission:retry:count:$memberId:$memberInterestId"
 
     fun recommendedContents(memberId: Long, memberInterestId: Long, date: LocalDate) =
         "today-mission:contents:$memberId:$memberInterestId:$date"

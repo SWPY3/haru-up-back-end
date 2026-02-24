@@ -352,4 +352,22 @@ interface MemberMissionRepository : JpaRepository<MemberMissionEntity, Long> {
         statuses: List<MissionStatus>
     ): Long
 
+    /**
+     * 특정 관심사의 오늘 선택된 미션 개수 조회
+     */
+    @Query("""
+    SELECT COUNT(m) FROM MemberMissionEntity m
+    WHERE m.memberId = :memberId
+      AND m.memberInterestId = :memberInterestId
+      AND m.targetDate = :targetDate
+      AND m.deleted = false
+      AND m.missionStatus IN :statuses
+    """)
+    fun countTodaySelectedMissionsByInterest(
+        memberId: Long,
+        memberInterestId: Long,
+        targetDate: LocalDate,
+        statuses: List<MissionStatus>
+    ): Long
+
 }
