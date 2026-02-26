@@ -30,7 +30,7 @@ class RankingLabelService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        const val SIMILARITY_THRESHOLD = 0.15
+        const val SIMILARITY_THRESHOLD = 0.35
     }
 
     /**
@@ -156,21 +156,41 @@ class RankingLabelService(
      * LLM으로 라벨명 생성
      */
     private fun generateLabelWithLLM(missionContent: String, interestPath: List<String>?): String? {
+        val interestContext = interestPath?.joinToString(" > ") ?: "없음"
         val prompt = """
-            미션 내용을 분석하여 대표 라벨(그룹명)을 생성해주세요.
+            미션 내용을 분석하여 유사한 미션끼리 묶을 수 있는 대표 라벨(그룹명)을 생성해주세요.
 
             [규칙]
+            - 반드시 하나의 활동만 포함 (쉼표로 여러 활동을 나열하지 말 것)
+            - 미션에 여러 활동이 있으면 관심사 경로와 가장 관련 있는 활동 하나만 선택
             - 구체적인 숫자, 시간, 횟수는 제외하고 핵심 행동만 추출
             - 10자 이내의 간결한 명사형으로 작성
             - 따옴표, 설명 없이 라벨명만 출력
+            - 관심사 경로의 하위 카테고리 수준으로 그룹화하기 좋은 라벨명 작성
+            - 너무 구체적인 동작보다는 활동 카테고리 수준으로 표현
+            - 동의어는 하나로 통일 (팔굽혀펴기=푸쉬업, 조깅=러닝, 윗몸일으키기=크런치)
 
-            [예시]
-            - "영어 단어 20개 외우기" → 영어 단어 외우기
-            - "30분 조깅하기" → 조깅하기
-            - "물 2L 마시기" → 물 마시기
+            [올바른 예시]
+            - 관심사: 외국어 공부 > 영어 > 단어 학습 / 미션: "영어 단어 20개 외우기" → 영어 단어 외우기
+            - 관심사: 체력관리 > 유산소 > 러닝 / 미션: "30분 조깅하기" → 러닝
+            - 관심사: 체력관리 > 유산소 > 러닝 / 미션: "아침 러닝 5km" → 러닝
+            - 관심사: 체력관리 > 유산소 > 러닝 / 미션: "공원 한 바퀴 뛰기" → 러닝
+            - 관심사: 건강한 식습관 > 수분 섭취 / 미션: "물 2L 마시기" → 물 마시기
+            - 관심사: 체력관리 > 유산소 > 자전거 / 미션: "자전거 타고 스쿼트 30분" → 자전거 타기
+            - 관심사: 체력관리 > 다이어트 > 식단 조절 / 미션: "밥 반 공기 덜어내고 먹기" → 식단 조절
+            - 관심사: 체력관리 > 근력 운동 > 하체 / 미션: "스쿼트 50개, 런지 30개" → 하체 운동
+            - 관심사: 체력관리 > 근력 운동 > 상체 / 미션: "팔굽혀펴기 30개" → 푸쉬업
+            - 관심사: 체력관리 > 근력 운동 > 상체 / 미션: "푸쉬업 실시" → 푸쉬업
+
+            [잘못된 예시]
+            - "자전거 타기,스쿼트" ← 여러 활동 나열 금지
+            - "스트레칭,러닝" ← 쉼표 사용 금지
+            - "밥 덜어내기" ← 너무 구체적 (식단 조절이 적절)
+            - "반 공기 먹기" ← 너무 구체적 (식사량 조절이 적절)
+            - "푸쉬업 실시" ← "푸쉬업"으로 통일
 
             [관심사 경로]
-            ${interestPath?.joinToString(" > ") ?: "없음"}
+            $interestContext
 
             [미션 내용]
             $missionContent
@@ -181,9 +201,10 @@ class RankingLabelService(
         return try {
             val response = clovaApiClient.generateText(
                 userMessage = prompt,
-                systemMessage = "당신은 미션 내용을 분석하여 대표 라벨(그룹명)을 생성하는 전문가입니다.",
+                systemMessage = "당신은 미션 내용을 분석하여 대표 라벨(그룹명)을 생성하는 전문가입니다. 반드시 하나의 활동만 포함하는 라벨을 생성하세요. 관심사 하위 카테고리 수준으로 그룹화하기 좋은 이름을 만드세요. 동의어는 하나로 통일하세요.",
                 model = ClovaApiClient.MODEL_HCX_003,
-                temperature = 0.3
+                temperature = 0.1,
+                seed = 42
             )
 
             response.trim()
