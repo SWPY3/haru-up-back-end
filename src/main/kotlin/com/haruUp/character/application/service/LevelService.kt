@@ -33,11 +33,13 @@ class LevelService(
     }
 
 
+    /** 초기 레벨(1레벨)의 ID를 보장해서 반환한다. */
     @Transactional
     fun getInitialLevelId(): Long =
         getOrCreateLevel(1).id
             ?: throw IllegalStateException("Level 1 could not be created")
 
+    /** 레벨 ID로 레벨 엔티티를 조회한다. */
     @Transactional
     fun getById(levelId: Long): Level =
         levelRepository.findById(levelId).orElseThrow()

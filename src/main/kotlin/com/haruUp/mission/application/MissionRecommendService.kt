@@ -463,7 +463,8 @@ class MissionRecommendService(
         return Period.between(birthDate, now).years
     }
 
-     fun secondsUntilMidnight(): Long {
+    /** 현재 시각부터 다음 자정까지 남은 초를 계산한다. */
+    fun secondsUntilMidnight(): Long {
         val now = LocalDateTime.now()
         val midnight = now.toLocalDate().plusDays(1).atStartOfDay()
         return Duration.between(now, midnight).seconds

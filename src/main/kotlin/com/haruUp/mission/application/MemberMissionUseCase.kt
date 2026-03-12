@@ -9,7 +9,6 @@ import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.domain.MissionStatusChangeItem
 import com.haruUp.mission.domain.MissionStatusChangeRequest
 import com.haruUp.mission.domain.DailyCompletionStatus
-import com.haruUp.mission.domain.DailyMissionCountDto
 import com.haruUp.mission.domain.MonthlyCompletedDaysDto
 import com.haruUp.mission.domain.MonthlyCompletedDaysResponseDto
 import com.haruUp.mission.domain.MonthlyMissionDataDto
@@ -30,7 +29,7 @@ class MemberMissionUseCase(
     private val memberService: MemberService
 ) {
 
-    // 미션 조회 (삭제되지 않은 것만, 상태 필터링 가능, 날짜 필터링, 관심사 필터링)
+    /** 조건(상태/날짜/관심사) 기준으로 미션 목록을 조회한다. */
     fun getMemberMissions(
         memberId: Long,
         statuses: List<MissionStatus>? = null,
@@ -40,7 +39,7 @@ class MemberMissionUseCase(
         return memberMissionService.getAllMissions(memberId, statuses, targetDate, memberInterestId)
     }
 
-    // 오늘의 미션 조회
+    /** 오늘 날짜의 미션 목록을 조회한다. */
     fun missionTodayList(memberId: Long): List<MemberMissionDto> {
         val memberMissions: List<MemberMissionEntity> = memberMissionService.getTodayMissionsByMemberId(memberId)
         return memberMissions.map { it.toDto() }
@@ -110,25 +109,25 @@ class MemberMissionUseCase(
         val mc = memberCharacterService.getSelectedCharacter(missionCompleted.memberId)
             ?: throw IllegalStateException("선택된 캐릭터가 없습니다.")
 
-        println("변환전 character level Id : ${mc.levelId}")
-
         // ----------------------------------------------------------------------
         // 3) 현재 레벨 정보 조회
         var currentLevel = levelService.getById(mc.levelId)
 
         // 4) 경험치 누적
-        var newTotalExp = mc.totalExp + missionCompleted.expEarned
+        val newTotalExp = mc.totalExp + missionCompleted.expEarned
         var newCurrentExp = mc.currentExp + missionCompleted.expEarned
 
-        val maxExp = requireNotNull(currentLevel.maxExp) {
+        var currentMaxExp = requireNotNull(currentLevel.maxExp) {
             "Level ${currentLevel.levelNumber} 의 maxExp 가 null 입니다. DB 데이터 확인 필요"
         }
-
-        while (newCurrentExp >= maxExp) {
-            newCurrentExp -= maxExp
+        while (newCurrentExp >= currentMaxExp) {
+            newCurrentExp -= currentMaxExp
             currentLevel = levelService.getOrCreateLevel(
                 currentLevel.levelNumber + 1
             )
+            currentMaxExp = requireNotNull(currentLevel.maxExp) {
+                "Level ${currentLevel.levelNumber} 의 maxExp 가 null 입니다. DB 데이터 확인 필요"
+            }
         }
 
         // 6) 결과 반영
@@ -138,10 +137,6 @@ class MemberMissionUseCase(
             totalExp = newTotalExp,
             currentExp = newCurrentExp
         )
-
-    
-
-        println("변환후 character level Id ${updatedMc.levelId}")
 
         return updatedMc.toDto()
     }
@@ -173,16 +168,12 @@ class MemberMissionUseCase(
         return memberMissionService.getCompletionStatusByDateRange(memberId, startDate, endDate)
     }
 
+    /** 특정 월의 일별 완료 미션 수와 요약값을 반환한다. */
     fun continueMissionMonth(
         memberId: Long,
         targetMonth: String   // "YYYY-MM"
     ): MonthlyMissionDataDto {
-
-        val yearMonth = try {
-            java.time.YearMonth.parse(targetMonth)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
-        }
+        val yearMonth = parseYearMonth(targetMonth)
 
         val targetStartDate: LocalDate = yearMonth.atDay(1)
         val targetEndDate: LocalDate = yearMonth.atEndOfMonth()
@@ -215,18 +206,8 @@ class MemberMissionUseCase(
         startTargetMonth: String,
         endTargetMonth: String
     ): MonthlyCompletedDaysResponseDto {
-
-        val startYearMonth = try {
-            YearMonth.parse(startTargetMonth)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
-        }
-
-        val endYearMonth = try {
-            YearMonth.parse(endTargetMonth)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
-        }
+        val startYearMonth = parseYearMonth(startTargetMonth)
+        val endYearMonth = parseYearMonth(endTargetMonth)
 
         // 회원 정보 조회하여 가입일 확인
         val member = memberService.getFindMemberId(memberId)
@@ -279,10 +260,19 @@ class MemberMissionUseCase(
         return MonthlyCompletedDaysResponseDto(monthlyData = monthlyData)
     }
 
+    /** 오늘 미션을 완료하지 않은 회원 목록(푸시 대상)을 조회한다. */
     fun getMembersWithTodayFalseMission() : List<MissionPushTarget> {
         val atStartOfDay = LocalDate.now().atStartOfDay()
-        val atEndDate = LocalDate.now().atStartOfDay().plusDays(1)
+        val atEndDate = atStartOfDay.plusDays(1)
         return memberMissionService.getMembersWithTodayFalseMission(atStartOfDay, atEndDate)
     }
+
+    /** YYYY-MM 형식 문자열을 YearMonth로 파싱한다. */
+    private fun parseYearMonth(value: String): YearMonth =
+        try {
+            YearMonth.parse(value)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("잘못된 날짜 형식입니다. YYYY-MM 형식으로 입력해주세요.")
+        }
 
 }

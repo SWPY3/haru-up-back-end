@@ -10,28 +10,28 @@ class MemberRemindService(
     private val memberMissionReminderRepository : MemberMissionReminderRepository
 ) {
 
-    // 1. 회원 미션 리마인더 설정 저장/수정 (JPA save는 둘 다 처리)
+    /** 회원 미션 리마인더를 저장/수정한다. */
     fun save(memberMissionReminder: MemberMissionReminder): MemberMissionReminder {
         return memberMissionReminderRepository.save(memberMissionReminder)
     }
 
-    // 2. 회원 미션 리마인더 설정 조회 ( List )
+    /** 회원의 활성 리마인더 목록을 조회한다. */
     fun findByMemberId(memberId: Long): List<MemberMissionReminderDto> {
         return memberMissionReminderRepository
             .findAllByMemberIdAndDeletedFalse(memberId)
             .map { it.toDto() }
     }
 
-    // 필요하면 엔티티 단위 조회도
+    /** 리마인더 엔티티를 ID 기준으로 조회한다. */
     fun findEntityById(id: Long): MemberMissionReminder? =
         memberMissionReminderRepository.findByIdAndDeletedFalse(id)
 
-    // 4. 미션 리마인더 알림 발송
+    /** 미션 리마인더 알림 발송 로직의 확장 포인트다. */
     fun memberMissionReminderSendNotification() {
         // TODO: 차후 NotificationUseCase 붙여서 개발
     }
 
-    // 5. 리마인더 알림 스케줄링 관리
+    /** 리마인더 스케줄링 로직의 확장 포인트다. */
     fun memberMissionReminderScheduling() {
         // TODO: @Scheduled로 호출할 컴포넌트 따로 빼는게 보통 패턴
     }

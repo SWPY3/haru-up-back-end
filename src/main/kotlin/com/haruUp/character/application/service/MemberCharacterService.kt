@@ -15,6 +15,7 @@ class MemberCharacterService(
     private val memberCharacterRepository: MemberCharacterRepository
 ) {
 
+    /** 초기 캐릭터 정보를 생성한다. */
     @Transactional
     fun createInitial(memberId: Long, characterId: Long, levelId: Long): MemberCharacter {
 
@@ -27,11 +28,13 @@ class MemberCharacterService(
         return memberCharacterRepository.save(mc)
     }
 
+    /** 회원의 현재 선택 캐릭터를 조회한다. */
     @Transactional
     fun getSelectedCharacter(memberId: Long): MemberCharacter? {
         return memberCharacterRepository.findFirstByMemberIdAndDeletedFalseOrderByIdDesc(memberId)
     }
 
+    /** 미션 완료 결과를 캐릭터 경험치/연속일수에 반영한다. */
     @Transactional
     fun applyExpWithResolvedValues(
         mc: MemberCharacter,

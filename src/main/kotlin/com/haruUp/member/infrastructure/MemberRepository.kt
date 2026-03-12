@@ -1,16 +1,10 @@
 package com.haruUp.member.infrastructure
 
-import com.haruUp.member.controller.MemberAccountController
-import com.haruUp.member.domain.type.LoginType
 import com.haruUp.member.domain.Member
-import com.haruUp.member.domain.dto.HomeMemberInfoDto
-import com.haruUp.member.domain.dto.MemberStatisticsDto
+import com.haruUp.member.domain.type.LoginType
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
 
-
-interface MemberRepository : JpaRepository<Member, Long> {
+interface MemberRepository : JpaRepository<Member, Long>, MemberRepositoryCustom {
 
     fun removeMemberById(id: Long)
 
@@ -19,48 +13,4 @@ interface MemberRepository : JpaRepository<Member, Long> {
     fun findByEmailAndLoginTypeAndDeletedFalse(email: String, common: LoginType): Member?
 
     fun findByLoginTypeAndSnsIdAndDeletedFalse(loginType: LoginType?, snsId: String): Member?
-
-
-    @Query(
-        """
-    SELECT new com.haruUp.member.domain.dto.HomeMemberInfoDto(
-        cr.id,
-        mc.totalExp,
-        mc.currentExp,
-        lv.maxExp,
-        lv.levelNumber,
-        mp.nickname
-    )
-    FROM Member m
-    JOIN MemberSetting ms ON ms.memberId = m.id
-    JOIN MemberCharacter mc ON mc.memberId = m.id
-    JOIN Character cr ON cr.id = mc.characterId
-    JOIN Level lv ON mc.levelId = lv.id
-    JOIN MemberProfile mp ON mp.memberId = m.id
-    WHERE m.id = :memberId
-    """
-    )
-    fun homeMemberInfo(
-        @Param("memberId") memberId: Long
-    ): List<HomeMemberInfoDto>
-
-    @Query(
-        value = """
-            select
-                member.sns_id as SNS아이디,
-                member.name AS 이름,
-                level.level_number AS 회원레벨,
-                member.created_at AS 가입일
-            from member
-                     inner join member_character on member.id = member_character.member_id
-                     inner join character on member_character.character_id = character.id
-                     inner join level on member_character.level_id = level.id
-            where member.name != 'string'
-              and member.deleted = false
-              and member.created_at >= '2026-01-07'
-            order by member.created_at desc
-    """,
-        nativeQuery = true
-    )
-    fun memberStatisticsList(): List<MemberStatisticsDto>
 }
