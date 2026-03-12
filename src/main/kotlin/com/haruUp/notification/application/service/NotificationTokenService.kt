@@ -4,8 +4,6 @@ import com.haruUp.notification.domain.NotificationDeviceToken
 import com.haruUp.notification.domain.PushPlatform
 import com.haruUp.notification.infrastructure.NotificationDeviceTokenRepository
 import jakarta.transaction.Transactional
-import org.hibernate.query.results.Builders.entity
-import org.springframework.data.jpa.repository.Modifying
 import org.springframework.stereotype.Service
 
 @Service
@@ -73,8 +71,7 @@ class NotificationTokenService (
      * 해당 회원의 모든 기기 토큰 조회
      */
     @Transactional
-    fun getTokensByMember(memberId: Long): List<NotificationDeviceToken> {
-        return notificationRepository.findAllByMemberId(memberId)
-    }
+    fun getTokensByMember(memberId: Long): List<NotificationDeviceToken> =
+        notificationRepository.findAllByMemberId(memberId)
 
 }
