@@ -96,6 +96,8 @@ class SecurityConfig(
 
                     .requestMatchers(
                         "/api/member/auth/**",
+                        "/ws/**",
+                        "api/chat/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
