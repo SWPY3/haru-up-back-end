@@ -20,6 +20,7 @@ class MemberCustomMissionService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    /** 커스텀 미션을 생성한다. */
     @Transactional
     fun createMission(memberId: Long, request: CustomMissionCreateRequest): MemberCustomMissionDto {
         val entity = MemberCustomMissionEntity(
@@ -35,6 +36,7 @@ class MemberCustomMissionService(
         return saved.toDto()
     }
 
+    /** 조건(날짜/상태/타입/페이지) 기준으로 커스텀 미션을 조회한다. */
     fun getMissions(
         memberId: Long,
         targetDate: LocalDate?,
@@ -65,6 +67,7 @@ class MemberCustomMissionService(
         return result.map { it.toDto() }
     }
 
+    /** 커스텀 미션 상태를 변경한다. */
     @Transactional
     fun updateStatus(memberId: Long, missionId: Long, status: MissionStatus): MemberCustomMissionDto {
         val mission = memberCustomMissionRepository.findByIdAndDeletedFalse(missionId)
@@ -86,6 +89,7 @@ class MemberCustomMissionService(
         return saved.toDto()
     }
 
+    /** 커스텀 미션 내용을 수정한다. */
     @Transactional
     fun updateContent(memberId: Long, missionId: Long, missionContent: String): MemberCustomMissionDto {
         val mission = memberCustomMissionRepository.findByIdAndDeletedFalse(missionId)
@@ -107,6 +111,7 @@ class MemberCustomMissionService(
         return saved.toDto()
     }
 
+    /** 커스텀 미션을 soft delete 처리한다. */
     @Transactional
     fun softDeleteMission(memberId: Long, missionId: Long) {
         val mission = memberCustomMissionRepository.findByIdAndDeletedFalse(missionId)
@@ -121,6 +126,7 @@ class MemberCustomMissionService(
         logger.info("커스텀 미션 삭제 완료 - customMissionId: $missionId")
     }
 
+    /** 회원의 커스텀 미션 전체를 soft delete 처리한다. */
     @Transactional
     fun deleteAllByMemberId(memberId: Long) {
         memberCustomMissionRepository.softDeleteAllByMemberId(memberId)

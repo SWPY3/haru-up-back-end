@@ -64,6 +64,7 @@ class MemberValidator(
         return found
     }
 
+    /** COMMON 계정 이메일 중복 여부를 검증한다. */
     fun validateEmailDuplication(email: String) {
         val exists = memberService.findByEmailAndLoginType(email, LoginType.COMMON)
 

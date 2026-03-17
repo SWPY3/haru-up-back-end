@@ -15,23 +15,17 @@ class MemberReminderUseCase(
     private val memberRemindService: MemberRemindService,
 ) {
 
+    /** 내 리마인더 목록을 조회한다. */
     @Transactional(readOnly = true)
     fun getMyReminders(memberId: Long): List<MemberMissionReminderDto> {
-        // 회원 존재 여부 검증
-        val exists = memberService.getFindMemberId(memberId)
-        if (exists.isEmpty) {
-            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-        }
-
+        validateMemberExists(memberId)
         return memberRemindService.findByMemberId(memberId)
     }
 
+    /** 새 리마인더를 생성한다. */
     @Transactional
     fun createReminder(memberId: Long, dto: MemberMissionReminderDto): MemberMissionReminderDto {
-        val exists = memberService.getFindMemberId(memberId)
-        if (exists.isEmpty) {
-            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-        }
+        validateMemberExists(memberId)
 
         val entity: MemberMissionReminder = dto.toEntity().apply {
             this.memberId = memberId   // 보안상 memberId는 서버에서 강제 세팅
@@ -41,12 +35,10 @@ class MemberReminderUseCase(
         return saved.toDto()
     }
 
+    /** 기존 리마인더를 수정한다. */
     @Transactional
     fun updateReminder(memberId: Long, reminderId: Long, dto: MemberMissionReminderDto): MemberMissionReminderDto {
-        val exists = memberService.getFindMemberId(memberId)
-        if (exists.isEmpty) {
-            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
-        }
+        validateMemberExists(memberId)
 
         val reminder = memberRemindService.findEntityById(reminderId)
             ?: throw BusinessException(ErrorCode.NOT_FOUND, "리마인더를 찾을 수 없습니다.")
@@ -57,7 +49,7 @@ class MemberReminderUseCase(
 
         reminder.apply {
             // 필요 필드들 계속 매핑
-            this.memberId = dto.memberId
+            this.memberId = memberId
             this.reminderDt = dto.reminderDt
         }
 
@@ -65,6 +57,7 @@ class MemberReminderUseCase(
         return saved.toDto()
     }
 
+    /** 리마인더를 soft delete 처리한다. */
     @Transactional
     fun deleteReminder(memberId: Long, reminderId: Long) {
         val reminder = memberRemindService.findEntityById(reminderId)
@@ -76,5 +69,12 @@ class MemberReminderUseCase(
 
         reminder.deleted = true
         memberRemindService.save(reminder)
+    }
+
+    /** 회원 존재 여부를 검증한다. */
+    private fun validateMemberExists(memberId: Long) {
+        if (memberService.getFindMemberId(memberId).isEmpty) {
+            throw BusinessException(ErrorCode.MEMBER_NOT_FOUND, "회원 정보를 찾을 수 없습니다.")
+        }
     }
 }

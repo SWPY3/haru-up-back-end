@@ -5,6 +5,7 @@ import com.haruUp.global.clova.ClovaApiClient
 import com.haruUp.global.clova.ClovaApiResponse
 import com.haruUp.global.clova.ClovaMessage
 import com.haruUp.global.clova.ClovaResult
+import com.haruUp.global.security.MemberPrincipal
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -13,14 +14,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 import org.springframework.transaction.annotation.Transactional
 import org.mockito.BDDMockito.given
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @Transactional
 class InterestValidationIntegrationTest {
 
@@ -30,14 +34,27 @@ class InterestValidationIntegrationTest {
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
+    @Autowired
+    lateinit var stringRedisTemplate: StringRedisTemplate
+
     /**
      * 🔥 외부 AI 호출은 반드시 Mock
      */
     @MockBean
     lateinit var clovaApiClient: ClovaApiClient
 
+    private val testPrincipal = MemberPrincipal(
+        id = 101L,
+        email = "interest-test@test.com",
+        name = "interest-test-user"
+    )
+
     @BeforeEach
     fun setUp() {
+        // 목적: 테스트 순서/재실행 여부와 무관하게 Redis 횟수 제한 상태를 초기화한다.
+        stringRedisTemplate.delete("typo-validation:count:${testPrincipal.id}")
+        stringRedisTemplate.delete("typo-validation:block:${testPrincipal.id}")
+
         // 기본적으로 AI는 "true" 반환하도록 설정
         given(clovaApiClient.chatCompletion(
             messages = any(),
@@ -47,7 +64,7 @@ class InterestValidationIntegrationTest {
             topK = any(),
             topP = any(),
             repeatPenalty = any(),
-            seed = any()
+            seed = anyOrNull()
         )).willReturn(
             ClovaApiResponse(
                 status = null,
@@ -72,6 +89,7 @@ class InterestValidationIntegrationTest {
         )
 
         val result = mockMvc.post("/api/interests/interest/validation") {
+            with(user(testPrincipal))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }
@@ -96,6 +114,7 @@ class InterestValidationIntegrationTest {
         )
 
         mockMvc.post("/api/interests/interest/validation") {
+            with(user(testPrincipal))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }
@@ -116,6 +135,7 @@ class InterestValidationIntegrationTest {
         )
 
         mockMvc.post("/api/interests/interest/validation") {
+            with(user(testPrincipal))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }
@@ -140,7 +160,7 @@ class InterestValidationIntegrationTest {
             topK = any(),
             topP = any(),
             repeatPenalty = any(),
-            seed = any()
+            seed = anyOrNull()
         )).willReturn(
             ClovaApiResponse(
                 status = null,
@@ -158,6 +178,7 @@ class InterestValidationIntegrationTest {
         )
 
         mockMvc.post("/api/interests/interest/validation") {
+            with(user(testPrincipal))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }

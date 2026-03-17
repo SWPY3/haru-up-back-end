@@ -36,9 +36,7 @@ class NotificationUseCase(
 
 
 
-    /**
-     * 단일 회원에게 푸시 발송
-     */
+    /** 특정 디바이스 ID 대상으로 푸시를 발송한다. */
     fun sendToMemberWithDeviceId(
         memberId: Long,
         deviceId : String,

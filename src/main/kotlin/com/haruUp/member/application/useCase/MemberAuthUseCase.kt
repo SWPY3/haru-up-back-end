@@ -25,7 +25,6 @@ import java.time.LocalDateTime
 class MemberAuthUseCase(
     private val memberService: MemberService,
     private val memberSettingService: MemberSettingService,
-    private val memberProfileService : MemberProfileService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val passwordEncoder: PasswordEncoder,
     private val memberValidator: MemberValidator,
@@ -39,6 +38,7 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
         private const val REFRESH_REDIS_PREFIX = "auth:refresh:"
     }
 
+    /** 리프레시 토큰용 Redis 키를 생성한다. */
     private fun refreshRedisKey(refreshToken: String) =
         "$REFRESH_REDIS_PREFIX$refreshToken"
 
@@ -294,6 +294,7 @@ private val log = LoggerFactory.getLogger(MemberAuthUseCase::class.java)
         }
     }
 
+    /** 리프레시 토큰으로 새로운 액세스 토큰을 발급한다. */
     fun refresh(refreshToken: String) : String? {
         val newTokens = reissueTokens(refreshToken)
         return newTokens.accessToken

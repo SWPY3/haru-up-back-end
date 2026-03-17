@@ -59,7 +59,7 @@ class NotificationTokenServiceUnitTest {
         assertEquals(PushPlatform.ANDROID, existing.platform)
 
 
-        verify(notificationRepository, never()).save(any())
+        verify(notificationRepository).save(existing)
     }
 
 
