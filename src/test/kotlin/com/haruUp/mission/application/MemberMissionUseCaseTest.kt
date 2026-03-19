@@ -6,6 +6,7 @@ import com.haruUp.character.application.service.LevelService
 import com.haruUp.character.domain.Level
 import com.haruUp.character.domain.MemberCharacter
 import com.haruUp.character.domain.dto.MemberCharacterDto
+import com.haruUp.member.application.service.MemberService
 import com.haruUp.global.error.BusinessException
 import com.haruUp.global.error.ErrorCode
 import com.haruUp.mission.domain.MemberMissionEntity
@@ -31,6 +32,7 @@ class MemberMissionUseCaseUnitTest {
     @Mock lateinit var memberMissionService: MemberMissionService
     @Mock lateinit var memberCharacterService: MemberCharacterService
     @Mock lateinit var levelService: LevelService
+    @Mock lateinit var memberService: MemberService
 
     @InjectMocks lateinit var useCase: MemberMissionUseCase
 

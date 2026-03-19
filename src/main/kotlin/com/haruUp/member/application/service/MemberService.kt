@@ -15,65 +15,56 @@ class MemberService(
     private val memberRepository: MemberRepository
 ) {
 
+    /** 회원 정보를 저장하고 DTO로 반환한다. */
     @Transactional
-    fun addMember( member: Member)  : MemberDto {
-        return memberRepository.save(member).toDto();
+    fun addMember(member: Member): MemberDto = memberRepository.save(member).toDto()
+
+    /** 기존 회원 정보를 갱신하고 DTO로 반환한다. */
+    @Transactional
+    fun updateMember(member: Member): MemberDto = memberRepository.save(member).toDto()
+
+    /** 전달받은 회원 엔티티의 ID로 회원을 조회한다. */
+    @Transactional
+    fun findMember(member: Member): MemberDto? =
+        member.id
+            ?.let { memberRepository.findById(it) }
+            ?.orElse(null)
+            ?.toDto()
+
+    /** 회원 ID 기준으로 회원 데이터를 삭제한다. */
+    @Transactional
+    fun deleteMember(member: Member) {
+        member.id?.let { memberRepository.removeMemberById(it) }
     }
 
+    /** 회원 ID로 엔티티를 조회한다. */
     @Transactional
-    fun updateMember( member : Member) : MemberDto {
-        return memberRepository.save( member ).toDto()
-    }
+    fun getFindMemberId(id: Long): Optional<Member> = memberRepository.findById(id)
 
+    /** 이메일/비밀번호 기반으로 활성 회원을 조회한다. */
     @Transactional
-    fun findMember( member: Member) : MemberDto? {
-        return member.id?.let { it -> memberRepository.findById(it) }?.orElse(null)?.toDto()
-    }
+    fun getByEmailAndPassword(email: String?, password: String?): MemberDto? =
+        memberRepository.findByEmailAndPasswordAndDeletedFalse(email, password)?.toDto()
 
+    /** 로그인 타입과 이메일이 일치하는 활성 회원을 조회한다. */
     @Transactional
-    fun deleteMember( member : Member){
-        member.id?.let{it -> memberRepository.removeMemberById(it)}
-    }
+    fun findByEmailAndLoginType(email: String, common: LoginType): MemberDto? =
+        memberRepository.findByEmailAndLoginTypeAndDeletedFalse(email, common)?.toDto()
 
+    /** 로그인 타입과 SNS ID가 일치하는 활성 회원을 조회한다. */
     @Transactional
-    fun getFindMemberId(id: Long) : Optional<Member> {
-       return memberRepository.findById(id)
-    }
+    fun findByLoginTypeAndSnsId(loginType: LoginType?, snsId: String): MemberDto? =
+        memberRepository.findByLoginTypeAndSnsIdAndDeletedFalse(loginType, snsId)?.toDto()
 
-    @Transactional
-    fun getByEmailAndPassword(email: String?, password: String?) : MemberDto? {
-       return memberRepository.findByEmailAndPasswordAndDeletedFalse(email, password)?.toDto()
-    }
-
-    @Transactional
-    fun findByEmailAndLoginType(email: String, common: LoginType) : MemberDto?{
-       return memberRepository.findByEmailAndLoginTypeAndDeletedFalse(email, common)?.toDto()
-    }
-
-    @Transactional
-    fun findByLoginTypeAndSnsId(loginType: LoginType?, snsId: String) : MemberDto? {
-       return memberRepository.findByLoginTypeAndSnsIdAndDeletedFalse(loginType, snsId)?.toDto()
-    }
-
+    /** 회원을 soft delete 상태로 변경한다. */
     fun softDelete(member: Member) {
-        val saved = member.apply { this.deleted = true }
+        val saved = member.apply { deleted = true }
         memberRepository.save(saved)
     }
 
-    fun homeMemberInfo(memberId: Long) : List<HomeMemberInfoDto>  {
-        val homeMemberInfo = memberRepository.homeMemberInfo(memberId);
+    /** 홈 화면용 회원 정보를 조회한다. */
+    fun homeMemberInfo(memberId: Long): List<HomeMemberInfoDto> = memberRepository.homeMemberInfo(memberId)
 
-        if(homeMemberInfo != null) {
-            return homeMemberInfo
-        } else{
-            throw IllegalArgumentException("회원의 정보가 존재하지 않습니다")
-        }
-    }
-
-    fun memberStatisticsList() : List<MemberStatisticsDto> {
-        val memberStatisticsList = memberRepository.memberStatisticsList();
-        return memberStatisticsList
-    }
-
-
+    /** 회원 통계 목록을 조회한다. */
+    fun memberStatisticsList(): List<MemberStatisticsDto> = memberRepository.memberStatisticsList()
 }

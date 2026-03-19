@@ -2,12 +2,14 @@ package com.haruUp.notification.application.useCase
 
 import com.haruUp.notification.application.PushClient
 import com.haruUp.notification.application.service.NotificationTokenService
+import com.haruUp.notification.infrastructure.PushClientApplication
 import org.springframework.stereotype.Component
 
 @Component
 class NotificationUseCase(
     private val notificationTokenService: NotificationTokenService,
-    private val pushClient: PushClient
+    private val pushClient: PushClient,
+    private val pushClientApplication: PushClientApplication
 ) {
     /**
      * 단일 회원에게 푸시 발송
@@ -20,14 +22,37 @@ class NotificationUseCase(
     ) {
         val tokens = notificationTokenService.getTokensByMember(memberId)
 
-        tokens.forEach { tokenEntity ->
-            pushClient.sendToToken(
-                token = tokenEntity.token,
+        tokens.forEach { token ->
+            val message = pushClient.createMessage(
+                token = token,
                 title = title,
-                body = body,
-                data = data
+                body = body
             )
+
+            pushClientApplication.send(token, message);
         }
+
+    }
+
+
+
+    /** 특정 디바이스 ID 대상으로 푸시를 발송한다. */
+    fun sendToMemberWithDeviceId(
+        memberId: Long,
+        deviceId : String,
+        title: String,
+        body: String,
+    ) {
+
+        val message = pushClient.createMessageWithDeviceid(
+            deviceId = deviceId,
+            title = title,
+            body = body
+        )
+
+
+        pushClientApplication.sendWithDeviceId(deviceId, memberId, message);
+
     }
 
     /**

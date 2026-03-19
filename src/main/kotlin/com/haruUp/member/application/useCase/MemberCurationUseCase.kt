@@ -12,7 +12,6 @@ import com.haruUp.member.domain.dto.MemberProfileDto
 import com.haruUp.mission.application.MissionRecommendService
 import jakarta.transaction.Transactional
 import kotlinx.coroutines.delay
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 
@@ -33,9 +32,7 @@ class MemberCurationUseCase(
     private val missionRecommendService: MissionRecommendService,
     private val objectMapper: ObjectMapper
 ) {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
-
+    /** 초기 큐레이션 플로우를 순차 실행하고 결과를 반환한다. */
     @Transactional
     suspend fun runInitialCuration(
         characterId: Long,
@@ -91,8 +88,8 @@ class MemberCurationUseCase(
 
 
         /** MissionRecommendationResponse → JSON 문자열 */
-        val missionsJson: String = objectMapper.writeValueAsString(missions)
-        onLog( CurationLogEvent( step = "회원 미션 설정 완료", message = missionsJson ) )
+        val missionsJson = objectMapper.writeValueAsString(missions)
+        onLog(CurationLogEvent(step = "회원 미션 설정 완료", message = missionsJson))
         delaySafe()
 
 
@@ -101,6 +98,7 @@ class MemberCurationUseCase(
         return CurationResult(memberInterestIds = memberInterestIds)
     }
 
+    /** SSE 로그 가독성을 위해 단계 간 짧은 지연을 둔다. */
     private suspend fun delaySafe() {
         delay(700)
     }
