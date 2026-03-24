@@ -1,30 +1,24 @@
 package com.haruUp.chat.controller
 
+import com.haruUp.chat.application.ChatBotUseCase
 import com.haruUp.chat.application.service.ChatBotService
 import com.haruUp.chat.domain.ChatDto
+import com.haruUp.chat.domain.ChatRequest
+import com.haruUp.chat.domain.ChatResponse
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.RequestBody
 
 @Controller
 class ChatController(
-    private val chatBotService: ChatBotService
+    private val chatBotUseCase: ChatBotUseCase
 ) {
 
     @MessageMapping("/chat.send")
     @SendTo("/topic/public")
-    fun sendMessage(message: ChatDto): ChatDto? {
-        println("user message = ${message.content}")
-
-        val answer = message.content?.let { chatBotService.askChatBot(it) }
-
-        println("bot answer = $answer")
-
-        return answer?.let {
-            ChatDto(
-                content = it,
-                role = "BOT"
-            )
-        }
+    fun chat(@RequestBody request: ChatRequest): ChatResponse {
+        return chatBotUseCase.chatWithBot(request)
     }
+
 }

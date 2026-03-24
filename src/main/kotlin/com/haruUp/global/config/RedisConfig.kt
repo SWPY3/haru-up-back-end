@@ -1,5 +1,6 @@
 package com.haruUp.global.config
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
@@ -33,6 +34,23 @@ class RedisConfig {
         template.valueSerializer = StringRedisSerializer()
         template.hashKeySerializer = StringRedisSerializer()
         template.hashValueSerializer = StringRedisSerializer()
+
+        template.afterPropertiesSet()
+        return template
+    }
+
+    @Bean(name = ["chatRedisTemplate"])
+    fun chatRedisTemplate(connectionFactory: RedisConnectionFactory): RedisTemplate<String, Any> {
+        val template = RedisTemplate<String, Any>()
+        template.connectionFactory = connectionFactory
+
+        val stringSerializer = StringRedisSerializer()
+        val jsonSerializer = GenericJackson2JsonRedisSerializer(jacksonObjectMapper())
+
+        template.keySerializer = stringSerializer
+        template.hashKeySerializer = stringSerializer
+        template.valueSerializer = jsonSerializer
+        template.hashValueSerializer = jsonSerializer
 
         template.afterPropertiesSet()
         return template
