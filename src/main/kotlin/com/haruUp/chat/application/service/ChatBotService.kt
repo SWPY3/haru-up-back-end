@@ -1,15 +1,27 @@
-package com.haruUp.chat.application
+package com.haruUp.chat.application.service
 
 import com.haruUp.global.clova.ClovaApiClient
+import com.haruUp.interest.service.MemberInterestService
 import org.springframework.stereotype.Service
 
 @Service
 class ChatBotService(
-    private final var clovaApiClient: ClovaApiClient
+    private final var clovaApiClient: ClovaApiClient,
+    private final var interestService: MemberInterestService
 ) {
     // 챗봇에게 질문을 보내고 답변을 받는 로직을 구현
     fun askChatBot(question: String): String {
 
+
+
+        return "";
+    }
+
+
+
+
+    // 사용자 답변의 유효성을 검증하는 로직을 구현
+    private fun validateAnswer(answer: String): Boolean {
         var prompt = buildPrompt();
 
         val response = clovaApiClient.generateText(
@@ -17,7 +29,7 @@ class ChatBotService(
             systemMessage = CHAT_BOT_PROMPT
         )
 
-        return "";
+        return response.contains("OK");
     }
 
     private fun buildPrompt() : String {

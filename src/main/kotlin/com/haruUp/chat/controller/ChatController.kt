@@ -1,6 +1,6 @@
 package com.haruUp.chat.controller
 
-import com.haruUp.chat.application.ChatBotService
+import com.haruUp.chat.application.service.ChatBotService
 import com.haruUp.chat.domain.ChatDto
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.SendTo

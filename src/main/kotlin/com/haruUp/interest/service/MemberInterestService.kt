@@ -108,4 +108,11 @@ class MemberInterestService(
 
         return fullPathList
     }
+
+    fun getIntersetsList() : List<MemberInterestDto> {
+        val interestList = memberInterestRepository.findAll().map(MemberInterestEntity::toDto)
+
+        return interestList
+
+    }
 }
