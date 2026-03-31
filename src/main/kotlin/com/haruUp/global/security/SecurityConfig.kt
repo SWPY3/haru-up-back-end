@@ -95,7 +95,13 @@ class SecurityConfig(
                     ).permitAll()
 
                     .requestMatchers(
+                        "/",
                         "/api/member/auth/**",
+                        "/api/chat/**",
+                        "/ws/**",
+                        "/favicon.ico",
+                        "/chat-test.html",
+                        "/chat-test/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",

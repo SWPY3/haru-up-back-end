@@ -9,6 +9,7 @@ import com.haruUp.mission.domain.MemberMissionEntity
 import com.haruUp.mission.domain.MemberMissionDto
 import com.haruUp.mission.domain.MissionStatus
 import com.haruUp.mission.infrastructure.MemberMissionRepository
+import com.haruUp.notification.domain.MissionPushTarget
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -122,6 +123,7 @@ class MemberMissionService(
         return memberMissionRepository.save(stored)
     }
 
+    /** 오늘 날짜 기준 미션 엔티티 목록을 조회한다. */
     fun getTodayMissionsByMemberId(memberId: Long): List<MemberMissionEntity> {
        return memberMissionRepository.getTodayMissionsByMemberId(memberId)
     }
@@ -180,6 +182,7 @@ class MemberMissionService(
         return updatedMemberMissionIds
     }
 
+    /** 회원의 모든 미션을 soft delete 처리한다. */
     fun deleteMemberMissionsByMemberId(memberId: Long) {
         memberMissionRepository.softDeleteAllByMemberId(memberId)
         logger.info("멤버 미션 삭제 완료 - memberId: $memberId")
@@ -259,6 +262,7 @@ class MemberMissionService(
         return result
     }
 
+    /** 기간 내 일자별 완료 미션 수를 조회한다. */
     fun findDailyCompletedMissionCount(
         memberId: Long,
         targetStartDate: LocalDate,
@@ -270,6 +274,11 @@ class MemberMissionService(
 
         return continueMissionMonth
 
+    }
+
+    /** 특정 시간 구간에서 미완료 회원(푸시 대상)을 조회한다. */
+    fun getMembersWithTodayFalseMission(atStartOfDay: LocalDateTime, atEndDate: LocalDateTime) : List<MissionPushTarget> {
+        return memberMissionRepository.findMembersWithTodayFalseMission(atStartOfDay, atEndDate)
     }
 
     /**
@@ -286,4 +295,5 @@ class MemberMissionService(
             endDate = endDate
         )
     }
+
 }

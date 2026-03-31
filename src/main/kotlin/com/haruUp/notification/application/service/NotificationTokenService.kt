@@ -20,28 +20,36 @@ class NotificationTokenService (
     @Transactional
     fun registerToken(
         memberId: Long,
-        deviceId: String?,
+        deviceId: String,
         platform: PushPlatform,
         token: String
     ) {
-        if (!deviceId.isNullOrBlank()) {
-            val existing = notificationRepository.findByMemberIdAndDeviceId(memberId, deviceId)
-            if (existing != null) {
-                existing.token = token
-                existing.platform = platform
-                notificationRepository.save(existing)
-                return
-            }
-        }
+        require(deviceId.isNotBlank()) { "deviceId must not be blank" }
+        require(token.isNotBlank()) { "token must not be blank" }
 
-        val entity = NotificationDeviceToken(
-            memberId = memberId,
-            deviceId = deviceId,
-            platform = platform,
-            token = token
-        )
-        notificationRepository.save(entity)
+        val existing =
+            notificationRepository.findByMemberIdAndDeviceId(memberId, deviceId)
+
+        if (existing != null) {
+            // JPA dirty checking
+            existing.token = token
+            existing.platform = platform
+
+            notificationRepository.save(existing)
+
+        } else {
+
+            notificationRepository.save(
+                NotificationDeviceToken(
+                    memberId = memberId,
+                    deviceId = deviceId,
+                    platform = platform,
+                    token = token
+                )
+            )
+        }
     }
+
 
     /**
      * 특정 기기(deviceId)의 토큰 제거 (로그아웃 시 이 기기만 로그아웃 같은 용도)
@@ -63,8 +71,7 @@ class NotificationTokenService (
      * 해당 회원의 모든 기기 토큰 조회
      */
     @Transactional
-    fun getTokensByMember(memberId: Long): List<NotificationDeviceToken> {
-        return notificationRepository.findAllByMemberId(memberId)
-    }
+    fun getTokensByMember(memberId: Long): List<NotificationDeviceToken> =
+        notificationRepository.findAllByMemberId(memberId)
 
 }

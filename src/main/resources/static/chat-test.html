@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatBot Browser Test</title>
+  <link rel="icon" href="/chat-test/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --panel: #fffaf1;
+      --ink: #2c241b;
+      --muted: #6d6359;
+      --accent: #b45309;
+      --accent-soft: #fcd9b6;
+      --line: #e8dac9;
+      --bot: #fff4e5;
+      --user: #efe7ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(180, 83, 9, 0.16), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(122, 92, 255, 0.12), transparent 24%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 32px 20px 40px;
+    }
+
+    .hero {
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .meta code {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .panel {
+      background: rgba(255, 250, 241, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(44, 36, 27, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .toolbar button,
+    .option,
+    .composer button {
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .toolbar button,
+    .composer button {
+      padding: 11px 16px;
+      background: var(--ink);
+      color: white;
+    }
+
+    .toolbar button.secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 420px;
+      max-height: 58vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .bubble {
+      max-width: 82%;
+      padding: 14px 16px;
+      border-radius: 18px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid var(--line);
+    }
+
+    .bubble.bot {
+      background: var(--bot);
+      align-self: flex-start;
+    }
+
+    .bubble.user {
+      background: var(--user);
+      align-self: flex-end;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .option {
+      padding: 10px 14px;
+      background: var(--accent-soft);
+      color: #7c2d12;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .missions {
+      margin-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .mission-section-title {
+      margin-top: 6px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .mission-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: white;
+    }
+
+    .mission-card strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .mission-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 6px 0 4px;
+    }
+
+    .mission-actions button {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: white;
+      color: var(--ink);
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .mission-actions button.primary {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+
+    .mission-actions button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .composer input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      font: inherit;
+      background: white;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .wrap {
+        padding-inline: 14px;
+      }
+
+      .panel {
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .bubble {
+        max-width: 100%;
+      }
+
+      .composer {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>챗봇 브라우저 테스트</h1>
+      <p>콘솔 없이 브라우저에서 챗봇 질문 흐름과 미션 추천 결과를 확인할 수 있습니다.</p>
+      <div class="meta">
+        <span>페이지: <code>/chat-test.html</code></span>
+        <span>API: <code>POST /api/chat/test</code></span>
+        <span>Session: <code id="sessionIdLabel">-</code></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <strong>Browser Chat</strong>
+        <div>
+          <button id="resetButton" class="secondary" type="button">새 세션</button>
+          <button id="restartButton" type="button">처음 질문 다시 받기</button>
+        </div>
+      </div>
+
+      <div id="messages" class="messages"></div>
+
+      <div class="status" id="statusText">연결 준비 중...</div>
+
+      <div id="missions" class="missions"></div>
+
+      <form id="chatForm" class="composer">
+        <input
+          id="messageInput"
+          type="text"
+          autocomplete="off"
+          placeholder="번호 또는 답변을 입력하세요"
+        >
+        <button type="submit">보내기</button>
+      </form>
+
+      <div class="hint">
+        선택지가 나오면 버튼을 눌러도 되고, 직접 번호를 입력해도 됩니다.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const statusEl = document.getElementById("statusText");
+    const missionsEl = document.getElementById("missions");
+    const sessionIdLabelEl = document.getElementById("sessionIdLabel");
+    const chatFormEl = document.getElementById("chatForm");
+    const messageInputEl = document.getElementById("messageInput");
+    const resetButtonEl = document.getElementById("resetButton");
+    const restartButtonEl = document.getElementById("restartButton");
+
+    let sessionId = createSessionId();
+    let completed = false;
+    let chatContext = createEmptyContext();
+    let recommendationState = createEmptyRecommendationState();
+
+    sessionIdLabelEl.textContent = sessionId;
+
+    chatFormEl.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const content = messageInputEl.value.trim();
+      if (!content) return;
+
+      appendMessage("user", content);
+      messageInputEl.value = "";
+      await sendMessage(content);
+    });
+
+    resetButtonEl.addEventListener("click", async () => {
+      resetConversation(true);
+      await bootstrapConversation();
+    });
+
+    restartButtonEl.addEventListener("click", async () => {
+      clearMessages();
+      completed = false;
+      await sendMessage("");
+    });
+
+    function createSessionId() {
+      return crypto.randomUUID();
+    }
+
+    function createEmptyContext() {
+      return {
+        category: "",
+        subCategory: "",
+        goal: "",
+        desiredOutcome: "",
+        skillLevel: "",
+        recentExperience: "",
+        targetPeriod: "",
+        dailyAvailableTime: "",
+        additionalOpinion: ""
+      };
+    }
+
+    function createEmptyRecommendationState() {
+      return {
+        today: [],
+        nextDay: [],
+        loadingNextDay: false
+      };
+    }
+
+    function clearMessages() {
+      messagesEl.innerHTML = "";
+      missionsEl.innerHTML = "";
+      recommendationState = createEmptyRecommendationState();
+    }
+
+    function resetConversation(createNewSession) {
+      clearMessages();
+      completed = false;
+
+      if (createNewSession) {
+        sessionId = createSessionId();
+        sessionIdLabelEl.textContent = sessionId;
+      }
+
+      chatContext = createEmptyContext();
+    }
+
+    function appendMessage(role, text) {
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${role}`;
+      bubble.textContent = text;
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function appendOptions(options) {
+      if (!options || options.length === 0) return;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "options";
+
+      options.forEach((option) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option";
+        button.textContent = `${option.no}. ${option.label}`;
+        button.addEventListener("click", async () => {
+          appendMessage("user", String(option.no));
+          await sendMessage(String(option.no));
+        });
+        wrapper.appendChild(button);
+      });
+
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function renderMissionCards(missions) {
+      const fragment = document.createDocumentFragment();
+      missions.forEach((mission, index) => {
+        const card = document.createElement("div");
+        card.className = "mission-card";
+        card.innerHTML = `
+          <strong>${index + 1}. ${mission.content}</strong>
+          <div>difficulty = ${mission.difficulty ?? "-"}</div>
+          <div>exp = ${mission.expEarned ?? 0}</div>
+        `;
+        fragment.appendChild(card);
+      });
+      return fragment;
+    }
+
+    function renderRecommendations() {
+      missionsEl.innerHTML = "";
+      const hasToday = recommendationState.today.length > 0;
+      const hasNextDay = recommendationState.nextDay.length > 0;
+
+      if (!hasToday && !hasNextDay) {
+        return;
+      }
+
+      if (hasToday) {
+        const title = document.createElement("div");
+        title.className = "status mission-section-title";
+        title.textContent = "오늘 추천 미션";
+        missionsEl.appendChild(title);
+        missionsEl.appendChild(renderMissionCards(recommendationState.today));
+
+        const actions = document.createElement("div");
+        actions.className = "mission-actions";
+
+        const nextDayButton = document.createElement("button");
+        nextDayButton.type = "button";
+        nextDayButton.className = "primary";
+        nextDayButton.disabled = recommendationState.loadingNextDay;
+        nextDayButton.textContent = recommendationState.loadingNextDay
+          ? "다음날 추천 생성 중..."
+          : (hasNextDay ? "다음날 추천 다시 보기" : "오늘 미션 모두 완료하고 다음날 추천 보기");
+        nextDayButton.addEventListener("click", async () => {
+          await fetchNextDayRecommendations();
+        });
+        actions.appendChild(nextDayButton);
+        missionsEl.appendChild(actions);
+      }
+
+      if (hasNextDay) {
+        const nextDayTitle = document.createElement("div");
+        nextDayTitle.className = "status mission-section-title";
+        nextDayTitle.textContent = "다음날 추천 미션";
+        missionsEl.appendChild(nextDayTitle);
+        missionsEl.appendChild(renderMissionCards(recommendationState.nextDay));
+      }
+    }
+
+    function updateStatus(response) {
+      const parts = [
+        `nextDepth = ${response.nextDepth}`,
+        `completed = ${response.completed ? "true" : "false"}`
+      ];
+
+      if (response.completed) {
+        parts.push("입력 수집이 완료되었습니다. 아래 추천 미션을 확인해보세요.");
+      }
+
+      statusEl.textContent = parts.join(" | ");
+    }
+
+    async function sendMessage(content) {
+      setLoading(true);
+
+      try {
+        captureContextBeforeSend(content);
+
+        const response = await fetch("/api/chat/test", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            sessionId,
+            content
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        appendMessage("bot", payload.message);
+        appendOptions(payload.options);
+        updateStatus(payload);
+        completed = payload.completed;
+
+        if (payload.completed) {
+          await fetchRecommendations();
+        }
+
+      } catch (error) {
+        appendMessage("bot", `요청 중 오류가 발생했습니다: ${error.message}`);
+        statusEl.textContent = "요청 실패";
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function setLoading(isLoading) {
+      messageInputEl.disabled = isLoading;
+      chatFormEl.querySelector("button[type='submit']").disabled = isLoading;
+      resetButtonEl.disabled = isLoading;
+      restartButtonEl.disabled = isLoading;
+    }
+
+    function captureContextBeforeSend(content) {
+      const normalized = content.trim();
+      const depthMatch = statusEl.textContent.match(/nextDepth = (\d+)/);
+      const nextDepth = depthMatch ? Number(depthMatch[1]) : 1;
+
+      if (nextDepth === 1) {
+        const option = findOptionByNumber(normalized);
+        chatContext = createEmptyContext();
+        chatContext.category = option ? option.label : "";
+        return;
+      }
+
+      if (nextDepth === 2) {
+        const option = findOptionByNumber(normalized);
+        chatContext.subCategory = option ? option.label : "";
+        return;
+      }
+
+      if (nextDepth === 3) chatContext.goal = normalized;
+      if (nextDepth === 4) chatContext.desiredOutcome = normalized;
+      if (nextDepth === 5) chatContext.skillLevel = normalized;
+      if (nextDepth === 6) chatContext.recentExperience = normalized;
+      if (nextDepth === 7) chatContext.targetPeriod = normalized;
+      if (nextDepth === 8) chatContext.dailyAvailableTime = normalized;
+      if (nextDepth === 9) {
+        chatContext.additionalOpinion = isNoAdditionalOpinion(normalized) ? "" : normalized;
+      }
+    }
+
+    function findOptionByNumber(value) {
+      const optionGroups = [...messagesEl.querySelectorAll(".options")];
+      const latestGroup = optionGroups.at(-1);
+      if (!latestGroup) {
+        return null;
+      }
+
+      const optionButtons = [...latestGroup.querySelectorAll(".option")];
+      const matchedButton = optionButtons.find((button) => button.textContent.startsWith(`${value}. `));
+      if (!matchedButton) {
+        return null;
+      }
+
+      const [, label] = matchedButton.textContent.split(". ");
+      return { label };
+    }
+
+    function isNoAdditionalOpinion(value) {
+      const normalized = value.toLowerCase().replace(/[?!.,~]+$/g, "");
+      return ["", "없음", "없어", "없어요", "없습니다", "딱히 없어", "딱히 없음", "딱히 없어요", "없는데"].includes(normalized);
+    }
+
+    async function fetchRecommendations() {
+      try {
+        const response = await fetch("/api/chat/test/recommend", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(chatContext)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const missions = await response.json();
+        recommendationState.today = missions;
+        recommendationState.nextDay = [];
+        recommendationState.loadingNextDay = false;
+        renderRecommendations();
+      } catch (error) {
+        appendMessage("bot", `미션 추천 조회 중 오류가 발생했습니다: ${error.message}`);
+      }
+    }
+
+    async function fetchNextDayRecommendations() {
+      if (recommendationState.today.length === 0) {
+        return;
+      }
+
+      recommendationState.loadingNextDay = true;
+      renderRecommendations();
+
+      try {
+        const response = await fetch("/api/chat/test/recommend", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ...chatContext,
+            completedMissions: recommendationState.today.map((mission) => ({
+              content: mission.content,
+              difficulty: mission.difficulty
+            }))
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const missions = await response.json();
+        recommendationState.nextDay = missions;
+      } catch (error) {
+        appendMessage("bot", `다음날 미션 추천 조회 중 오류가 발생했습니다: ${error.message}`);
+      } finally {
+        recommendationState.loadingNextDay = false;
+        renderRecommendations();
+      }
+    }
+
+    async function bootstrapConversation() {
+      statusEl.textContent = "첫 질문을 불러오는 중...";
+      await sendMessage("");
+      messageInputEl.focus();
+    }
+
+    bootstrapConversation();
+  </script>
+</body>
+</html>

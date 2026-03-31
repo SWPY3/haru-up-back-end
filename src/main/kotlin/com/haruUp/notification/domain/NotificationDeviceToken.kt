@@ -3,7 +3,13 @@ package com.haruUp.notification.domain
 
 import com.haruUp.global.common.BaseEntity
 import jakarta.persistence.*
+import lombok.AllArgsConstructor
+import lombok.Builder
+import lombok.NoArgsConstructor
 
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "push_device_token")
 class NotificationDeviceToken(
@@ -22,7 +28,7 @@ class NotificationDeviceToken(
      * 기기 식별자 (optional)
      * - 같은 기기에서 토큰이 갱신될 수 있으므로, memberId + deviceId 로 upsert 용도로 사용
      */
-    @Column(nullable = true, length = 100)
+    @Column(nullable = false, length = 100)
     var deviceId: String? = null,
 
     @Enumerated(EnumType.STRING)
@@ -45,4 +51,14 @@ class NotificationDeviceToken(
         platform = PushPlatform.UNKNOWN,
         token = ""
     )
+
+    fun toDto(): NotificationDeviceTokenDto {
+        return NotificationDeviceTokenDto(
+            id = this.id,
+            memberId = this.memberId,
+            deviceId = this.deviceId,
+            platform = this.platform,
+            token = this.token
+        )
+    }
 }

@@ -56,4 +56,17 @@ class MemberInterestEntity(
         this.interestId = newInterestId
         this.directFullPath = newDirectFullPath
     }
+
+    fun toDto(): com.haruUp.interest.dto.MemberInterestDto {
+        return com.haruUp.interest.dto.MemberInterestDto(
+            member_interest_id = this.id ?: 0L,
+            memberId = this.memberId,
+            interestId = this.interestId,
+            directFullPath = this.directFullPath,
+            resetMissionCount = this.resetMissionCount,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt,
+            fullPath = null
+        )
+    }
 }

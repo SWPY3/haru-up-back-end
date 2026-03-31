@@ -35,8 +35,12 @@ dependencies {
 
     // JPA + Web + Security
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    kapt 'com.querydsl:querydsl-apt:5.1.0:jakarta'
+    kapt 'jakarta.annotation:jakarta.annotation-api'
+    kapt 'jakarta.persistence:jakarta.persistence-api'
     testImplementation("org.springframework.security:spring-security-test")
     implementation 'org.springframework.boot:spring-boot-starter-validation' // ✅ @Valid, @Email 등 사용 시
     implementation 'org.springframework.boot:spring-boot-starter-aop' // AOP for rate limiting
@@ -100,8 +104,14 @@ dependencies {
     // 코드 변경 감지 (개발환경에서 사용할 목적)
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-
+    // Apache POI (엑셀 처리)
     implementation "org.apache.poi:poi-ooxml:5.2.5"
+
+    // Firebase Admin SDK
+    implementation "com.google.firebase:firebase-admin:9.2.0"
+
+    // WebSocket 지원
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
 kotlin {
@@ -126,6 +136,39 @@ springBoot {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.register('chatConsole', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = '챗봇 콘솔 실행'
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    systemProperty 'spring.profiles.active', 'chat-console'
+}
+
+tasks.register('chatBrowser', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = '챗봇 브라우저 테스트 서버 실행'
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+    classpath = sourceSets.main.runtimeClasspath
+    systemProperty 'spring.profiles.active', 'chat-browser'
+}
+
+tasks.register('chatRecommendationQa', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'verification'
+    description = '챗봇 추천 QA 시나리오 실행'
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+    classpath = sourceSets.main.runtimeClasspath
+    systemProperty 'spring.profiles.active', 'chat-browser,chat-recommendation-qa'
+    systemProperty 'spring.devtools.restart.enabled', 'false'
+    systemProperty 'spring.devtools.livereload.enabled', 'false'
+
+    System.properties.findAll { key, value ->
+        key.startsWith('qa.') || key.startsWith('logging.level.')
+    }.each { key, value ->
+        systemProperty key, value
+    }
 }
 
 // 관심사 임베딩 초기화 태스크

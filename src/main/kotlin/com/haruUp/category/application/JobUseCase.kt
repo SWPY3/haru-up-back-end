@@ -7,17 +7,12 @@ import org.springframework.stereotype.Component
 @Component
 class JobUseCase(
     private val jobService: JobService,
-    private val jobDetailService : JobDetailService,
+    private val jobDetailService: JobDetailService,
 ) {
 
+    /** 직업 목록 조회 유즈케이스다. */
+    fun getJobList(): List<JobDto> = jobService.getJobList()
 
-    // job 조회
-    fun getJobList() : List<JobDto> {
-        return jobService.getJobList()
-    }
-
-    // jobDetail 조회
-    fun getJobDetail( jobId : Long) : List<JobDetailDto> {
-        return jobDetailService.getJobDetailList(jobId)
-    }
+    /** 특정 직업의 세부 직업 목록 조회 유즈케이스다. */
+    fun getJobDetail(jobId: Long): List<JobDetailDto> = jobDetailService.getJobDetailList(jobId)
 }

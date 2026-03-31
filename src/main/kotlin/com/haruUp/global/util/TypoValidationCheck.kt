@@ -2,7 +2,6 @@ package com.haruUp.global.util
 
 import com.haruUp.global.clova.ChatMessage
 import com.haruUp.global.clova.ClovaApiClient
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 import java.time.Duration
@@ -11,14 +10,8 @@ import java.util.concurrent.TimeUnit
 @Component
 class TypoValidationCheck(
     private val clovaApiClient: ClovaApiClient,
-    private val stringRedisTemplate : StringRedisTemplate,
-    private val redisTemplate : RedisTemplate<String, Object>
+    private val stringRedisTemplate: StringRedisTemplate
 ) {
-
-    private final var MAX_VALIDATION_COUNT = 3;
-
-    private final var BLOCK_MINUTES : Long = 30;
-
 
     data class ValidationResult(
         val isValid: Boolean,
@@ -26,6 +19,14 @@ class TypoValidationCheck(
     )
 
     private companion object {
+        private const val MAX_VALIDATION_COUNT = 3L
+        private const val BLOCK_MINUTES = 30L
+        private const val COUNT_KEY_PREFIX = "typo-validation:count:"
+        private const val BLOCK_KEY_PREFIX = "typo-validation:block:"
+
+        private val KOREAN_JAMO_REGEX = Regex("[ㄱ-ㅎㅏ-ㅣ]")
+        private val KOREAN_WITH_SPACES_REGEX = Regex("^[가-힣\\s]+$")
+        private val REPEATED_CHAR_REGEX = Regex("(.)\\1{2,}")
 
         const val SYSTEM_PROMPT =
             """
@@ -49,8 +50,6 @@ class TypoValidationCheck(
      * 한글 기반 문자열 1차 유효성 검증
      */
     fun validateKoreanText(input: String): ValidationResult {
-
-
         val text = input.trim()
 
         /* =========================
@@ -66,17 +65,17 @@ class TypoValidationCheck(
         }
 
         // 자음/모음 단독 문자 포함
-        if (Regex("[ㄱ-ㅎㅏ-ㅣ]").containsMatchIn(text)) {
+        if (KOREAN_JAMO_REGEX.containsMatchIn(text)) {
             return ValidationResult(false, "자음 또는 모음만으로 구성된 문자는 허용되지 않습니다.")
         }
 
         // 한글 완성형 + 공백만 허용
-        if (!Regex("^[가-힣\\s]+$").matches(text)) {
+        if (!KOREAN_WITH_SPACES_REGEX.matches(text)) {
             return ValidationResult(false, "한글 이외의 문자가 포함되어 있습니다.")
         }
 
         // 같은 문자 3회 이상 반복
-        if (Regex("(.)\\1{2,}").containsMatchIn(text)) {
+        if (REPEATED_CHAR_REGEX.containsMatchIn(text)) {
             return ValidationResult(false, "같은 문자의 반복이 과도합니다.")
         }
 
@@ -121,17 +120,13 @@ class TypoValidationCheck(
     }
 
 
-    /**/
-    fun checkRedisCount(memberId: Long) : ValidationResult? {
-        val countKey = InterestCountRedisKey(memberId)
-        val blockKey = InterestBlockRedisKey(memberId)
-
+    fun checkRedisCount(memberId: Long): ValidationResult? {
+        val countKey = interestCountRedisKey(memberId)
+        val blockKey = interestBlockRedisKey(memberId)
 
         // 1️⃣ 차단 여부 확인
         if (stringRedisTemplate.hasKey(blockKey)) {
-
             val remainSeconds = stringRedisTemplate.getExpire(blockKey, TimeUnit.SECONDS)
-
             val remainMinutes = if (remainSeconds > 0) (remainSeconds + 30) / 60 else 0
 
             return ValidationResult(
@@ -140,12 +135,13 @@ class TypoValidationCheck(
             )
         }
 
-        val count = stringRedisTemplate.opsForValue().increment(countKey)!!
+        val count = requireNotNull(stringRedisTemplate.opsForValue().increment(countKey)) {
+            "Redis increment 결과가 null 입니다. key=$countKey"
+        }
 
         // 3️⃣ 제한 초과 → 차단
         if (count > MAX_VALIDATION_COUNT) {
-
-            stringRedisTemplate.opsForValue().set( blockKey, "BLOCKED", Duration.ofMinutes(BLOCK_MINUTES) )
+            stringRedisTemplate.opsForValue().set(blockKey, "BLOCKED", Duration.ofMinutes(BLOCK_MINUTES))
             stringRedisTemplate.delete(countKey)
 
             return ValidationResult(
@@ -160,7 +156,7 @@ class TypoValidationCheck(
 
 
     /* 오타 검증 limit redis */
-    fun InterestCountRedisKey(memberId: Long) = "typo-validation:count:$memberId"
-    fun InterestBlockRedisKey(memberId: Long) = "typo-validation:block:$memberId"
+    private fun interestCountRedisKey(memberId: Long) = "$COUNT_KEY_PREFIX$memberId"
+    private fun interestBlockRedisKey(memberId: Long) = "$BLOCK_KEY_PREFIX$memberId"
 
 }

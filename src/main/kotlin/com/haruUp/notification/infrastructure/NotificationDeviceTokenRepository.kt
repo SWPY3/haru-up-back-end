@@ -2,10 +2,11 @@ package com.haruUp.notification.infrastructure
 
 import com.haruUp.notification.domain.NotificationDeviceToken
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 
-interface NotificationDeviceTokenRepository : JpaRepository<NotificationDeviceToken, Long>{
-
-    fun findByMemberIdAndDeviceId(memberId: Long, deviceId: String): NotificationDeviceToken?
+interface NotificationDeviceTokenRepository :
+    JpaRepository<NotificationDeviceToken, Long>,
+    NotificationDeviceTokenRepositoryCustom {
 
     fun findAllByMemberId(memberId: Long): List<NotificationDeviceToken>
 
@@ -13,4 +14,6 @@ interface NotificationDeviceTokenRepository : JpaRepository<NotificationDeviceTo
 
     fun deleteAllByMemberId(memberId: Long)
 
+    @Modifying
+    fun deleteByToken(token: String)
 }
