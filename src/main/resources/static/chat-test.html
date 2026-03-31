@@ -337,7 +337,12 @@
     });
 
     function createSessionId() {
-      return crypto.randomUUID();
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+
+      const randomPart = Math.random().toString(36).slice(2, 10);
+      return `chat-${Date.now().toString(36)}-${randomPart}`;
     }
 
     function createEmptyContext() {
@@ -644,7 +649,10 @@
       messageInputEl.focus();
     }
 
-    bootstrapConversation();
+    bootstrapConversation().catch((error) => {
+      appendMessage("bot", `초기화 중 오류가 발생했습니다: ${error.message}`);
+      statusEl.textContent = "초기화 실패";
+    });
   </script>
 </body>
 </html>
