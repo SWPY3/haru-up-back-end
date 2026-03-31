@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 @Repository
 class ChatRedisRepository(
     @Qualifier("chatRedisTemplate")
-    private val redisTemplate: RedisTemplate<String, Any>
+    private val redisTemplate: RedisTemplate<String, ChatState>
 ) {
 
     companion object {
@@ -34,7 +34,7 @@ class ChatRedisRepository(
 
     /* sessionId로 ChatState 조회 */
      fun findBySessionId(sessionId: String): ChatState? {
-        return redisTemplate.opsForValue().get(KEY_PREFIX + sessionId) as? ChatState
+        return redisTemplate.opsForValue().get(KEY_PREFIX + sessionId)
     }
 
     /* sessionId로 ChatState 저장 */

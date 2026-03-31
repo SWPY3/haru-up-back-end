@@ -2,9 +2,6 @@ spring:
   application:
     name: haruUp
 
-  profiles:
-    active: chat-console
-
   config:
     import: classpath:env.properties
 

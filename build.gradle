@@ -138,6 +138,39 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+tasks.register('chatConsole', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = '챗봇 콘솔 실행'
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    systemProperty 'spring.profiles.active', 'chat-console'
+}
+
+tasks.register('chatBrowser', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = '챗봇 브라우저 테스트 서버 실행'
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+    classpath = sourceSets.main.runtimeClasspath
+    systemProperty 'spring.profiles.active', 'chat-browser'
+}
+
+tasks.register('chatRecommendationQa', org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'verification'
+    description = '챗봇 추천 QA 시나리오 실행'
+    mainClass = 'com.haruUp.HaruUpApplicationKt'
+    classpath = sourceSets.main.runtimeClasspath
+    systemProperty 'spring.profiles.active', 'chat-browser,chat-recommendation-qa'
+    systemProperty 'spring.devtools.restart.enabled', 'false'
+    systemProperty 'spring.devtools.livereload.enabled', 'false'
+
+    System.properties.findAll { key, value ->
+        key.startsWith('qa.') || key.startsWith('logging.level.')
+    }.each { key, value ->
+        systemProperty key, value
+    }
+}
+
 // 관심사 임베딩 초기화 태스크
 tasks.register('initEmbeddings', JavaExec) {
     group = 'application'

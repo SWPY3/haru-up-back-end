@@ -1,0 +1,10 @@
+server:
+  port: 18081
+
+spring:
+  batch:
+    job:
+      enabled: false
+  devtools:
+    restart:
+      enabled: false

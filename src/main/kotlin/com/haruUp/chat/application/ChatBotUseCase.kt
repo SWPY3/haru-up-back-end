@@ -4,16 +4,12 @@ import com.haruUp.category.application.JobDetailService
 import com.haruUp.category.application.JobService
 import com.haruUp.chat.application.service.ChatBotService
 import com.haruUp.chat.application.service.ChatValidationService
-import com.haruUp.chat.domain.ChatDto
 import com.haruUp.chat.domain.ChatOption
 import com.haruUp.chat.domain.ChatOptionType
 import com.haruUp.chat.domain.ChatRequest
 import com.haruUp.chat.domain.ChatResponse
 import com.haruUp.chat.domain.ChatState
-import com.haruUp.chat.domain.ValidationResult
 import com.haruUp.chat.repository.ChatRedisRepository
-import com.haruUp.global.clova.ClovaApiClient
-import com.haruUp.interest.service.MemberInterestService
 import org.springframework.stereotype.Component
 
 @Component
@@ -45,8 +41,13 @@ class ChatBotUseCase(
             0 -> handleIntro(state)
             1 -> handleCategory(request.content, state)
             2 -> handleSubCategory(request.content, state)
-            3 -> handleMotivation(request.content, state)
-            4 -> handleFollowUp(request.content, state)
+            3 -> handleGoal(request.content, state)
+            4 -> handleDesiredOutcome(request.content, state)
+            5 -> handleSkillLevel(request.content, state)
+            6 -> handleRecentExperience(request.content, state)
+            7 -> handleTargetPeriod(request.content, state)
+            8 -> handleDailyAvailableTime(request.content, state)
+            9 -> handleAdditionalOpinion(request.content, state)
             else -> handleReset(state)
         }
 
@@ -100,7 +101,7 @@ class ChatBotUseCase(
 
         if (answer.isBlank()) {
             return ChatResponse(
-                message = "자기계발 분야를 선택해주세요.",
+                message = "관심 분야를 선택해주세요.",
                 nextDepth = 1,
                 completed = false,
                 options = categoryOptions.map { dto ->
@@ -175,7 +176,7 @@ class ChatBotUseCase(
             chatBotService.resetState(state)
 
             return ChatResponse(
-                message = "처음부터 다시 시작할게요. 어떤 자기계발을 하고 싶으신가요?",
+                message = chatBotService.getRestartMessage(),
                 nextDepth = 1,
                 completed = false,
                 options = jobService.getJobList().map { dto ->
@@ -192,7 +193,7 @@ class ChatBotUseCase(
 
         if (answer.isBlank()) {
             return ChatResponse(
-                message = "세부 관심사를 선택해주세요.",
+                message = "세부 관심사나 직무를 선택해주세요.",
                 nextDepth = 2,
                 completed = false,
                 options = subCategoryOptions.map { dto ->
@@ -240,7 +241,7 @@ class ChatBotUseCase(
         state.depth = 3
 
         return ChatResponse(
-            message = chatBotService.getMotivationQuestion(
+            message = chatBotService.getGoalQuestion(
                 category = state.category!!,
                 subCategory = state.subCategory!!
             ),
@@ -251,83 +252,181 @@ class ChatBotUseCase(
     }
 
     /**
-     * 3단계: 학습 동기 입력 처리
-     *
-     * 사용자의 동기 답변을 상태에 저장한 뒤,
-     * LLM API를 사용하여 충분한 답변인지 검수한다.
-     *
-     * 검수 결과:
-     * - 충분함 -> 종료
-     * - 부족함 -> 추가 질문 단계로 이동
+     * 3단계: 현재 목표 입력 처리
      */
-    private fun handleMotivation(content: String, state: ChatState): ChatResponse {
+    private fun handleGoal(content: String, state: ChatState): ChatResponse {
         val answer = content.trim()
+        val question = chatBotService.getGoalQuestion(
+            category = state.category ?: "선택한 분야",
+            subCategory = state.subCategory ?: "선택한 분야"
+        )
 
-        // 공백 입력 방지
-        if (answer.isBlank()) {
+        if (answer.isBlank() || chatValidationService.isClearlyNonAnswer(answer)) {
             return ChatResponse(
-                message = "학습 동기를 입력해주세요.",
+                message = question,
                 nextDepth = 3,
                 completed = false,
                 options = emptyList()
             )
         }
 
-        // 사용자의 학습 동기 저장
-        state.motivation = answer
+        state.goal = answer
+        state.depth = 4
 
-        // LLM을 통한 답변 검수
-        val validation: ValidationResult = chatValidationService.validateMotivation(state)
-
-        return if (validation.isValid) {
-            // 현재 답변만으로 충분한 경우 종료
-            state.depth = 999
-
-            ChatResponse(
-                message = chatBotService.buildFinalMessage(state),
-                nextDepth = 999,
-                completed = true,
-                options = emptyList()
-            )
-        } else {
-            // 답변이 부족하면 추가 질문 단계로 이동
-            state.needFollowUp = true
-            state.followUpQuestion = validation.followUpQuestion
-                ?: "조금 더 구체적으로 설명해주실 수 있을까요?"
-            state.depth = 4
-
-            ChatResponse(
-                message = state.followUpQuestion!!,
-                nextDepth = 4,
-                completed = false,
-                options = emptyList()
-            )
-        }
+        return ChatResponse(
+            message = chatBotService.getDesiredOutcomeQuestion(state.subCategory ?: "선택한 분야"),
+            nextDepth = 4,
+            completed = false,
+            options = emptyList()
+        )
     }
 
     /**
-     * 4단계: 추가 질문 답변 처리
-     *
-     * 3단계에서 답변이 부족하다고 판단된 경우,
-     * 사용자에게 추가 질문을 던지고 그 답변을 저장한 후 종료한다.
+     * 4단계: 최종 결과물 입력 처리
      */
-    private fun handleFollowUp(content: String, state: ChatState): ChatResponse {
+    private fun handleDesiredOutcome(content: String, state: ChatState): ChatResponse {
         val answer = content.trim()
+        val question = chatBotService.getDesiredOutcomeQuestion(state.subCategory ?: "선택한 분야")
 
-        // 공백 입력 방지
-        if (answer.isBlank()) {
+        if (answer.isBlank() || chatValidationService.isClearlyNonAnswer(answer)) {
             return ChatResponse(
-                message = state.followUpQuestion ?: "조금 더 구체적으로 입력해주세요.",
+                message = question,
                 nextDepth = 4,
                 completed = false,
                 options = emptyList()
             )
         }
 
-        // 추가 질문에 대한 답변 저장
-        state.followUpAnswer = answer
+        state.desiredOutcome = answer
+        state.depth = 5
 
-        // 최종 종료 상태로 전환
+        return ChatResponse(
+            message = chatBotService.getSkillLevelQuestion(state.subCategory ?: "선택한 분야"),
+            nextDepth = 5,
+            completed = false,
+            options = emptyList()
+        )
+    }
+
+    /**
+     * 5단계: 현재 실력 입력 처리
+     */
+    private fun handleSkillLevel(content: String, state: ChatState): ChatResponse {
+        val answer = content.trim()
+        val question = chatBotService.getSkillLevelQuestion(state.subCategory ?: "선택한 분야")
+
+        if (chatValidationService.isClearlyInvalidSkillLevelAnswer(answer)) {
+            return ChatResponse(
+                message = question,
+                nextDepth = 5,
+                completed = false,
+                options = emptyList()
+            )
+        }
+
+        state.skillLevel = answer
+        state.depth = 6
+
+        return ChatResponse(
+            message = chatBotService.getRecentExperienceQuestion(state.subCategory ?: "선택한 분야"),
+            nextDepth = 6,
+            completed = false,
+            options = emptyList()
+        )
+    }
+
+    /**
+     * 6단계: 최근 직접 해본 작업 입력 처리
+     */
+    private fun handleRecentExperience(content: String, state: ChatState): ChatResponse {
+        val answer = content.trim()
+        val question = chatBotService.getRecentExperienceQuestion(state.subCategory ?: "선택한 분야")
+
+        if (chatValidationService.isClearlyInvalidRecentExperienceAnswer(answer)) {
+            return ChatResponse(
+                message = question,
+                nextDepth = 6,
+                completed = false,
+                options = emptyList()
+            )
+        }
+
+        state.recentExperience = answer
+        state.depth = 7
+
+        return ChatResponse(
+            message = chatBotService.getTargetPeriodQuestion(),
+            nextDepth = 7,
+            completed = false,
+            options = emptyList()
+        )
+    }
+
+    /**
+     * 7단계: 목표 기간 입력 처리
+     */
+    private fun handleTargetPeriod(content: String, state: ChatState): ChatResponse {
+        val answer = content.trim()
+        val question = chatBotService.getTargetPeriodQuestion()
+
+        if (answer.isBlank() || chatValidationService.isClearlyNonAnswer(answer)) {
+            return ChatResponse(
+                message = question,
+                nextDepth = 7,
+                completed = false,
+                options = emptyList()
+            )
+        }
+
+        state.targetPeriod = answer
+        state.depth = 8
+
+        return ChatResponse(
+            message = chatBotService.getDailyAvailableTimeQuestion(),
+            nextDepth = 8,
+            completed = false,
+            options = emptyList()
+        )
+    }
+
+    /**
+     * 8단계: 하루 투자 가능 시간 입력 처리
+     */
+    private fun handleDailyAvailableTime(content: String, state: ChatState): ChatResponse {
+        val answer = content.trim()
+        val question = chatBotService.getDailyAvailableTimeQuestion()
+
+        if (answer.isBlank() || chatValidationService.isClearlyNonAnswer(answer)) {
+            return ChatResponse(
+                message = question,
+                nextDepth = 8,
+                completed = false,
+                options = emptyList()
+            )
+        }
+
+        state.dailyAvailableTime = answer
+        state.depth = 9
+
+        return ChatResponse(
+            message = chatBotService.getAdditionalOpinionQuestion(),
+            nextDepth = 9,
+            completed = false,
+            options = emptyList()
+        )
+    }
+
+    /**
+     * 9단계: 추가 의견 입력 처리
+     */
+    private fun handleAdditionalOpinion(content: String, state: ChatState): ChatResponse {
+        val answer = content.trim()
+
+        state.additionalOpinion = if (isNoAdditionalOpinion(answer)) {
+            null
+        } else {
+            answer
+        }
         state.depth = 999
 
         return ChatResponse(
@@ -335,6 +434,28 @@ class ChatBotUseCase(
             nextDepth = 999,
             completed = true,
             options = emptyList()
+        )
+    }
+
+    private fun isNoAdditionalOpinion(answer: String): Boolean {
+        if (answer.isBlank()) {
+            return true
+        }
+
+        val normalized = answer.trim()
+            .lowercase()
+            .replace("\\s+".toRegex(), " ")
+            .replace("[?!.,~]+$".toRegex(), "")
+
+        return normalized in setOf(
+            "없음",
+            "없어",
+            "없어요",
+            "없습니다",
+            "딱히 없어",
+            "딱히 없음",
+            "딱히 없어요",
+            "없는데"
         )
     }
 
@@ -348,14 +469,14 @@ class ChatBotUseCase(
         chatBotService.resetState(state)
 
         return ChatResponse(
-            message = "처음부터 다시 시작할게요. 어떤 자기계발을 하고 싶으신가요?",
+            message = chatBotService.getRestartMessage(),
             nextDepth = 1,
             completed = false,
             options = jobService.getJobList().map { dto ->
                 ChatOption(
                     no = dto.id,
                     label = dto.jobName,
-                    type = ChatOptionType.JOB_DETAIL
+                    type = ChatOptionType.JOB
                 )
             }
         )
