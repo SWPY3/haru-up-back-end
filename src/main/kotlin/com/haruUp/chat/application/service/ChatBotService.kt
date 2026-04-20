@@ -2,124 +2,96 @@ package com.haruUp.chat.application.service
 
 import com.haruUp.category.domain.dto.JobDto
 import com.haruUp.chat.domain.ChatState
+import com.haruUp.missionembedding.dto.MissionDto
 import org.springframework.stereotype.Service
 
 @Service
 class ChatBotService {
 
-    /**
-     * 첫 진입 시 보여줄 소개 문구 생성
-     */
     fun getIntroMessage(): String {
         return """
-            안녕하세요! 저는 당신의 학습 도우미 하루예요.
-            가장 적합한 커리큘럼을 설계하기 위해 몇 가지 간단한 질문을 드릴게요.
-            
-            어떤 관심 분야를 중심으로 성장하고 싶으신가요?
+            안녕하세요. 미션 추천 챗봇입니다.
+            관심사 선택 후 고정 질문 3개만 답하면 추천 가능 여부를 바로 판단해드릴게요.
+
+            어떤 관심 분야를 선택하시겠어요?
+            아래 목록에서 번호를 입력해 주세요.
         """.trimIndent()
     }
 
-    fun getCategoryQuestion(): String {
-        return "어떤 관심 분야를 중심으로 성장하고 싶으신가요?"
-    }
-
     fun getRestartMessage(): String {
-        return "처음부터 다시 시작할게요. ${getCategoryQuestion()}"
+        return "처음부터 다시 시작할게요. 관심 분야를 번호로 선택해 주세요."
     }
 
-    /**
-     * 상위 관심사에 따른 세부 관심사 질문 문구 생성
-     */
     fun getSubCategoryQuestion(category: String): String {
-        return "${category} 안에서 더 구체적으로 집중하고 싶은 세부 관심사나 직무를 선택해주세요."
+        return "${category}에서 어떤 상세 관심사를 원하시나요? 번호로 선택해 주세요."
     }
 
-    /**
-     * 학습 목표 질문 문구 생성
-     */
-    fun getGoalQuestion(category: String, subCategory: String): String {
-        return "${subCategory}와 관련해 지금 가장 이루고 싶은 목표는 무엇인가요?"
+    fun getGoalQuestion(subCategory: String): String {
+        return "${subCategory} 기준으로 이번에 달성하고 싶은 목표/결과물을 알려주세요."
     }
 
-    fun getDesiredOutcomeQuestion(subCategory: String): String {
-        return "이번 ${subCategory} 목표에서 최종적으로 만들고 싶은 결과물은 무엇인가요? 예: 기획서 1장, 와이어프레임 3장, 앱 MVP"
+    fun getProfileQuestion(subCategory: String): String {
+        return "${subCategory} 관련 현재 수준과 최근 경험을 함께 알려주세요."
     }
 
-    fun getSkillLevelQuestion(subCategory: String): String {
-        return "${subCategory} 기준으로 현재 실력은 어느 정도인가요? 예: 입문, 기초, 중급, 실무 경험 있음"
+    fun getScheduleQuestion(): String {
+        return "하루 투자 가능 시간과 목표 기간을 알려주세요. (예: 하루 1시간, 2개월)"
     }
 
-    fun getRecentExperienceQuestion(subCategory: String): String {
-        return "최근 직접 해본 ${subCategory} 관련 작업이 있나요? 없으면 '아직 해본 적 없음'이라고 적어주세요. 예: 화면 1개 손그림, Figma 초안 1개, 문서 1장 작성"
-    }
-
-    fun getTargetPeriodQuestion(): String {
-        return "이 목표를 어느 정도 기간 안에 이루고 싶으신가요? 예: 1개월, 3개월, 6개월"
-    }
-
-    fun getDailyAvailableTimeQuestion(): String {
-        return "하루에 이 목표를 위해 어느 정도 시간을 투자할 수 있나요? 예: 30분, 1시간, 2시간"
-    }
-
-    fun getAdditionalOpinionQuestion(): String {
-        return "추가로 반영했으면 하는 점이 있나요? 없으면 '없음'이라고 입력해주세요."
-    }
-
-    /**
-     * 최종 요약 메시지 생성
-     *
-     * 현재는 수집한 정보를 정리해서 보여주는 형태로 구현한다.
-     * 이후 필요하면 이 부분을 실제 추천 문구 생성 로직으로 확장할 수 있다.
-     */
-    fun buildFinalMessage(state: ChatState): String {
-        val summaryLines = mutableListOf(
-            "좋아요. 입력해주신 내용을 정리해볼게요.",
-            "",
-            "- 관심 분야: ${state.category}",
-            "- 세부 관심사: ${state.subCategory}",
-            "- 현재 목표: ${state.goal}",
-            "- 최종 결과물: ${state.desiredOutcome}",
-            "- 현재 실력: ${state.skillLevel}",
-            "- 최근 직접 해본 작업: ${state.recentExperience}",
-            "- 목표 기간: ${state.targetPeriod}",
-            "- 하루 투자 가능 시간: ${state.dailyAvailableTime}"
-        )
-
-        if (!state.additionalOpinion.isNullOrBlank()) {
-            summaryLines.add("- 추가 의견: ${state.additionalOpinion}")
+    fun getSupplementQuestion(missingFields: List<String>): String {
+        if (missingFields.isEmpty()) {
+            return "추천에 필요한 정보가 부족합니다. 목표, 현재 수준/경험, 시간/기간 정보를 조금 더 구체적으로 알려주세요."
         }
 
-        summaryLines.add("")
-        summaryLines.add("이 정보를 바탕으로 맞춤형 커리큘럼을 설계해드릴게요.")
-
-        return summaryLines.joinToString("\n")
+        val labels = missingFields.joinToString(", ") { field ->
+            when (field) {
+                "goal" -> "목표/결과물"
+                "experience" -> "현재 수준/최근 경험"
+                "schedule" -> "시간/기간"
+                else -> field
+            }
+        }
+        return "추천 전에 정보가 조금 부족해요. 다음 항목을 보완해 주세요: $labels"
     }
 
-    /**
-     * 상위 관심사 검증
-     *
-     * 사용자가 입력한 category가 DB에서 조회한 목록에 포함되는지 확인한다.
-     */
+    fun buildRecommendationMessage(
+        state: ChatState,
+        missions: List<MissionDto>
+    ): String {
+        val header = buildList {
+            add("추천 준비가 완료되어 미션을 생성했어요.")
+            add("")
+            add("- 관심 분야: ${state.category}")
+            add("- 상세 관심사: ${state.subCategory}")
+            add("- 목표/결과물: ${state.goal}")
+            add("- 현재 수준/최근 경험: ${state.skillLevel}")
+            add("- 시간/기간: ${state.dailyAvailableTime} / ${state.targetPeriod}")
+            if (!state.additionalOpinion.isNullOrBlank()) {
+                add("- 추가 의견: ${state.additionalOpinion}")
+            }
+            add("")
+        }
+
+        val missionLines = if (missions.isEmpty()) {
+            listOf("현재 조건으로 생성된 미션이 없습니다. 답변을 조금 더 구체적으로 입력해 주세요.")
+        } else {
+            missions.mapIndexed { index, mission ->
+                "${index + 1}. [난이도 ${mission.difficulty ?: "-"}] ${mission.content}"
+            }
+        }
+
+        return (header + missionLines).joinToString("\n")
+    }
+
     fun isValidCategory(answer: String, options: List<JobDto>): Boolean {
         val answerId = answer.toLongOrNull() ?: return false
         return options.any { it.id == answerId }
     }
 
-    /**
-     * 세부 관심사 검증
-     *
-     * 사용자가 입력한 subCategory가 DB에서 조회한 목록에 포함되는지 확인한다.
-     */
     fun isValidSubCategory(answer: String, options: List<String>): Boolean {
         return options.contains(answer)
     }
 
-    /**
-     * ChatState 초기화
-     *
-     * 상태가 꼬였을 때 처음부터 다시 시작할 수 있도록
-     * 필요한 필드를 초기 상태로 되돌린다.
-     */
     fun resetState(state: ChatState) {
         state.depth = 1
         state.categoryNo = null
