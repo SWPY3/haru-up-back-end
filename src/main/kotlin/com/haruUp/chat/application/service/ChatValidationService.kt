@@ -33,30 +33,39 @@ class ChatValidationService(
         return isClearlyNonAnswer(normalized)
     }
 
+    fun isClearlyInvalidTargetPeriod(answer: String): Boolean {
+        val normalized = normalize(answer)
+        if (isClearlyNonAnswer(normalized)) return true
+        return !PERIOD_CUE_REGEX.containsMatchIn(normalized)
+    }
+
+    fun isClearlyInvalidDailyTime(answer: String): Boolean {
+        val normalized = normalize(answer)
+        if (isClearlyNonAnswer(normalized)) return true
+        return !TIME_CUE_REGEX.containsMatchIn(normalized)
+    }
+
     fun evaluateRecommendationReadiness(state: ChatState): RecommendationReadiness {
         val missing = mutableListOf<String>()
 
         val goal = state.goal.orEmpty()
-        if (goal.isBlank() || isClearlyNonAnswer(goal) || goal.length < 8) {
+        if (goal.isBlank() || isClearlyNonAnswer(goal) || goal.length < 5) {
             missing += "goal"
         }
 
-        val profile = listOf(state.skillLevel, state.recentExperience)
-            .filterNotNull()
-            .joinToString(" ")
-            .trim()
-        val profileInvalid = profile.isBlank() ||
-            (isClearlyInvalidSkillLevelAnswer(profile) && isClearlyInvalidRecentExperienceAnswer(profile))
-        if (profileInvalid) {
-            missing += "experience"
+        val skill = state.skillLevel.orEmpty()
+        if (skill.isBlank() || isClearlyInvalidSkillLevelAnswer(skill)) {
+            missing += "skill"
         }
 
-        val schedule = listOf(state.dailyAvailableTime, state.targetPeriod)
-            .filterNotNull()
-            .joinToString(" ")
-            .trim()
-        if (schedule.isBlank() || !TIME_CUE_REGEX.containsMatchIn(schedule) || !PERIOD_CUE_REGEX.containsMatchIn(schedule)) {
-            missing += "schedule"
+        val period = state.targetPeriod.orEmpty()
+        if (period.isBlank() || isClearlyInvalidTargetPeriod(period)) {
+            missing += "period"
+        }
+
+        val dailyTime = state.dailyAvailableTime.orEmpty()
+        if (dailyTime.isBlank() || isClearlyInvalidDailyTime(dailyTime)) {
+            missing += "dailyTime"
         }
 
         return RecommendationReadiness(
@@ -81,10 +90,11 @@ class ChatValidationService(
             category=${state.category}
             subCategory=${state.subCategory}
             goal=${state.goal}
-            profile=${state.skillLevel}
-            schedule=${state.dailyAvailableTime}
+            skill=${state.skillLevel}
+            targetPeriod=${state.targetPeriod}
+            dailyTime=${state.dailyAvailableTime}
 
-            반드시 JSON 형식으로만 답변해 주세요.
+            반드시 JSON 형식으로만 응답해 주세요.
             {"isValid":true,"reason":"...","followUpQuestion":null}
         """.trimIndent()
     }
@@ -96,7 +106,7 @@ class ChatValidationService(
             ValidationResult(
                 isValid = false,
                 reason = "LLM response parse failed",
-                followUpQuestion = "목표를 조금 더 구체적으로 알려주세요."
+                followUpQuestion = "\uBAA9\uD45C\uB97C \uC870\uAE08 \uB354 \uAD6C\uCCB4\uC801\uC73C\uB85C \uC54C\uB824\uC8FC\uC138\uC694."
             )
         }
     }
@@ -110,25 +120,49 @@ class ChatValidationService(
 
     companion object {
         private val NON_ANSWER_KEYWORDS = listOf(
-            "모르겠", "모르겠어", "모르겠습니다",
-            "글쎄", "딱히", "아무거나", "그냥",
-            "잘 모르", "생각 안", "없어요", "없음"
+            "\uBAA8\uB974\uACA0\uC5B4",
+            "\uBAA8\uB974\uACA0\uC2B5\uB2C8\uB2E4",
+            "\uAE00\uC138",
+            "\uB313\uC787",
+            "\uC544\uBB34\uAC70\uB098",
+            "\uADF8\uB0E5",
+            "\uC798 \uBAA8\uB984",
+            "\uC0DD\uAC01 \uC5C6\uC74C"
         )
 
         private val VAGUE_SHORT_KEYWORDS = listOf(
-            "몰라", "모름", "아직", "없어", "없음", "대충"
+            "\uBAA8\uB974",
+            "\uC544\uC9C1",
+            "\uC5C6\uC5B4",
+            "\uC5C6\uC74C",
+            "\uB300\uCDA9"
         )
 
         private val SKILL_LEVEL_CUES = listOf(
-            "입문", "초보", "기초", "중급", "고급", "경험", "해봤", "다뤄봤", "실무", "처음"
+            "\uC785\uBB38",
+            "\uCD08\uBCF4",
+            "\uAE30\uCD08",
+            "\uC911\uAE09",
+            "\uACE0\uAE09",
+            "\uACBD\uD5D8",
+            "\uC2E0\uC785",
+            "\uCC98\uC74C",
+            "\uC2E4\uBB34"
         )
 
         private val RECENT_EXPERIENCE_CUES = listOf(
-            "해봤", "만들어", "작성", "설계", "구현", "연동", "프로젝트", "아직 안", "처음"
+            "\uD574\uBD24",
+            "\uB9CC\uB4E4",
+            "\uC791\uC131",
+            "\uC124\uACC4",
+            "\uAD6C\uD604",
+            "\uD504\uB85C\uC81D\uD2B8",
+            "\uCC98\uC74C",
+            "\uC5C6\uC74C"
         )
 
-        private val TIME_CUE_REGEX = Regex("(\\d+)\\s*(시간|분)")
-        private val PERIOD_CUE_REGEX = Regex("(\\d+)\\s*(일|주|개월|달|년)")
+        private val TIME_CUE_REGEX = Regex("(\\d+)\\s*(\uC2DC\uAC04|\uBD84)")
+        private val PERIOD_CUE_REGEX = Regex("(\\d+)\\s*(\uC77C|\uC8FC|\uAC1C\uC6D4|\uB2EC)")
 
         private const val VALIDATION_SYSTEM_PROMPT = """
             You are a validator for mission recommendation readiness.

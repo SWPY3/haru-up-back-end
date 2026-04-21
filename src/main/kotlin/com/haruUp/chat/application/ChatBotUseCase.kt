@@ -2,12 +2,12 @@ package com.haruUp.chat.application
 
 import com.haruUp.category.application.JobDetailService
 import com.haruUp.category.application.JobService
+import com.haruUp.category.domain.dto.JobDetailDto
+import com.haruUp.category.domain.dto.JobDto
 import com.haruUp.chat.application.service.ChatBotMissionContext
 import com.haruUp.chat.application.service.ChatBotMissionRecommendationService
 import com.haruUp.chat.application.service.ChatBotService
 import com.haruUp.chat.application.service.ChatValidationService
-import com.haruUp.chat.domain.ChatOption
-import com.haruUp.chat.domain.ChatOptionType
 import com.haruUp.chat.domain.ChatRequest
 import com.haruUp.chat.domain.ChatResponse
 import com.haruUp.chat.domain.ChatState
@@ -32,12 +32,10 @@ class ChatBotUseCase(
         val response = when {
             content.lowercase() in RESET_COMMANDS -> handleReset(state)
             state.depth == 0 -> handleIntro(state)
-            state.depth == 1 -> handleCategory(content, state)
-            state.depth == 2 -> handleSubCategory(content, state)
-            state.depth == 3 -> handleGoal(content, state)
-            state.depth == 4 -> handleProfile(content, state)
-            state.depth == 5 -> handleSchedule(content, state)
-            state.depth == 6 -> handleSupplement(content, state)
+            state.depth == 1 -> handleGoal(content, state)
+            state.depth == 2 -> handleSkill(content, state)
+            state.depth == 3 -> handleTargetPeriod(content, state)
+            state.depth == 4 -> handleDailyAvailableTime(content, state)
             else -> handleReset(state)
         }
 
@@ -55,90 +53,6 @@ class ChatBotUseCase(
             message = chatBotService.getIntroMessage(),
             nextDepth = 1,
             completed = false,
-            options = buildJobOptions()
-        )
-    }
-
-    private fun handleCategory(content: String, state: ChatState): ChatResponse {
-        val options = jobService.getJobList()
-
-        if (content.isBlank()) {
-            return ChatResponse(
-                message = "관심 분야를 번호로 선택해 주세요.",
-                nextDepth = 1,
-                completed = false,
-                options = buildJobOptions()
-            )
-        }
-
-        val selectedNo = content.toLongOrNull()
-            ?: return ChatResponse(
-                message = "번호로만 선택해 주세요.",
-                nextDepth = 1,
-                completed = false,
-                options = buildJobOptions()
-            )
-
-        val selected = options.find { it.id == selectedNo }
-            ?: return ChatResponse(
-                message = "목록에 없는 번호입니다. 다시 선택해 주세요.",
-                nextDepth = 1,
-                completed = false,
-                options = buildJobOptions()
-            )
-
-        state.categoryNo = selected.id
-        state.category = selected.jobName
-        state.depth = 2
-
-        return ChatResponse(
-            message = chatBotService.getSubCategoryQuestion(selected.jobName),
-            nextDepth = 2,
-            completed = false,
-            options = buildJobDetailOptions(selected.id)
-        )
-    }
-
-    private fun handleSubCategory(content: String, state: ChatState): ChatResponse {
-        val categoryNo = state.categoryNo
-            ?: return handleReset(state)
-        val category = state.category
-            ?: return handleReset(state)
-        val options = jobDetailService.getJobDetailList(categoryNo)
-
-        if (content.isBlank()) {
-            return ChatResponse(
-                message = "상세 관심사를 번호로 선택해 주세요.",
-                nextDepth = 2,
-                completed = false,
-                options = buildJobDetailOptions(categoryNo)
-            )
-        }
-
-        val selectedNo = content.toLongOrNull()
-            ?: return ChatResponse(
-                message = "번호로만 선택해 주세요.",
-                nextDepth = 2,
-                completed = false,
-                options = buildJobDetailOptions(categoryNo)
-            )
-
-        val selected = options.find { it.id == selectedNo }
-            ?: return ChatResponse(
-                message = "목록에 없는 번호입니다. 다시 선택해 주세요.",
-                nextDepth = 2,
-                completed = false,
-                options = buildJobDetailOptions(categoryNo)
-            )
-
-        state.subCategoryNo = selected.id
-        state.subCategory = selected.jobDetailName
-        state.depth = 3
-
-        return ChatResponse(
-            message = chatBotService.getGoalQuestion(state.subCategory ?: category),
-            nextDepth = 3,
-            completed = false,
             options = emptyList()
         )
     }
@@ -146,8 +60,8 @@ class ChatBotUseCase(
     private fun handleGoal(content: String, state: ChatState): ChatResponse {
         if (content.isBlank() || chatValidationService.isClearlyNonAnswer(content)) {
             return ChatResponse(
-                message = chatBotService.getGoalQuestion(state.subCategory ?: "선택한 분야"),
-                nextDepth = 3,
+                message = chatBotService.getGoalQuestion(state.subCategory ?: "N/A"),
+                nextDepth = 1,
                 completed = false,
                 options = emptyList()
             )
@@ -155,23 +69,21 @@ class ChatBotUseCase(
 
         state.goal = content
         state.desiredOutcome = content
-        state.depth = 4
+        state.depth = 2
 
         return ChatResponse(
-            message = chatBotService.getProfileQuestion(state.subCategory ?: "선택한 분야"),
-            nextDepth = 4,
+            message = chatBotService.getSkillQuestion(state.subCategory ?: "N/A"),
+            nextDepth = 2,
             completed = false,
             options = emptyList()
         )
     }
 
-    private fun handleProfile(content: String, state: ChatState): ChatResponse {
-        val invalidSkill = chatValidationService.isClearlyInvalidSkillLevelAnswer(content)
-        val invalidRecent = chatValidationService.isClearlyInvalidRecentExperienceAnswer(content)
-        if (content.isBlank() || (invalidSkill && invalidRecent)) {
+    private fun handleSkill(content: String, state: ChatState): ChatResponse {
+        if (content.isBlank() || chatValidationService.isClearlyInvalidSkillLevelAnswer(content)) {
             return ChatResponse(
-                message = chatBotService.getProfileQuestion(state.subCategory ?: "선택한 분야"),
-                nextDepth = 4,
+                message = chatBotService.getSkillQuestion(state.subCategory ?: "N/A"),
+                nextDepth = 2,
                 completed = false,
                 options = emptyList()
             )
@@ -179,75 +91,86 @@ class ChatBotUseCase(
 
         state.skillLevel = content
         state.recentExperience = content
-        state.depth = 5
+        state.depth = 3
 
         return ChatResponse(
-            message = chatBotService.getScheduleQuestion(),
-            nextDepth = 5,
+            message = chatBotService.getTargetPeriodQuestion(),
+            nextDepth = 3,
             completed = false,
             options = emptyList()
         )
     }
 
-    private fun handleSchedule(content: String, state: ChatState): ChatResponse {
-        if (content.isBlank() || chatValidationService.isClearlyNonAnswer(content)) {
+    private fun handleTargetPeriod(content: String, state: ChatState): ChatResponse {
+        if (content.isBlank() || chatValidationService.isClearlyInvalidTargetPeriod(content)) {
             return ChatResponse(
-                message = chatBotService.getScheduleQuestion(),
-                nextDepth = 5,
+                message = chatBotService.getTargetPeriodQuestion(),
+                nextDepth = 3,
                 completed = false,
                 options = emptyList()
             )
         }
 
-        applyScheduleAnswer(content, state)
+        state.targetPeriod = content
+        state.depth = 4
+
+        return ChatResponse(
+            message = chatBotService.getDailyAvailableTimeQuestion(),
+            nextDepth = 4,
+            completed = false,
+            options = emptyList()
+        )
+    }
+
+    private fun handleDailyAvailableTime(content: String, state: ChatState): ChatResponse {
+        if (content.isBlank() || chatValidationService.isClearlyInvalidDailyTime(content)) {
+            return ChatResponse(
+                message = chatBotService.getDailyAvailableTimeQuestion(),
+                nextDepth = 4,
+                completed = false,
+                options = emptyList()
+            )
+        }
+
+        state.dailyAvailableTime = content
 
         val readiness = chatValidationService.evaluateRecommendationReadiness(state)
         if (readiness.sufficient) {
             return finalizeWithRecommendation(state)
         }
 
-        state.needFollowUp = true
-        state.followUpQuestion = chatBotService.getSupplementQuestion(readiness.missingFields)
-        state.depth = 6
-
-        return ChatResponse(
-            message = state.followUpQuestion!!,
-            nextDepth = 6,
-            completed = false,
-            options = emptyList()
-        )
+        return moveToMissingQuestion(state, readiness.missingFields)
     }
 
-    private fun handleSupplement(content: String, state: ChatState): ChatResponse {
-        if (content.isBlank() || chatValidationService.isClearlyNonAnswer(content)) {
-            return ChatResponse(
-                message = state.followUpQuestion ?: "부족한 정보를 조금 더 구체적으로 입력해 주세요.",
-                nextDepth = 6,
-                completed = false,
-                options = emptyList()
-            )
+    private fun moveToMissingQuestion(state: ChatState, missingFields: List<String>): ChatResponse {
+        val nextField = when {
+            "goal" in missingFields -> "goal"
+            "skill" in missingFields -> "skill"
+            "period" in missingFields -> "period"
+            "dailyTime" in missingFields -> "dailyTime"
+            else -> "goal"
         }
 
-        val before = chatValidationService.evaluateRecommendationReadiness(state)
-        applySupplementAnswer(content, state, before.missingFields)
-        state.followUpAnswer = content
-
-        val after = chatValidationService.evaluateRecommendationReadiness(state)
-        if (after.sufficient) {
-            return finalizeWithRecommendation(state)
+        val nextDepth = when (nextField) {
+            "goal" -> 1
+            "skill" -> 2
+            "period" -> 3
+            "dailyTime" -> 4
+            else -> 1
         }
+        state.depth = nextDepth
 
-        state.followUpQuestion = chatBotService.getSupplementQuestion(after.missingFields)
-        state.depth = 6
         return ChatResponse(
-            message = state.followUpQuestion!!,
-            nextDepth = 6,
+            message = chatBotService.getRetryQuestionMessage(nextField, state),
+            nextDepth = nextDepth,
             completed = false,
             options = emptyList()
         )
     }
 
     private fun finalizeWithRecommendation(state: ChatState): ChatResponse {
+        inferInterestFromAnswers(state)
+
         val missions = runBlocking {
             chatBotMissionRecommendationService.recommend(
                 ChatBotMissionContext(
@@ -257,9 +180,9 @@ class ChatBotUseCase(
                     desiredOutcome = state.desiredOutcome ?: state.goal.orEmpty(),
                     skillLevel = state.skillLevel.orEmpty(),
                     recentExperience = state.recentExperience ?: state.skillLevel.orEmpty(),
-                    targetPeriod = state.targetPeriod ?: state.dailyAvailableTime.orEmpty(),
-                    dailyAvailableTime = state.dailyAvailableTime ?: state.targetPeriod.orEmpty(),
-                    additionalOpinion = state.additionalOpinion ?: state.followUpAnswer
+                    targetPeriod = state.targetPeriod.orEmpty(),
+                    dailyAvailableTime = state.dailyAvailableTime.orEmpty(),
+                    additionalOpinion = state.additionalOpinion
                 )
             )
         }
@@ -273,79 +196,101 @@ class ChatBotUseCase(
         )
     }
 
+    private fun inferInterestFromAnswers(state: ChatState) {
+        if (!state.category.isNullOrBlank() && !state.subCategory.isNullOrBlank()) {
+            return
+        }
+
+        val text = listOfNotNull(
+            state.goal,
+            state.skillLevel,
+            state.targetPeriod,
+            state.dailyAvailableTime
+        ).joinToString(" ").lowercase()
+
+        val jobs = jobService.getJobList()
+        if (jobs.isEmpty()) {
+            state.category = state.category ?: "\uC9C1\uBB34 \uAD00\uC2EC\uC0AC \uC77C\uBC18 \uAC1C\uBC1C"
+            state.subCategory = state.subCategory ?: "\uAE30\uCD08 \uC6F9 \uAC1C\uBC1C"
+            return
+        }
+
+        var bestJob: JobDto? = null
+        var bestDetail: JobDetailDto? = null
+        var bestScore = Int.MIN_VALUE
+
+        for (job in jobs) {
+            val details = runCatching { jobDetailService.getJobDetailList(job.id) }.getOrDefault(emptyList())
+            if (details.isEmpty()) {
+                val score = scoreText(text, listOf(job.jobName))
+                if (score > bestScore) {
+                    bestScore = score
+                    bestJob = job
+                    bestDetail = null
+                }
+                continue
+            }
+
+            for (detail in details) {
+                val score = scoreText(text, listOf(job.jobName, detail.jobDetailName))
+                if (score > bestScore) {
+                    bestScore = score
+                    bestJob = job
+                    bestDetail = detail
+                }
+            }
+        }
+
+        val fallbackJob = bestJob ?: jobs.first()
+        val fallbackDetail = bestDetail ?: runCatching {
+            jobDetailService.getJobDetailList(fallbackJob.id).firstOrNull()
+        }.getOrNull()
+
+        state.categoryNo = fallbackJob.id
+        state.category = fallbackJob.jobName
+        state.subCategoryNo = fallbackDetail?.id
+        state.subCategory = fallbackDetail?.jobDetailName ?: fallbackJob.jobName
+    }
+
+    private fun scoreText(text: String, terms: List<String>): Int {
+        var score = 0
+        for (raw in terms) {
+            val term = raw.lowercase()
+            if (term.isBlank()) continue
+            if (text.contains(term)) {
+                score += 3
+            }
+            tokenize(term).forEach { token ->
+                if (token.length >= 2 && text.contains(token)) {
+                    score += 1
+                }
+            }
+        }
+        return score
+    }
+
+    private fun tokenize(value: String): List<String> {
+        return value.split(" ", "/", ",", "(", ")", "-", "_")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+    }
+
     private fun handleReset(state: ChatState): ChatResponse {
         chatBotService.resetState(state)
         return ChatResponse(
             message = chatBotService.getRestartMessage(),
             nextDepth = 1,
             completed = false,
-            options = buildJobOptions()
+            options = emptyList()
         )
     }
 
-    private fun applyScheduleAnswer(answer: String, state: ChatState) {
-        val dailyTime = extractDailyTime(answer)
-        val targetPeriod = extractTargetPeriod(answer)
-
-        state.dailyAvailableTime = dailyTime ?: state.dailyAvailableTime ?: answer
-        state.targetPeriod = targetPeriod ?: state.targetPeriod ?: answer
-    }
-
-    private fun applySupplementAnswer(answer: String, state: ChatState, missingFields: List<String>) {
-        if ("goal" in missingFields) {
-            state.goal = mergeAnswer(state.goal, answer)
-            state.desiredOutcome = mergeAnswer(state.desiredOutcome, answer)
-        }
-
-        if ("experience" in missingFields) {
-            state.skillLevel = mergeAnswer(state.skillLevel, answer)
-            state.recentExperience = mergeAnswer(state.recentExperience, answer)
-        }
-
-        if ("schedule" in missingFields) {
-            applyScheduleAnswer(answer, state)
-        }
-    }
-
-    private fun mergeAnswer(current: String?, addition: String): String {
-        if (current.isNullOrBlank()) return addition
-        if (current.contains(addition)) return current
-        return "$current / $addition"
-    }
-
-    private fun extractDailyTime(answer: String): String? {
-        val matches = DAILY_TIME_REGEX.findAll(answer).map { it.value.trim() }.toList()
-        return if (matches.isEmpty()) null else matches.joinToString(", ")
-    }
-
-    private fun extractTargetPeriod(answer: String): String? {
-        val matches = TARGET_PERIOD_REGEX.findAll(answer).map { it.value.trim() }.toList()
-        return if (matches.isEmpty()) null else matches.joinToString(", ")
-    }
-
-    private fun buildJobOptions(): List<ChatOption> {
-        return jobService.getJobList().map { dto ->
-            ChatOption(
-                no = dto.id,
-                label = dto.jobName,
-                type = ChatOptionType.JOB
-            )
-        }
-    }
-
-    private fun buildJobDetailOptions(categoryNo: Long): List<ChatOption> {
-        return jobDetailService.getJobDetailList(categoryNo).map { dto ->
-            ChatOption(
-                no = dto.id,
-                label = dto.jobDetailName,
-                type = ChatOptionType.JOB_DETAIL
-            )
-        }
-    }
-
     companion object {
-        private val RESET_COMMANDS = setOf("reset", "restart", "처음부터", "다시")
-        private val DAILY_TIME_REGEX = Regex("(\\d+)\\s*(시간|분)")
-        private val TARGET_PERIOD_REGEX = Regex("(\\d+)\\s*(일|주|개월|달|년)")
+        private val RESET_COMMANDS = setOf(
+            "reset",
+            "restart",
+            "\uCC98\uC74C\uBD80\uD130",
+            "\uB2E4\uC2DC"
+        )
     }
 }
