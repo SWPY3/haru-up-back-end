@@ -1,0 +1,16 @@
+{
+  "name": "mission-recommend-test",
+  "version": "1.0.0",
+  "description": "미션 추천 AI 비교 테스트 (Clova vs Claude)",
+  "type": "module",
+  "scripts": {
+    "test:all": "node index.js --all",
+    "test:chatbot-clova": "node index.js --chatbot-clova",
+    "test:chatbot-claude": "node index.js --chatbot-claude",
+    "test:interest-clova": "node index.js --interest-clova",
+    "test:interest-claude": "node index.js --interest-claude"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0"
+  }
+}
